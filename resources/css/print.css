@@ -1,0 +1,436 @@
+@page {
+    size: A4;
+    margin: 14mm;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    color: #1b2225;
+    background: #ece8e1;
+}
+
+.print-toolbar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(238, 240, 237, 0.94);
+}
+
+.print-toolbar button {
+    padding: 0.8rem 1.1rem;
+    border: 1px solid #c7d0c8;
+    border-radius: 999px;
+    background: #fff;
+    font: inherit;
+    cursor: pointer;
+}
+
+.a4-sheet,
+.certificate-sheet,
+.id-sheet {
+    width: min(210mm, calc(100% - 2rem));
+    margin: 1rem auto 2rem;
+}
+
+.a4-sheet,
+.certificate-frame,
+.id-card-face,
+.id-card-back {
+    background: #fff;
+    box-shadow: 0 20px 50px rgba(20, 25, 28, 0.08);
+}
+
+.a4-sheet {
+    padding: 16mm 16mm 18mm;
+    border-top: 6px solid #b95c35;
+}
+
+.document-header,
+.detail-grid,
+.document-footer,
+.id-card-header,
+.id-card-body,
+.id-info-grid,
+.certificate-meta,
+.certificate-signatures {
+    display: grid;
+    gap: 1rem;
+}
+
+.document-header {
+    grid-template-columns: minmax(0, 1fr) 230px;
+    align-items: start;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #dde4de;
+}
+
+.document-kicker {
+    margin: 0 0 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #8f4a2e;
+}
+
+.centered {
+    text-align: center;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+    margin: 0;
+}
+
+.document-header h1,
+.certificate-title {
+    font-size: 2rem;
+}
+
+.document-brand-block {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.document-subtitle,
+.certificate-copy,
+.id-note {
+    color: #5d666b;
+    line-height: 1.6;
+}
+
+.document-meta,
+.detail-list,
+.id-info-grid {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.document-meta div,
+.detail-list div,
+.id-info-grid div {
+    text-align: left;
+    padding: 0.72rem 0.8rem;
+    border: 1px solid #dde4de;
+    border-radius: 0.45rem;
+    background: #fbfbfa;
+}
+
+.document-meta span,
+.detail-list dt,
+.id-info-grid span,
+.certificate-meta span,
+.document-footer span,
+.certificate-signatures span {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: #667277;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.document-meta strong,
+.detail-list dd {
+    margin: 0;
+    text-align: left;
+}
+
+.detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 1rem;
+}
+
+.compact-document-grid {
+    margin-top: 1rem;
+}
+
+.document-section {
+    margin-bottom: 1rem;
+}
+
+.section-titlebar {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.detail-card {
+    padding: 0.9rem;
+    border: 1px solid #dde4de;
+    border-radius: 0.7rem;
+    margin-bottom: 1rem;
+    background: #fff;
+}
+
+.detail-card h2 {
+    margin-bottom: 0.7rem;
+    font-size: 1rem;
+}
+
+.detail-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detail-list-document {
+    gap: 0.65rem;
+}
+
+.detail-list.single-column {
+    grid-template-columns: 1fr;
+}
+
+.full-span {
+    margin-bottom: 1rem;
+}
+
+.document-footer {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 1.6rem;
+}
+
+.signature-line {
+    height: 44px;
+    border-bottom: 1px solid #1b2225;
+}
+
+.id-sheet {
+    width: min(96mm, calc(100% - 2rem));
+    margin: 1rem auto 2rem;
+}
+
+.id-card-single {
+    position: relative;
+    min-height: 58mm;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid #e5d6ca;
+    background:
+        radial-gradient(circle at bottom right, rgba(185, 92, 53, 0.08), transparent 28%),
+        linear-gradient(180deg, #fffdfa, #f8f1eb);
+    box-shadow: 0 20px 50px rgba(20, 25, 28, 0.08);
+}
+
+.id-card-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0.7rem;
+}
+
+.id-card-single-inner {
+    position: relative;
+    z-index: 1;
+    padding: 0.95rem;
+}
+
+.id-brand {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.7rem;
+    align-items: center;
+}
+
+.id-brand-copy .document-kicker {
+    margin-bottom: 0.22rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.62rem;
+}
+
+.id-brand-copy h1 {
+    font-size: 1.3rem;
+    line-height: 1;
+    color: #fff;
+}
+
+.id-logo-shell {
+    width: 2.4rem;
+    height: 2.4rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: #fff7ef;
+    border: 1px solid rgba(255, 255, 255, 0.34);
+}
+
+.id-logo-shell img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.id-badge {
+    padding: 0.34rem 0.58rem;
+    border-radius: 999px;
+    background: #fff7ef;
+    font-size: 0.68rem;
+    border: 1px solid #e4c4b1;
+    color: #8f4a2e;
+    font-weight: 700;
+    align-self: start;
+}
+
+.id-card-identity {
+    display: grid;
+    grid-template-columns: 70px minmax(0, 1fr);
+    gap: 0.8rem;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.avatar-block {
+    width: 70px;
+    height: 70px;
+    display: grid;
+    place-items: center;
+    border-radius: 1rem;
+    background: linear-gradient(180deg, #b95c35, #9b481f);
+    border: 1px solid #a84e27;
+    color: #fff7ef;
+    font-size: 1.7rem;
+    font-weight: 700;
+}
+
+.id-card-details h2 {
+    font-size: 1.18rem;
+    line-height: 1.1;
+}
+
+.id-card-details p {
+    margin: 0.18rem 0 0.35rem;
+    color: #5d666b;
+    font-size: 0.8rem;
+}
+
+.id-member-number {
+    display: block;
+    font-size: 0.84rem;
+    color: #8f4a2e;
+    letter-spacing: 0.03em;
+}
+
+.id-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    margin-top: 0.8rem;
+}
+
+.id-meta {
+    padding: 0.46rem 0.55rem;
+    border-radius: 0.6rem;
+    background: rgba(255, 255, 255, 0.76);
+    border: 1px solid #eadcd0;
+}
+
+.id-meta span {
+    display: block;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #7a6660;
+}
+
+.id-meta strong {
+    display: block;
+    margin-top: 0.08rem;
+    font-size: 0.78rem;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.id-card-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 0.7rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid #eadcd0;
+}
+
+.id-footer-block span {
+    display: block;
+    margin-bottom: 0.2rem;
+    color: #7a6660;
+    font-size: 0.58rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.id-footer-block strong {
+    display: block;
+    font-size: 0.72rem;
+    overflow-wrap: anywhere;
+}
+
+.id-footer-block-right {
+    text-align: right;
+}
+
+.certificate-sheet {
+    min-height: 257mm;
+}
+
+.certificate-frame {
+    min-height: 257mm;
+    padding: 22mm;
+    border: 10px solid #d9c3a9;
+    text-align: center;
+}
+
+.certificate-name {
+    margin: 1rem 0;
+    font-size: 2.4rem;
+}
+
+.certificate-meta {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 2rem 0 2.5rem;
+}
+
+.certificate-meta div {
+    padding: 0.9rem 1rem;
+    border-radius: 0.8rem;
+    background: #f7f3ee;
+}
+
+.certificate-signatures {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2.5rem;
+    margin-top: 3rem;
+}
+
+@media print {
+    body {
+        background: #fff;
+    }
+
+    .print-toolbar {
+        display: none;
+    }
+
+    .a4-sheet,
+    .certificate-sheet,
+    .id-sheet {
+        width: 100%;
+        margin: 0;
+    }
+
+    .a4-sheet,
+    .certificate-frame,
+    .id-card-face,
+    .id-card-back {
+        box-shadow: none;
+    }
+}

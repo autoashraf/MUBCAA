@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="logoTitle">
+  <title id="logoTitle">Membership Association Logo</title>
+  <rect width="160" height="160" rx="44" fill="#102b31"/>
+  <circle cx="80" cy="80" r="54" fill="#b95c35" opacity="0.18"/>
+  <path d="M40 112V48h18l22 31 22-31h18v64h-16V74L80 107 56 74v38z" fill="#fff7ef"/>
+</svg>
