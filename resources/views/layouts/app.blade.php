@@ -16,6 +16,12 @@
             $brandName = config('site.brand.name', 'Membership Association');
             $brandTagline = config('site.brand.tagline', 'Membership, events, committees, and memories');
             $logoPath = config('site.brand.logo_path');
+            $mobileProfileLink = auth()->check()
+                ? (auth()->user()->isAdmin() ? route('admin.dashboard') : route('member.dashboard'))
+                : route('login');
+            $mobileProfileLabel = auth()->check()
+                ? (auth()->user()->isAdmin() ? 'Open admin dashboard' : 'Open member dashboard')
+                : 'Open login page';
         @endphp
         <div class="page-shell">
             <div class="site-backdrop" aria-hidden="true">
@@ -25,8 +31,9 @@
             </div>
 
             <header class="site-header">
+                <div class="header-bar-wrap">
                 <div class="wrap header-bar">
-                    <a class="brand" href="{{ route('home') }}">
+                    <a class="brand brand-desktop" href="{{ route('home') }}">
                         @if ($logoPath)
                             <span class="brand-logo">
                                 <img src="{{ asset($logoPath) }}" alt="{{ $brandName }} logo">
@@ -41,15 +48,45 @@
                     </a>
                     <div class="nav-shell">
                         <input id="nav-toggle" class="nav-toggle" type="checkbox">
-                        <label class="nav-button" for="nav-toggle">Menu</label>
+                        <label class="nav-button" for="nav-toggle">
+                            <span class="nav-button-icon" aria-hidden="true">
+                                <i></i>
+                                <i></i>
+                                <i></i>
+                            </span>
+                            <span>Menu</span>
+                        </label>
+                        <a class="brand brand-mobile" href="{{ route('home') }}">
+                            <strong>{{ $brandName }}</strong>
+                        </a>
+                        <div class="mobile-quick-actions">
+                            <a class="mobile-quick-link" href="{{ $mobileProfileLink }}" aria-label="{{ $mobileProfileLabel }}">
+                                @auth
+                                    <span class="mobile-user-initial">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
+                                @else
+                                    <span class="mobile-icon mobile-icon-user"></span>
+                                @endauth
+                            </a>
+                        </div>
                         <nav class="site-nav">
                             @foreach ($menu as $item)
-                                <div class="nav-group">
-                                    <a href="{{ $item['route'] }}" class="nav-link @if (request()->routeIs($item['active'])) is-active @endif">
-                                        {{ $item['label'] }}
-                                    </a>
+                                <div class="nav-group @if ($item['children']) has-children @endif" @if ($item['children']) data-mobile-nav-group @endif>
                                     @if ($item['children'])
-                                        <div class="nav-dropdown">
+                                        <button
+                                            class="nav-link nav-toggle-link @if (request()->routeIs($item['active'])) is-active @endif"
+                                            type="button"
+                                            data-mobile-nav-trigger
+                                            aria-expanded="@if (request()->routeIs($item['active'])) true @else false @endif"
+                                        >
+                                            {{ $item['label'] }}
+                                        </button>
+                                    @else
+                                        <a href="{{ $item['route'] }}" class="nav-link @if (request()->routeIs($item['active'])) is-active @endif">
+                                            {{ $item['label'] }}
+                                        </a>
+                                    @endif
+                                    @if ($item['children'])
+                                        <div class="nav-dropdown @if (request()->routeIs($item['active'])) is-open @endif" data-mobile-nav-panel>
                                             @foreach ($item['children'] as $child)
                                                 <a href="{{ $child['route'] }}">{{ $child['label'] }}</a>
                                             @endforeach
@@ -68,11 +105,9 @@
                                 @csrf
                                 <button class="mini-link mini-link-button" type="submit">Logout</button>
                             </form>
-                        @else
-                            <a class="mini-link" href="{{ route('membership.apply') }}">Join</a>
-                            <a class="mini-link" href="{{ route('login') }}">Login</a>
                         @endauth
                     </div>
+                </div>
                 </div>
             </header>
 
@@ -106,9 +141,6 @@
                             <a class="mini-link" href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : route('member.dashboard') }}">
                                 {{ auth()->user()->isAdmin() ? 'Admin' : 'Dashboard' }}
                             </a>
-                        @else
-                            <a class="mini-link" href="{{ route('membership.apply') }}">Join</a>
-                            <a class="mini-link" href="{{ route('login') }}">Login</a>
                         @endauth
                     </div>
                 </div>
@@ -122,6 +154,34 @@
                     var sliderRoot = document.querySelector('[data-home-slider]');
                     var slides = document.querySelectorAll('[data-home-slide]');
                     var dots = document.querySelectorAll('[data-home-slider-dot]');
+                    var mobileNavGroups = document.querySelectorAll('[data-mobile-nav-group]');
+
+                    mobileNavGroups.forEach(function (group) {
+                        var trigger = group.querySelector('[data-mobile-nav-trigger]');
+                        var panel = group.querySelector('[data-mobile-nav-panel]');
+
+                        if (!trigger || !panel) {
+                            return;
+                        }
+
+                        trigger.addEventListener('click', function () {
+                            var willOpen = !panel.classList.contains('is-open');
+
+                            mobileNavGroups.forEach(function (item) {
+                                item.querySelector('[data-mobile-nav-panel]')?.classList.remove('is-open');
+                                var itemTrigger = item.querySelector('[data-mobile-nav-trigger]');
+
+                                if (itemTrigger) {
+                                    itemTrigger.setAttribute('aria-expanded', 'false');
+                                }
+                            });
+
+                            if (willOpen) {
+                                panel.classList.add('is-open');
+                                trigger.setAttribute('aria-expanded', 'true');
+                            }
+                        });
+                    });
 
                     if (panelRoot && triggers.length) {
                         var panels = panelRoot.querySelectorAll('[data-admin-panel]');
@@ -143,58 +203,56 @@
                         });
                     }
 
-                    if (!sliderRoot || slides.length < 2) {
-                        return;
-                    }
+                    if (sliderRoot && slides.length >= 2) {
+                        var activeIndex = 0;
+                        var timerId = null;
 
-                    var activeIndex = 0;
-                    var timerId = null;
+                        function showSlide(index) {
+                            activeIndex = index;
 
-                    function showSlide(index) {
-                        activeIndex = index;
+                            slides.forEach(function (slide, slideIndex) {
+                                slide.classList.toggle('is-active', slideIndex === index);
+                            });
 
-                        slides.forEach(function (slide, slideIndex) {
-                            slide.classList.toggle('is-active', slideIndex === index);
-                        });
-
-                        dots.forEach(function (dot, dotIndex) {
-                            dot.classList.toggle('is-active', dotIndex === index);
-                        });
-                    }
-
-                    function startSlider() {
-                        timerId = window.setInterval(function () {
-                            showSlide((activeIndex + 1) % slides.length);
-                        }, 5000);
-                    }
-
-                    function resetSlider() {
-                        if (timerId) {
-                            window.clearInterval(timerId);
+                            dots.forEach(function (dot, dotIndex) {
+                                dot.classList.toggle('is-active', dotIndex === index);
+                            });
                         }
 
-                        startSlider();
-                    }
+                        function startSlider() {
+                            timerId = window.setInterval(function () {
+                                showSlide((activeIndex + 1) % slides.length);
+                            }, 5000);
+                        }
 
-                    dots.forEach(function (dot, index) {
-                        dot.addEventListener('click', function () {
-                            showSlide(index);
+                        function resetSlider() {
+                            if (timerId) {
+                                window.clearInterval(timerId);
+                            }
+
+                            startSlider();
+                        }
+
+                        dots.forEach(function (dot, index) {
+                            dot.addEventListener('click', function () {
+                                showSlide(index);
+                                resetSlider();
+                            });
+                        });
+
+                        sliderRoot.addEventListener('mouseenter', function () {
+                            if (timerId) {
+                                window.clearInterval(timerId);
+                            }
+                        });
+
+                        sliderRoot.addEventListener('mouseleave', function () {
                             resetSlider();
                         });
-                    });
 
-                    sliderRoot.addEventListener('mouseenter', function () {
-                        if (timerId) {
-                            window.clearInterval(timerId);
-                        }
-                    });
-
-                    sliderRoot.addEventListener('mouseleave', function () {
-                        resetSlider();
-                    });
-
-                    showSlide(0);
-                    startSlider();
+                        showSlide(0);
+                        startSlider();
+                    }
                 });
             </script>
         @endif

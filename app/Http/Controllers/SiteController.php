@@ -14,30 +14,70 @@ class SiteController extends Controller
         return view('pages.home', [
             'menu' => SiteNavigation::menu(),
             'slides' => config('site.homepage.slides', []),
-            'stats' => [
-                ['value' => '250+', 'label' => 'Registered members'],
-                ['value' => '12', 'label' => 'Signature events'],
-                ['value' => '18', 'label' => 'Years of community history'],
+            'heroMetrics' => [
+                ['label' => 'Total Members'],
+                ['label' => 'Upcoming Events'],
+                ['label' => 'Scholarships'],
+                ['label' => 'Active Chapters'],
+            ],
+            'impactStats' => [
+                ['value' => '5000+', 'label' => 'Members'],
+                ['value' => '120+', 'label' => 'Volunteers'],
+                ['value' => '35+', 'label' => 'Events'],
+                ['value' => '15+', 'label' => 'Projects'],
             ],
             'highlights' => [
                 [
                     'title' => 'Mission & Vision',
-                    'text' => 'Present the purpose, values, and long-term direction that define MUBCAA as a trusted member organisation.',
+                    'text' => 'Present the purpose, values, and long-term direction that define MUBCAA as a trusted alumni organisation.',
                     'route' => route('about.mission'),
-                    'label' => 'About Us',
+                    'label' => 'About the Association',
                 ],
                 [
                     'title' => 'Membership',
-                    'text' => 'Guide new applicants into the association with clear membership types, benefits, and onboarding steps.',
+                    'text' => 'Guide alumni and members into the association with clear membership types, benefits, and onboarding steps.',
                     'route' => route('membership.why'),
-                    'label' => 'Join MUBCAA',
+                    'label' => 'Member Services',
                 ],
                 [
                     'title' => 'Events',
-                    'text' => 'Showcase reunions, programs, galleries, and community moments that keep the association active and visible.',
+                    'text' => 'Showcase reunions, programs, galleries, and community moments that keep the alumni network active and visible.',
                     'route' => route('events.upcoming'),
                     'label' => 'Community Life',
                 ],
+            ],
+            'serviceLinks' => [
+                'Member Registration',
+                'Alumni Directory',
+                'Event Participation',
+                'Career Networking',
+                'Donation Support',
+                'Volunteer Program',
+                'Business Directory',
+                'Community Support',
+                'Scholarship Support',
+            ],
+            'events' => [
+                ['title' => 'Annual Alumni Meetup', 'meta' => '12 Apr 2026 | Dhaka', 'description' => 'Reconnect with fellow alumni through our flagship annual gathering.', 'route' => route('events.upcoming')],
+                ['title' => 'Leadership Workshop', 'meta' => '03 May 2026 | Online', 'description' => 'A focused leadership session for active members and chapter organisers.', 'route' => route('events.upcoming')],
+                ['title' => 'Community Service Day', 'meta' => '24 May 2026 | Rangpur', 'description' => 'Join MUBCAA volunteers in a community support and outreach initiative.', 'route' => route('events.upcoming')],
+            ],
+            'newsItems' => [
+                'Membership renewal notice for 2026 is now open.',
+                'Applications invited for the MUBCAA scholarship support round.',
+                'Upcoming chapter coordination meeting scheduled next month.',
+                'Photo gallery from the latest reunion has been updated.',
+            ],
+            'alumni' => [
+                ['name' => 'Dr. Amina Rahman', 'meta' => 'Batch 1998 / Academic Leader'],
+                ['name' => 'Mahmud Hasan', 'meta' => 'Batch 2002 / Entrepreneur'],
+                ['name' => 'Farhana Kabir', 'meta' => 'Batch 2005 / Community Organiser'],
+                ['name' => 'Tanvir Ahmed', 'meta' => 'Batch 2010 / Technology Professional'],
+            ],
+            'galleryTiles' => range(1, 6),
+            'testimonials' => [
+                'MUBCAA helped me reconnect with mentors, classmates, and new professional opportunities.',
+                'The association gives alumni a meaningful way to contribute back to the community.',
             ],
         ]);
     }

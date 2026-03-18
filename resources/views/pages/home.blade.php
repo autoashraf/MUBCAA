@@ -1,125 +1,161 @@
 @extends('layouts.app')
 
 @section('content')
-    <section class="hero hero-home" data-home-slider>
-        <div class="hero-background" aria-hidden="true">
-            @foreach ($slides as $index => $slide)
-                <div class="hero-background-slide @if ($index === 0) is-active @endif" data-home-slide>
-                    <img src="{{ asset($slide['image']) }}" alt="">
-                </div>
-            @endforeach
-            <div class="hero-background-overlay"></div>
-        </div>
-        <div class="wrap hero-home-wrap">
-            <div class="hero-home-content">
-                <div class="hero-copy">
-                    <p class="eyebrow">Welcome to MUBCAA</p>
-                    <h1>A stronger digital home for the MUBCAA community.</h1>
-                    <p class="lead hero-lead-light">
-                        MUBCAA now has a cleaner public-facing website for membership, events, committees, memories, and long-term community connection.
-                    </p>
+    <section class="home-wireframe">
+        <div class="wrap">
+            <section class="home-hero-panel">
+                <div class="home-hero-copy">
+                    <p class="eyebrow">MUBCAA Alumni Network</p>
+                    <h1>Connecting alumni, building the future.</h1>
+                    <p class="lead">A stronger digital home for membership, alumni updates, events, notices, galleries, and community collaboration.</p>
                     <div class="hero-actions">
-                        <a class="button button-primary" href="{{ route('membership.apply') }}">Apply Now</a>
-                        <a class="button button-secondary hero-button-light" href="{{ route('membership.members') }}">Explore Members</a>
+                        <a class="button button-primary" href="{{ route('membership.apply') }}">Join the Association</a>
+                        <a class="button button-secondary" href="{{ route('membership.members') }}">Explore Members</a>
                     </div>
-                    <div class="hero-dots" aria-label="Homepage slider controls">
-                        @foreach ($slides as $index => $slide)
-                            <button
-                                class="hero-dot @if ($index === 0) is-active @endif"
-                                type="button"
-                                data-home-slider-dot="{{ $index }}"
-                                aria-label="Show slide {{ $index + 1 }}"
-                            ></button>
+                </div>
+                <div class="home-hero-media">
+                    <img src="{{ asset($slides[0]['image']) }}" alt="{{ $slides[0]['title'] ?? 'MUBCAA hero image' }}">
+                </div>
+            </section>
+
+            <section class="home-mini-metrics">
+                @foreach ($heroMetrics as $metric)
+                    <article class="metric-tile">
+                        <strong>{{ $metric['label'] }}</strong>
+                    </article>
+                @endforeach
+            </section>
+
+            <section class="home-about-strip">
+                <div class="about-strip-media">
+                    <img src="{{ asset($slides[1]['image']) }}" alt="{{ $slides[1]['title'] ?? 'Association overview' }}">
+                </div>
+                <div class="about-strip-copy">
+                    <p class="eyebrow">About MUBCAA</p>
+                    <h2>About the association</h2>
+                    <p>Learn about the mission, values, history, and leadership of MUBCAA through a cleaner public-facing introduction.</p>
+                    <a class="button button-secondary" href="{{ route('about.mission') }}">Read More</a>
+                </div>
+            </section>
+
+            <section class="home-impact-band">
+                @foreach ($impactStats as $stat)
+                    <article class="impact-stat">
+                        <strong>{{ $stat['value'] }}</strong>
+                        <span>{{ $stat['label'] }}</span>
+                    </article>
+                @endforeach
+            </section>
+
+            <section class="home-president-message">
+                <div class="president-avatar">P</div>
+                <div class="president-copy">
+                    <h2>Message from the President</h2>
+                    <p>Welcome to MUBCAA. This platform is designed to strengthen our alumni bond, encourage participation, and build a more active community.</p>
+                    <a class="button button-secondary" href="{{ route('about.mission') }}">Full Message</a>
+                </div>
+            </section>
+
+            <section class="home-service-grid">
+                @foreach ($serviceLinks as $service)
+                    <article class="service-chip">{{ $service }}</article>
+                @endforeach
+            </section>
+
+            <section class="home-events-news">
+                <div class="home-panel-block">
+                    <div class="home-panel-head">
+                        <h2>Upcoming Events</h2>
+                    </div>
+                    <div class="events-card-grid">
+                        @foreach ($events as $event)
+                            <article class="event-card">
+                                <strong>{{ $event['title'] }}</strong>
+                                <span>{{ $event['meta'] }}</span>
+                                <p>{{ $event['description'] }}</p>
+                                <a class="button button-secondary" href="{{ $event['route'] }}">View Details</a>
+                            </article>
                         @endforeach
                     </div>
                 </div>
-            </div>
-        </div>
-    </section>
 
-    <section class="stats-section">
-        <div class="wrap stats-grid">
-            @foreach ($stats as $stat)
-                <article class="stat-card stat-card-enhanced">
-                    <p class="stat-card-label">MUBCAA Snapshot</p>
-                    <strong>{{ $stat['value'] }}</strong>
-                    <span>{{ $stat['label'] }}</span>
-                    <i aria-hidden="true"></i>
-                </article>
-            @endforeach
-        </div>
-    </section>
-
-    <section class="section">
-        <div class="wrap">
-            <div class="section-heading">
-                <p class="eyebrow">Core Sections</p>
-                <h2>The essential areas that shape the public identity of MUBCAA</h2>
-            </div>
-            <div class="card-grid card-grid-featured">
-                @foreach ($highlights as $item)
-                    <article class="info-card info-card-featured">
-                        <div class="info-card-topline">
-                            <p class="info-card-label">{{ $item['label'] }}</p>
-                            <span class="info-card-badge">Public</span>
-                        </div>
-                        <h3>{{ $item['title'] }}</h3>
-                        <p>{{ $item['text'] }}</p>
-                        <div class="info-card-footer">
-                            <a href="{{ $item['route'] }}">Open section</a>
-                            <span>Explore</span>
-                        </div>
-                    </article>
-                @endforeach
-            </div>
-        </div>
-    </section>
-
-    <section class="section section-showcase">
-        <div class="wrap showcase-grid">
-            <div class="showcase-intro-card">
-                <p class="eyebrow">Why MUBCAA Online</p>
-                <h2>A public platform that connects members, preserves history, and builds trust.</h2>
-                <p class="lead">
-                    MUBCAA should feel alive online, not just listed on a page. This website creates a clear home for membership, community activity, and the stories that define the association.
-                </p>
-                <div class="showcase-intro-points">
-                    <div>
-                        <strong>For members</strong>
-                        <span>Give every member a clear place to register, stay informed, and remain connected to the organisation.</span>
+                <aside class="home-panel-block news-panel">
+                    <div class="home-panel-head">
+                        <h2>Latest News & Notices</h2>
                     </div>
-                    <div>
-                        <strong>For the community</strong>
-                        <span>Present MUBCAA as a visible, credible, and active association with purpose, leadership, and shared memories.</span>
+                    <ul class="news-list">
+                        @foreach ($newsItems as $item)
+                            <li>{{ $item }}</li>
+                        @endforeach
+                    </ul>
+                </aside>
+            </section>
+
+            <section class="home-alumni-gallery">
+                <div class="home-panel-block">
+                    <div class="home-panel-head">
+                        <h2>Distinguished Alumni</h2>
+                    </div>
+                    <div class="alumni-grid">
+                        @foreach ($alumni as $person)
+                            <article class="alumni-card">
+                                <strong>{{ $person['name'] }}</strong>
+                                <span>{{ $person['meta'] }}</span>
+                            </article>
+                        @endforeach
                     </div>
                 </div>
-            </div>
-            <div class="showcase-stack">
-                <article class="showcase-card showcase-card-pillar">
-                    <span class="showcase-icon">A</span>
-                    <div>
-                        <p class="showcase-card-label">Identity</p>
-                        <h3>Show who MUBCAA is</h3>
-                        <p>Mission, committees, member values, and public information come together in one structure that is easy to understand.</p>
+
+                <aside class="home-panel-block gallery-panel">
+                    <div class="home-panel-head">
+                        <h2>Photo Gallery</h2>
                     </div>
-                </article>
-                <article class="showcase-card showcase-card-pillar">
-                    <span class="showcase-icon">B</span>
-                    <div>
-                        <p class="showcase-card-label">Engagement</p>
-                        <h3>Keep members active</h3>
-                        <p>Membership pages, events, galleries, and future member tools give people practical reasons to return and participate.</p>
+                    <div class="gallery-thumb-grid">
+                        @foreach ($galleryTiles as $tile)
+                            <div class="gallery-thumb" aria-hidden="true"></div>
+                        @endforeach
                     </div>
-                </article>
-                <article class="showcase-card showcase-card-pillar">
-                    <span class="showcase-icon">C</span>
-                    <div>
-                        <p class="showcase-card-label">Legacy</p>
-                        <h3>Preserve memories and milestones</h3>
-                        <p>Photos, videos, archives, and community stories turn the site into a living record of the association over time.</p>
+                    <a class="button button-primary" href="{{ route('events.photos') }}">View Full Gallery</a>
+                </aside>
+            </section>
+
+            <section class="home-testimonials-donate">
+                <div class="home-panel-block">
+                    <div class="home-panel-head">
+                        <h2>Testimonials</h2>
                     </div>
-                </article>
-            </div>
+                    <div class="testimonial-stack">
+                        @foreach ($testimonials as $testimonial)
+                            <blockquote class="testimonial-card">
+                                <span>&ldquo;</span>
+                                <p>{{ $testimonial }}</p>
+                            </blockquote>
+                        @endforeach
+                    </div>
+                </div>
+
+                <aside class="home-panel-block donate-panel">
+                    <div class="home-panel-head">
+                        <h2>Support & Donate</h2>
+                    </div>
+                    <p>Support scholarships, alumni programs, and community-driven initiatives through the MUBCAA network.</p>
+                    <div class="action-row">
+                        <a class="button button-primary" href="{{ route('contact') }}">Donate Now</a>
+                        <a class="button button-secondary" href="{{ route('contact') }}">Learn More</a>
+                    </div>
+                </aside>
+            </section>
+
+            <section class="home-final-cta">
+                <div class="home-panel-head centered-head">
+                    <h2>Join Our Alumni Network</h2>
+                </div>
+                <div class="action-row">
+                    <a class="button button-primary" href="{{ route('membership.apply') }}">Register Now</a>
+                    <a class="button button-secondary" href="{{ route('login') }}">Member Login</a>
+                    <a class="button button-secondary" href="{{ route('contact') }}">Contact Us</a>
+                </div>
+            </section>
         </div>
     </section>
 @endsection

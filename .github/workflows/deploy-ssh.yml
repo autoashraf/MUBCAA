@@ -1,0 +1,64 @@
+name: Deploy via SSH
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          extensions: mbstring, bcmath, ctype, fileinfo, json, openssl, pdo_mysql, tokenizer, xml
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install production PHP dependencies
+        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Upload release to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 161.248.201.7
+          username: mubcaa
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          source: "app,artisan,bootstrap,config,database,public,resources,routes,storage,vendor,composer.json,composer.lock,package.json,vite.config.js"
+          target: /home/mubcaa/site.mubcaa.com
+          overwrite: true
+          strip_components: 0
+
+      - name: Finalize deploy on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 161.248.201.7
+          username: mubcaa
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd "/home/mubcaa/site.mubcaa.com"
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan migrate --force
