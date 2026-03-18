@@ -30,6 +30,7 @@ jobs:
           host: 161.248.201.7
           username: mubcaa
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           port: 22
           source: "app,artisan,bootstrap,config,database,public,resources,routes,storage,vendor,composer.json,composer.lock,package.json,vite.config.js"
           target: /home/mubcaa/site.mubcaa.com
@@ -42,6 +43,7 @@ jobs:
           host: 161.248.201.7
           username: mubcaa
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           port: 22
           script: |
             cd "/home/mubcaa/site.mubcaa.com"

@@ -16,6 +16,8 @@ Add these repository secrets in GitHub:
 
 - `SSH_PRIVATE_KEY`
   Your private SSH key content
+- `SSH_PASSPHRASE`
+  The passphrase used by that private key, if the key is protected
 
 This project is already configured for:
 
