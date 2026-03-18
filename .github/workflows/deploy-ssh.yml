@@ -24,31 +24,40 @@ jobs:
       - name: Install production PHP dependencies
         run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p 22 161.248.201.7 >> ~/.ssh/known_hosts
+
+          cat > ~/.ssh/askpass.sh <<'EOF'
+          #!/bin/sh
+          printf '%s\n' "$SSH_PASSPHRASE"
+          EOF
+
+          chmod 700 ~/.ssh/askpass.sh
+
+          eval "$(ssh-agent -s)"
+          DISPLAY=:0 SSH_ASKPASS=~/.ssh/askpass.sh SSH_PASSPHRASE="${{ secrets.SSH_PASSPHRASE }}" setsid ssh-add ~/.ssh/deploy_key < /dev/null
+
       - name: Upload release to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: 161.248.201.7
-          username: mubcaa
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          port: 22
-          source: "app,artisan,bootstrap,config,database,public,resources,routes,storage,vendor,composer.json,composer.lock,package.json,vite.config.js"
-          target: /home/mubcaa/site.mubcaa.com
-          overwrite: true
-          strip_components: 0
+        run: |
+          tar czf release.tar.gz \
+            app artisan bootstrap config database public resources routes storage vendor \
+            composer.json composer.lock package.json vite.config.js
+
+          scp -P 22 release.tar.gz mubcaa@161.248.201.7:/home/mubcaa/site.mubcaa.com/release.tar.gz
 
       - name: Finalize deploy on server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: 161.248.201.7
-          username: mubcaa
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          port: 22
-          script: |
-            cd "/home/mubcaa/site.mubcaa.com"
+        run: |
+          ssh -p 22 mubcaa@161.248.201.7 <<'EOF'
+            cd /home/mubcaa/site.mubcaa.com
+            tar xzf release.tar.gz
+            rm -f release.tar.gz
             php artisan optimize:clear
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
             php artisan migrate --force
+          EOF

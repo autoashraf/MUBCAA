@@ -58,8 +58,10 @@ Runs on:
 It does:
 
 1. install production Composer dependencies
-2. upload the app to the server using SCP over SSH
-3. run Laravel deploy commands on the server
+2. prepare the SSH key in the GitHub runner
+3. create a release archive
+4. upload the release to the server using native `scp`
+5. connect over native `ssh`, extract the release, and run Laravel deploy commands
 
 ## Important Notes
 
