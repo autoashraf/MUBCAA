@@ -24,7 +24,7 @@ jobs:
       - name: Install production PHP dependencies
         run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
-      - name: Prepare SSH key
+      - name: Deploy release over SSH
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
@@ -41,16 +41,11 @@ jobs:
           eval "$(ssh-agent -s)"
           DISPLAY=:0 SSH_ASKPASS=~/.ssh/askpass.sh SSH_PASSPHRASE="${{ secrets.SSH_PASSPHRASE }}" setsid ssh-add ~/.ssh/deploy_key < /dev/null
 
-      - name: Upload release to server
-        run: |
           tar czf release.tar.gz \
             app artisan bootstrap config database public resources routes storage vendor \
             composer.json composer.lock package.json vite.config.js
 
           scp -P 22 release.tar.gz mubcaa@161.248.201.7:/home/mubcaa/site.mubcaa.com/release.tar.gz
-
-      - name: Finalize deploy on server
-        run: |
           ssh -p 22 mubcaa@161.248.201.7 <<'EOF'
             cd /home/mubcaa/site.mubcaa.com
             tar xzf release.tar.gz
