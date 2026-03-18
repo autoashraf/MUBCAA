@@ -2,8 +2,8 @@
 
 This project includes GitHub Actions workflows for:
 
-- `CI`: run Laravel tests and build frontend assets
-- `Deploy via SSH`: build production assets, upload them over SSH, and run Laravel deploy commands on the server
+- `CI`: run Laravel tests
+- `Deploy via SSH`: upload the Laravel app over SSH and run deploy commands on the server
 
 ## Workflows
 
@@ -45,8 +45,6 @@ It does:
 1. install Composer dependencies
 2. generate Laravel app key for CI
 3. run `php artisan test`
-4. install npm dependencies
-5. build Vite assets
 
 ### CD
 
@@ -58,10 +56,8 @@ Runs on:
 It does:
 
 1. install production Composer dependencies
-2. install npm dependencies
-3. build Vite assets
-4. upload the app to the server using SCP over SSH
-5. run Laravel deploy commands on the server
+2. upload the app to the server using SCP over SSH
+3. run Laravel deploy commands on the server
 
 ## Important Notes
 
@@ -69,6 +65,7 @@ It does:
   - the project directory created
   - the `.env` file in place
   - correct writable permissions for `storage` and `bootstrap/cache`
+- this workflow assumes the project is running without a required Node/Vite production build step
 - the workflow currently connects on SSH port `22`
   - if your server uses a different SSH port, update [deploy-ssh.yml](/var/www/MUBCAA/.github/workflows/deploy-ssh.yml)
 - `vendor` is uploaded as part of the built release
