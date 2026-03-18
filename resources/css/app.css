@@ -607,6 +607,34 @@ h3 {
     background: rgba(255, 255, 255, 0.9);
 }
 
+.alumni-feature-card:nth-child(2) .button-secondary {
+    background: rgba(75, 117, 88, 0.1);
+    color: #355942;
+    border-color: rgba(75, 117, 88, 0.16);
+}
+
+.alumni-feature-card:nth-child(3) .button-secondary,
+.alumni-gallery-block .button-secondary {
+    background: rgba(88, 116, 147, 0.1);
+    color: #3e5871;
+    border-color: rgba(88, 116, 147, 0.16);
+}
+
+.alumni-about-band .button-secondary,
+.alumni-news-block .button-secondary {
+    background: rgba(185, 92, 53, 0.1);
+    color: var(--accent-dark);
+    border-color: rgba(185, 92, 53, 0.18);
+}
+
+.alumni-directory-search .button-primary {
+    background: #355942;
+}
+
+.alumni-directory-search .button-primary:hover {
+    background: #294937;
+}
+
 .hero-button-light {
     border-color: rgba(255, 255, 255, 0.18);
     background: rgba(255, 251, 245, 0.12);
@@ -750,6 +778,9 @@ h3 {
     gap: 1.6rem;
     padding: 2rem;
     border-radius: 1.25rem;
+    background:
+        radial-gradient(circle at top left, rgba(185, 92, 53, 0.18), transparent 30%),
+        linear-gradient(135deg, rgba(255, 250, 244, 0.96), rgba(255, 243, 232, 0.92));
 }
 
 .alumni-hero-copy {
@@ -807,6 +838,21 @@ h3 {
     border-radius: 1rem;
 }
 
+.alumni-feature-card:nth-child(1) {
+    background: linear-gradient(180deg, rgba(255, 249, 242, 0.98), rgba(255, 239, 227, 0.92));
+    border-color: rgba(185, 92, 53, 0.18);
+}
+
+.alumni-feature-card:nth-child(2) {
+    background: linear-gradient(180deg, rgba(249, 250, 247, 0.98), rgba(234, 242, 236, 0.94));
+    border-color: rgba(75, 117, 88, 0.18);
+}
+
+.alumni-feature-card:nth-child(3) {
+    background: linear-gradient(180deg, rgba(247, 249, 251, 0.98), rgba(232, 239, 247, 0.94));
+    border-color: rgba(88, 116, 147, 0.18);
+}
+
 .alumni-feature-card h2 {
     font-size: 1.55rem;
 }
@@ -832,6 +878,9 @@ h3 {
     align-items: center;
     padding: 1.4rem;
     border-radius: 1.25rem;
+    background:
+        radial-gradient(circle at bottom right, rgba(185, 92, 53, 0.12), transparent 24%),
+        linear-gradient(135deg, rgba(255, 252, 247, 0.98), rgba(249, 243, 234, 0.94));
 }
 
 .alumni-about-copy {
@@ -841,6 +890,9 @@ h3 {
 
 .alumni-impact-band {
     border-radius: 1.15rem;
+    border: 1px solid rgba(185, 92, 53, 0.14);
+    background: linear-gradient(90deg, rgba(255, 247, 239, 0.96), rgba(252, 241, 230, 0.96));
+    box-shadow: 0 18px 44px rgba(20, 25, 28, 0.05);
 }
 
 .alumni-news-gallery {
@@ -848,6 +900,16 @@ h3 {
     grid-template-columns: minmax(0, 1.45fr) 360px;
     gap: 1rem;
     align-items: start;
+}
+
+.alumni-news-block {
+    background: linear-gradient(180deg, rgba(255, 253, 249, 0.98), rgba(250, 244, 236, 0.94));
+    border-color: rgba(185, 92, 53, 0.12);
+}
+
+.alumni-gallery-block {
+    background: linear-gradient(180deg, rgba(248, 250, 251, 0.98), rgba(236, 242, 246, 0.94));
+    border-color: rgba(79, 111, 138, 0.16);
 }
 
 .news-story-list {
@@ -896,11 +958,16 @@ h3 {
 
 .gallery-thumb {
     overflow: hidden;
+    border: 1px solid rgba(28, 35, 38, 0.08);
 }
 
 .alumni-directory-search {
     padding: 1.05rem;
     border-radius: 1.15rem;
+    background:
+        radial-gradient(circle at top left, rgba(16, 43, 49, 0.07), transparent 25%),
+        linear-gradient(180deg, rgba(250, 251, 248, 0.98), rgba(241, 244, 237, 0.95));
+    border-color: rgba(80, 113, 82, 0.14);
 }
 
 .directory-search-form,
@@ -2213,8 +2280,10 @@ small {
 .site-footer {
     margin-top: 1.5rem;
     padding: 1.25rem 0 2rem;
-    border-top: 1px solid rgba(28, 35, 38, 0.08);
-    background: rgba(255, 255, 255, 0.72);
+    border-top: 1px solid rgba(185, 92, 53, 0.14);
+    background:
+        radial-gradient(circle at top left, rgba(185, 92, 53, 0.12), transparent 24%),
+        linear-gradient(180deg, rgba(255, 248, 240, 0.94), rgba(248, 239, 229, 0.96));
 }
 
 .footer-title {
@@ -2254,10 +2323,10 @@ small {
 .footer-subscribe {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    border: 1px solid rgba(28, 35, 38, 0.12);
+    border: 1px solid rgba(185, 92, 53, 0.18);
     border-radius: 0.45rem;
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.94);
+    background: rgba(255, 252, 248, 0.96);
 }
 
 .footer-subscribe input {
@@ -2272,7 +2341,7 @@ small {
 .footer-subscribe button {
     padding: 0.7rem 0.95rem;
     border: 0;
-    background: linear-gradient(180deg, #8d8f95, #72747a);
+    background: linear-gradient(180deg, var(--accent), var(--accent-dark));
     color: #fff;
     font: inherit;
     font-weight: 600;
@@ -2323,7 +2392,7 @@ small {
     justify-content: center;
     gap: 1.1rem;
     padding: 0.85rem 0 0;
-    border-top: 1px solid rgba(28, 35, 38, 0.08);
+    border-top: 1px solid rgba(185, 92, 53, 0.12);
     color: var(--muted);
     font-size: 0.88rem;
 }
