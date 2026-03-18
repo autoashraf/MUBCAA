@@ -65,6 +65,9 @@ It does:
   - the project directory created
   - the `.env` file in place
   - correct writable permissions for `storage` and `bootstrap/cache`
+- this project’s current Composer lockfile requires PHP `8.2+`
+  - the GitHub Actions workflows now use PHP `8.2`
+  - your cPanel runtime should also be changed from `ea-php81` to `ea-php82`
 - this workflow assumes the project is running without a required Node/Vite production build step
 - the workflow currently connects on SSH port `22`
   - if your server uses a different SSH port, update [deploy-ssh.yml](/var/www/MUBCAA/.github/workflows/deploy-ssh.yml)
