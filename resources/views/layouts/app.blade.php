@@ -31,7 +31,6 @@
             </div>
 
             <header class="site-header">
-                <div class="header-bar-wrap">
                 <div class="wrap header-bar">
                     <a class="brand brand-desktop" href="{{ route('home') }}">
                         @if ($logoPath)
@@ -105,9 +104,11 @@
                                 @csrf
                                 <button class="mini-link mini-link-button" type="submit">Logout</button>
                             </form>
+                        @else
+                            <a class="mini-link" href="{{ route('login') }}">Login</a>
+                            <a class="mini-link mini-link-primary" href="{{ route('membership.apply') }}">Join Us</a>
                         @endauth
                     </div>
-                </div>
                 </div>
             </header>
 
@@ -117,32 +118,42 @@
 
             <footer class="site-footer">
                 <div class="wrap footer-bar">
-                    <div class="footer-brandline">
-                        @if ($logoPath)
-                            <span class="brand-logo footer-logo">
-                                <img src="{{ asset($logoPath) }}" alt="{{ $brandName }} logo">
-                            </span>
-                        @else
-                            <span class="brand-mark footer-mark">M</span>
-                        @endif
-                        <div>
-                            <p class="footer-title">{{ $brandName }}</p>
-                            <p class="footer-subtitle">&copy; {{ now()->year }} All rights reserved.</p>
+                    <div class="footer-column">
+                        <h3 class="footer-title">Stay Connected</h3>
+                        <p class="footer-copy">Subscribe to our newsletter for updates.</p>
+                        <form class="footer-subscribe" action="{{ route('contact') }}" method="get">
+                            <input type="email" name="footer_email" placeholder="Your Email">
+                            <button type="submit">Subscribe</button>
+                        </form>
+                    </div>
+                    <div class="footer-column">
+                        <h3 class="footer-title">Quick Links</h3>
+                        <nav class="footer-list">
+                            <a href="{{ route('about.mission') }}">About Us</a>
+                            <a href="{{ route('events.upcoming') }}">Events</a>
+                            <a href="{{ route('memories.list') }}">News</a>
+                            <a href="{{ route('contact') }}">Contact</a>
+                        </nav>
+                    </div>
+                    <div class="footer-column">
+                        <h3 class="footer-title">Resources</h3>
+                        <div class="footer-list">
+                            <span>Mentorship Program</span>
+                            <span>Career Support</span>
+                            <span>Volunteer Opportunities</span>
                         </div>
                     </div>
-                    <div class="footer-nav">
-                        <a href="{{ route('about.mission') }}">About</a>
-                        <a href="{{ route('membership.members') }}">Members</a>
-                        <a href="{{ route('events.upcoming') }}">Events</a>
-                        <a href="{{ route('memories.list') }}">Memories</a>
+                    <div class="footer-column">
+                        <h3 class="footer-title">Contact Us</h3>
+                        <div class="footer-list footer-contact-list">
+                            <span>Email: info@mubcaa.org</span>
+                            <span>Phone: +880 1773-658804</span>
+                        </div>
                     </div>
-                    <div class="footer-actions">
-                        @auth
-                            <a class="mini-link" href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : route('member.dashboard') }}">
-                                {{ auth()->user()->isAdmin() ? 'Admin' : 'Dashboard' }}
-                            </a>
-                        @endauth
-                    </div>
+                </div>
+                <div class="wrap footer-bottom-bar">
+                    <p>&copy; {{ now()->year }} {{ $brandName }}</p>
+                    <p>All rights reserved.</p>
                 </div>
             </footer>
         </div>

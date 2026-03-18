@@ -15,10 +15,9 @@ class SiteController extends Controller
             'menu' => SiteNavigation::menu(),
             'slides' => config('site.homepage.slides', []),
             'heroMetrics' => [
-                ['label' => 'Total Members'],
-                ['label' => 'Upcoming Events'],
-                ['label' => 'Scholarships'],
-                ['label' => 'Active Chapters'],
+                ['label' => 'Upcoming Events', 'text' => 'Find out about our latest events and reunions.', 'route' => route('events.upcoming'), 'action' => 'View Events'],
+                ['label' => 'Alumni Directory', 'text' => 'Search and connect with fellow alumni and members.', 'route' => route('membership.members'), 'action' => 'Search Directory'],
+                ['label' => 'Member Benefits', 'text' => 'Explore the value of joining the MUBCAA alumni association.', 'route' => route('membership.privilege'), 'action' => 'View Benefits'],
             ],
             'impactStats' => [
                 ['value' => '5000+', 'label' => 'Members'],
@@ -26,36 +25,13 @@ class SiteController extends Controller
                 ['value' => '35+', 'label' => 'Events'],
                 ['value' => '15+', 'label' => 'Projects'],
             ],
-            'highlights' => [
-                [
-                    'title' => 'Mission & Vision',
-                    'text' => 'Present the purpose, values, and long-term direction that define MUBCAA as a trusted alumni organisation.',
-                    'route' => route('about.mission'),
-                    'label' => 'About the Association',
-                ],
-                [
-                    'title' => 'Membership',
-                    'text' => 'Guide alumni and members into the association with clear membership types, benefits, and onboarding steps.',
-                    'route' => route('membership.why'),
-                    'label' => 'Member Services',
-                ],
-                [
-                    'title' => 'Events',
-                    'text' => 'Showcase reunions, programs, galleries, and community moments that keep the alumni network active and visible.',
-                    'route' => route('events.upcoming'),
-                    'label' => 'Community Life',
-                ],
-            ],
             'serviceLinks' => [
-                'Member Registration',
-                'Alumni Directory',
-                'Event Participation',
-                'Career Networking',
-                'Donation Support',
-                'Volunteer Program',
-                'Business Directory',
-                'Community Support',
-                'Scholarship Support',
+                'About Us',
+                'Membership',
+                'Events',
+                'News',
+                'Photo Gallery',
+                'Directory',
             ],
             'events' => [
                 ['title' => 'Annual Alumni Meetup', 'meta' => '12 Apr 2026 | Dhaka', 'description' => 'Reconnect with fellow alumni through our flagship annual gathering.', 'route' => route('events.upcoming')],
@@ -63,10 +39,9 @@ class SiteController extends Controller
                 ['title' => 'Community Service Day', 'meta' => '24 May 2026 | Rangpur', 'description' => 'Join MUBCAA volunteers in a community support and outreach initiative.', 'route' => route('events.upcoming')],
             ],
             'newsItems' => [
-                'Membership renewal notice for 2026 is now open.',
-                'Applications invited for the MUBCAA scholarship support round.',
-                'Upcoming chapter coordination meeting scheduled next month.',
-                'Photo gallery from the latest reunion has been updated.',
+                ['title' => 'Annual reunion registration is now open.', 'text' => 'Members can now confirm attendance for the next MUBCAA reunion gathering.'],
+                ['title' => 'Scholarship support round announced.', 'text' => 'New support opportunities are available for alumni families and student initiatives.'],
+                ['title' => 'New chapter coordination meeting scheduled.', 'text' => 'Regional organisers will meet to review membership drives and event planning.'],
             ],
             'alumni' => [
                 ['name' => 'Dr. Amina Rahman', 'meta' => 'Batch 1998 / Academic Leader'],
@@ -74,11 +49,7 @@ class SiteController extends Controller
                 ['name' => 'Farhana Kabir', 'meta' => 'Batch 2005 / Community Organiser'],
                 ['name' => 'Tanvir Ahmed', 'meta' => 'Batch 2010 / Technology Professional'],
             ],
-            'galleryTiles' => range(1, 6),
-            'testimonials' => [
-                'MUBCAA helped me reconnect with mentors, classmates, and new professional opportunities.',
-                'The association gives alumni a meaningful way to contribute back to the community.',
-            ],
+            'galleryTiles' => range(1, 4),
         ]);
     }
 
