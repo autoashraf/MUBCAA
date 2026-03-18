@@ -1,69 +1,15 @@
-name: Deploy via SSH
+name: Deploy via cPanel Git
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          coverage: none
-          extensions: mbstring, bcmath, ctype, fileinfo, json, openssl, pdo_mysql, tokenizer, xml
-
-      - name: Install production PHP dependencies
-        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
-
-      - name: Prepare release package
+      - name: cPanel Git deployment notice
         run: |
-          rm -rf .deploy-package
-          mkdir -p .deploy-package
-          git archive --format=tar HEAD | tar -xf - -C .deploy-package
-          rm -rf .deploy-package/vendor
-          cp -R vendor .deploy-package/vendor
-          printf '%s\n' "${GITHUB_SHA}" > .deploy-package/DEPLOYED_SHA
-
-      - name: Deploy release over SSH
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p 22 161.248.201.7 >> ~/.ssh/known_hosts
-
-          cat > ~/.ssh/askpass.sh <<'EOF'
-          #!/bin/sh
-          printf '%s\n' "$SSH_PASSPHRASE"
-          EOF
-
-          chmod 700 ~/.ssh/askpass.sh
-
-          eval "$(ssh-agent -s)"
-          DISPLAY=:0 SSH_ASKPASS=~/.ssh/askpass.sh SSH_PASSPHRASE="${{ secrets.SSH_PASSPHRASE }}" setsid ssh-add ~/.ssh/deploy_key < /dev/null
-
-          tar czf release.tar.gz -C .deploy-package .
-
-          scp -P 22 release.tar.gz mubcaa@161.248.201.7:/home/mubcaa/site.mubcaa.com/release.tar.gz
-          ssh -p 22 mubcaa@161.248.201.7 <<'EOF'
-            cd /home/mubcaa/site.mubcaa.com
-            mkdir -p .deploy-tmp
-            tar xzf release.tar.gz -C .deploy-tmp
-            rm -f release.tar.gz
-            rm -rf app bootstrap config database public resources routes vendor artisan composer.json composer.lock package.json vite.config.js README.md phpunit.xml .gitattributes .gitignore DEPLOYED_SHA
-            cp -R .deploy-tmp/. .
-            rm -rf .deploy-tmp
-            php artisan optimize:clear
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
-            php artisan migrate --force
-          EOF
+          echo "Automatic SSH deployment is disabled for this project."
+          echo "This hosting account does not have shell access enabled."
+          echo "Use cPanel Git Version Control to pull the latest repository changes into /home/mubcaa/site.mubcaa.com."

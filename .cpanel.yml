@@ -1,0 +1,21 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/mubcaa/site.mubcaa.com
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/cp -R app $DEPLOYPATH
+    - /bin/cp -R bootstrap $DEPLOYPATH
+    - /bin/cp -R config $DEPLOYPATH
+    - /bin/cp -R database $DEPLOYPATH
+    - /bin/cp -R public $DEPLOYPATH
+    - /bin/cp -R resources $DEPLOYPATH
+    - /bin/cp -R routes $DEPLOYPATH
+    - /bin/cp artisan $DEPLOYPATH
+    - /bin/cp composer.json $DEPLOYPATH
+    - /bin/cp composer.lock $DEPLOYPATH
+    - /bin/cp package.json $DEPLOYPATH
+    - /bin/cp phpunit.xml $DEPLOYPATH
+    - /bin/cp vite.config.js $DEPLOYPATH
+    - if [ -f .htaccess ]; then /bin/cp .htaccess $DEPLOYPATH/.htaccess; fi
+    - if [ -f index.php ]; then /bin/cp index.php $DEPLOYPATH/index.php; fi
+    - if [ -f DEPLOYED_SHA ]; then /bin/cp DEPLOYED_SHA $DEPLOYPATH/DEPLOYED_SHA; fi

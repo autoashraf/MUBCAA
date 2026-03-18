@@ -3,27 +3,12 @@
 This project includes GitHub Actions workflows for:
 
 - `CI`: run Laravel tests
-- `Deploy via SSH`: upload the Laravel app over SSH and run deploy commands on the server
+- `Deploy via cPanel Git`: reminder workflow for the hosting setup used by this project
 
 ## Workflows
 
 - `/.github/workflows/ci.yml`
 - `/.github/workflows/deploy-ssh.yml`
-
-## GitHub Secrets Required For SSH Deploy
-
-Add these repository secrets in GitHub:
-
-- `SSH_PRIVATE_KEY`
-  Your private SSH key content
-- `SSH_PASSPHRASE`
-  The passphrase used by that private key, if the key is protected
-
-This project is already configured for:
-
-- SSH host: `161.248.201.7`
-- SSH username: `mubcaa`
-- app directory: `/home/mubcaa/site.mubcaa.com`
 
 ## Recommended cPanel Target
 
@@ -52,16 +37,12 @@ It does:
 
 Runs on:
 
-- push to `main`
 - manual trigger from GitHub Actions
 
 It does:
 
-1. install production Composer dependencies
-2. prepare the SSH key in the GitHub runner
-3. create a release archive
-4. upload the release to the server using native `scp`
-5. connect over native `ssh`, extract the release, and run Laravel deploy commands
+1. reminds contributors that this project deploys through cPanel Git Version Control
+2. avoids broken SSH deploy attempts on hosting accounts without shell access
 
 ## Important Notes
 
@@ -73,19 +54,33 @@ It does:
   - the GitHub Actions workflows now use PHP `8.2`
   - your cPanel runtime should also be changed from `ea-php81` to `ea-php82`
 - this workflow assumes the project is running without a required Node/Vite production build step
-- the workflow currently connects on SSH port `22`
-  - if your server uses a different SSH port, update [deploy-ssh.yml](/var/www/MUBCAA/.github/workflows/deploy-ssh.yml)
-- `vendor` is uploaded as part of the built release
-- the workflow currently runs:
-  - `php artisan optimize:clear`
-  - `php artisan config:cache`
-  - `php artisan route:cache`
-  - `php artisan view:cache`
-  - `php artisan migrate --force`
+- this hosting account does not allow shell access, so server-side deployment must happen through cPanel features instead of SSH automation
+
+## cPanel Git Deployment
+
+Use cPanel `Git Version Control` for the live site at:
+
+- `/home/mubcaa/site.mubcaa.com`
+
+Recommended setup:
+
+1. In cPanel, open `Git Version Control`
+2. Create or manage a repository in `/home/mubcaa/site.mubcaa.com`
+3. Connect it to your GitHub repository
+4. Set the production branch to `main`
+5. Use cPanel's `Pull or Deploy` action after each push
+
+Important:
+
+- the live code updates from the repository only after cPanel performs the pull/deploy
+- GitHub Actions `CI` will still test the code before or alongside that process
+- keep `.env` only on the server
+- keep writable folders correct for `storage` and `bootstrap/cache`
+- if the domain is not pointed at `public/`, keep the root `.htaccess` / root `index.php` workaround in place
 
 ## Optional Next Step
 
 If you want, the next improvement is:
 
-- zero-downtime release folders with symlink switching
-- separate `staging` and `production` SSH workflows
+- add a cPanel deployment guide for post-pull Laravel cache refresh
+- add a simple webhook or manual checklist for production updates
