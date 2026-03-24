@@ -126,7 +126,7 @@
                                 <article class="application-card admin-application-card">
                                     <div class="application-meta">
                                         <div>
-                                            <p class="panel-card-label">{{ $application->membershipType->name }}</p>
+                                            <p class="panel-card-label">Alumni Membership Application</p>
                                             <h3>{{ $application->user->name }}</h3>
                                             <p class="dashboard-copy">{{ $application->user->email }} | {{ $application->user->phone }}</p>
                                             <p class="dashboard-copy">Step {{ $application->current_step }} / {{ $application->total_steps }}</p>

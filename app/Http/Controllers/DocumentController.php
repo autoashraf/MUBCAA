@@ -9,7 +9,7 @@ class DocumentController extends Controller
 {
     public function profile(Request $request): View
     {
-        $user = $request->user()->load('profile.membershipType', 'application.membershipType');
+        $user = $request->user()->load('profile', 'application');
 
         return view('documents.profile', [
             'user' => $user,
@@ -20,7 +20,7 @@ class DocumentController extends Controller
 
     public function idCard(Request $request): View
     {
-        $user = $request->user()->load('profile.membershipType');
+        $user = $request->user()->load('profile');
 
         return view('documents.id-card', [
             'user' => $user,
@@ -30,9 +30,9 @@ class DocumentController extends Controller
 
     public function certificate(Request $request): View
     {
-        $user = $request->user()->load('profile.membershipType', 'application.membershipType');
+        $user = $request->user()->load('profile', 'application');
 
-        abort_unless($user->membership_status === 'active', 403);
+        abort_unless($user->membership_status === 'verified', 403);
 
         return view('documents.certificate', [
             'user' => $user,

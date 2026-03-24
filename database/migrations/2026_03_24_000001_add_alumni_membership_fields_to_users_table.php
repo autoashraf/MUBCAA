@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table): void {
             $table->string('phone')->nullable()->after('email');
             $table->string('role')->default('member')->after('password');
-            $table->string('membership_status')->default('pending')->after('role');
+            $table->string('membership_status')->default('draft')->after('role');
             $table->unsignedTinyInteger('approval_step')->default(1)->after('membership_status');
         });
     }

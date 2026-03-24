@@ -2,20 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\MemberProfile;
-use App\Models\MembershipApplication;
-use App\Models\MembershipType;
-use App\Models\User;
+use App\Models\PendingRegistration;
+use App\Services\ContactVerificationService;
 use App\Support\SiteNavigation;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private readonly ContactVerificationService $verificationService,
+    ) {
+    }
+
     public function showLogin(): View
     {
         return view('auth.login', [
@@ -38,81 +41,78 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return $request->user()->isAdmin()
-            ? redirect()->route('admin.dashboard')
-            : redirect()->route('member.dashboard');
+        if ($request->user()->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        if ($request->user()->profile && ! $request->user()->hasCompletedContactVerification()) {
+            return redirect()->route('member.verification.show');
+        }
+
+        return redirect()->route('member.dashboard');
     }
 
     public function showRegistration(): View
     {
-        $types = MembershipType::query()->with('workflowSteps')->where('is_active', true)->orderBy('sort_order')->get();
-
         return view('pages.apply', [
             'menu' => SiteNavigation::menu(),
-            'membershipTypes' => $types,
+            'registrationStatuses' => ['Draft', 'Unverified', 'In Progress', 'Pending Review', 'Verified'],
         ]);
     }
 
-    public function register(Request $request): RedirectResponse
+    public function register(Request $request): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'full_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'confirmed', Password::min(8)],
-            'phone' => ['required', 'string', 'max:50'],
-            'membership_type_id' => ['required', 'exists:membership_types,id'],
-            'address' => ['required', 'string', 'max:255'],
-            'city' => ['required', 'string', 'max:100'],
-            'country' => ['required', 'string', 'max:100'],
-            'occupation' => ['nullable', 'string', 'max:255'],
-            'date_of_birth' => ['nullable', 'date'],
-            'bio' => ['nullable', 'string', 'max:2000'],
-            'emergency_contact_name' => ['nullable', 'string', 'max:255'],
-            'emergency_contact_phone' => ['nullable', 'string', 'max:50'],
+            'mobile_number' => ['required', 'string', 'max:50', 'unique:users,phone'],
+            'passing_year_batch' => ['required', 'string', 'max:50'],
+            'student_id_or_roll' => ['required', 'string', 'max:100', 'unique:member_profiles,student_id_or_roll'],
+            'current_city' => ['required', 'string', 'max:100'],
         ]);
 
-        $membershipType = MembershipType::query()->findOrFail($validated['membership_type_id']);
+        $registration = DB::transaction(function () use ($validated): PendingRegistration {
+            PendingRegistration::query()
+                ->whereIn('email', [$validated['email']])
+                ->orWhere('mobile_number', $validated['mobile_number'])
+                ->orWhere('student_id_or_roll', $validated['student_id_or_roll'])
+                ->delete();
 
-        $user = DB::transaction(function () use ($validated, $membershipType): User {
-            $user = User::query()->create([
-                'name' => $validated['name'],
+            return PendingRegistration::query()->create([
+                'full_name' => $validated['full_name'],
                 'email' => $validated['email'],
-                'phone' => $validated['phone'],
-                'password' => $validated['password'],
-                'role' => 'member',
-                'membership_status' => 'pending',
-                'approval_step' => 1,
+                'mobile_number' => $validated['mobile_number'],
+                'passing_year_batch' => $validated['passing_year_batch'],
+                'student_id_or_roll' => $validated['student_id_or_roll'],
+                'current_city' => $validated['current_city'],
             ]);
-
-            MemberProfile::query()->create([
-                'user_id' => $user->id,
-                'membership_type_id' => $membershipType->id,
-                'phone' => $validated['phone'],
-                'address' => $validated['address'],
-                'city' => $validated['city'],
-                'country' => $validated['country'],
-                'occupation' => $validated['occupation'] ?? null,
-                'date_of_birth' => $validated['date_of_birth'] ?? null,
-                'bio' => $validated['bio'] ?? null,
-                'emergency_contact_name' => $validated['emergency_contact_name'] ?? null,
-                'emergency_contact_phone' => $validated['emergency_contact_phone'] ?? null,
-            ]);
-
-            MembershipApplication::query()->create([
-                'user_id' => $user->id,
-                'membership_type_id' => $membershipType->id,
-                'status' => 'pending',
-                'current_step' => 1,
-                'total_steps' => $membershipType->steps_count,
-                'submitted_at' => now(),
-            ]);
-
-            return $user;
         });
 
-        Auth::login($user);
+        $request->session()->put('pending_registration_id', $registration->id);
+        $this->verificationService->issueForPendingRegistration($registration);
 
-        return redirect()->route('member.dashboard')->with('success', 'Registration completed. Your membership is now in the approval workflow.');
+        $message = 'Basic information saved. Verify your mobile number and email address with OTP codes to create your member account.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => $message,
+                'modal_html' => view('partials.verification-modal', [
+                    'verificationEmail' => $registration->email,
+                    'verificationMobile' => $registration->mobile_number,
+                    'emailVerified' => false,
+                    'mobileVerified' => false,
+                    'emailToken' => $registration->fresh()->email_code,
+                    'mobileToken' => $registration->fresh()->mobile_code,
+                    'verificationContinueUrl' => route('member.profile.complete', ['step' => 2]),
+                    'verificationSuccessMessage' => $message,
+                ])->render(),
+            ]);
+        }
+
+        return redirect()
+            ->route('member.verification.show')
+            ->with('success', $message);
     }
 
     public function logout(Request $request): RedirectResponse

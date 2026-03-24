@@ -5,9 +5,28 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\MemberDashboardController;
 use App\Http\Controllers\SiteController;
+use App\Http\Controllers\VerificationController;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/__mubcaa_check', function () {
+    Log::info('MUBCAA debug route hit.', [
+        'path' => request()->path(),
+        'full_url' => request()->fullUrl(),
+        'host' => request()->getHost(),
+        'time' => now()->toDateTimeString(),
+    ]);
+
+    return response()->json([
+        'app' => 'MUBCAA',
+        'status' => 'local-route-ok',
+        'time' => now()->toDateTimeString(),
+        'routes_file_mtime' => date('Y-m-d H:i:s', filemtime(base_path('routes/web.php'))),
+    ]);
+});
+
 Route::get('/', [SiteController::class, 'home'])->name('home');
+Route::redirect('/home', '/')->name('home.redirect');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -15,6 +34,11 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/membership/apply-now', [AuthController::class, 'showRegistration'])->name('membership.apply');
     Route::post('/membership/apply-now', [AuthController::class, 'register'])->name('membership.apply.store');
 });
+
+Route::get('/membership/verify-contacts', [VerificationController::class, 'show'])->name('member.verification.show');
+Route::post('/membership/verify-contacts/email', [VerificationController::class, 'verifyEmail'])->name('member.verification.email');
+Route::post('/membership/verify-contacts/mobile', [VerificationController::class, 'verifyMobile'])->name('member.verification.mobile');
+Route::post('/membership/verify-contacts/{channel}/resend', [VerificationController::class, 'resend'])->name('member.verification.resend');
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
@@ -47,6 +71,8 @@ Route::post('/contact', [SiteController::class, 'storeContact'])->name('contact.
 
 Route::middleware('auth')->group(function (): void {
     Route::get('/dashboard', [MemberDashboardController::class, 'index'])->name('member.dashboard');
+    Route::get('/membership/profile-completion/{step?}', [MemberDashboardController::class, 'showCompletion'])->name('member.profile.complete');
+    Route::post('/membership/profile-completion', [MemberDashboardController::class, 'saveCompletion'])->name('member.profile.complete.save');
     Route::put('/dashboard/profile', [MemberDashboardController::class, 'updateProfile'])->name('member.profile.update');
     Route::get('/documents/profile', [DocumentController::class, 'profile'])->name('member.documents.profile');
     Route::get('/documents/id-card', [DocumentController::class, 'idCard'])->name('member.documents.id-card');

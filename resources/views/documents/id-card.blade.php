@@ -19,7 +19,7 @@
                             <h1>{{ config('site.brand.name') }}</h1>
                         </div>
                     </div>
-                    <span class="id-badge">{{ $profile?->membershipType?->name ?? 'Member' }}</span>
+                    <span class="id-badge">Alumni Member</span>
                 </header>
 
                 <section class="id-card-identity">
@@ -42,7 +42,7 @@
                     </div>
                     <div class="id-meta">
                         <span>City</span>
-                        <strong>{{ $profile?->city ?: 'N/A' }}</strong>
+                        <strong>{{ $profile?->city_district ?: $profile?->current_city ?: 'N/A' }}</strong>
                     </div>
                     <div class="id-meta">
                         <span>Valid From</span>
@@ -57,7 +57,7 @@
                     </div>
                     <div class="id-footer-block id-footer-block-right">
                         <span>Card Type</span>
-                        <strong>{{ $profile?->membershipType?->name ?? 'Member' }}</strong>
+                        <strong>Alumni Member</strong>
                     </div>
                 </footer>
             </div>

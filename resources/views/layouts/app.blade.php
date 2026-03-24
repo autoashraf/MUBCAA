@@ -16,11 +16,14 @@
             $brandName = config('site.brand.name', 'Membership Association');
             $brandTagline = config('site.brand.tagline', 'Membership, events, committees, and memories');
             $logoPath = config('site.brand.logo_path');
+            $memberLanding = auth()->check() && ! auth()->user()->isAdmin() && auth()->user()->profile && ! auth()->user()->hasCompletedContactVerification()
+                ? route('member.verification.show')
+                : route('member.dashboard');
             $mobileProfileLink = auth()->check()
-                ? (auth()->user()->isAdmin() ? route('admin.dashboard') : route('member.dashboard'))
+                ? (auth()->user()->isAdmin() ? route('admin.dashboard') : $memberLanding)
                 : route('login');
             $mobileProfileLabel = auth()->check()
-                ? (auth()->user()->isAdmin() ? 'Open admin dashboard' : 'Open member dashboard')
+                ? (auth()->user()->isAdmin() ? 'Open admin dashboard' : 'Open member area')
                 : 'Open login page';
         @endphp
         <div class="page-shell">
@@ -97,7 +100,7 @@
                     </div>
                     <div class="header-actions">
                         @auth
-                            <a class="mini-link" href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : route('member.dashboard') }}">
+                            <a class="mini-link" href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : $memberLanding }}">
                                 {{ auth()->user()->isAdmin() ? 'Admin' : 'Dashboard' }}
                             </a>
                             <form method="POST" action="{{ route('logout') }}">
@@ -160,12 +163,223 @@
         @if (! file_exists(public_path('build/manifest.json')) && ! file_exists(public_path('hot')))
             <script>
                 document.addEventListener('DOMContentLoaded', function () {
+                    var verificationModalRoot = document.querySelector('[data-verification-modal-root]');
                     var panelRoot = document.querySelector('[data-admin-panels]');
                     var triggers = document.querySelectorAll('[data-admin-panel-trigger]');
                     var sliderRoot = document.querySelector('[data-home-slider]');
                     var slides = document.querySelectorAll('[data-home-slide]');
                     var dots = document.querySelectorAll('[data-home-slider-dot]');
                     var mobileNavGroups = document.querySelectorAll('[data-mobile-nav-group]');
+                    var wizardRoot;
+
+                    function mountOtpGroups(root) {
+                        (root || document).querySelectorAll('[data-otp-group]').forEach(function (group) {
+                            var form = group.closest('form');
+                            var hiddenInput = form ? form.querySelector('input[name="code"]') : null;
+                            var digits = Array.from(group.querySelectorAll('.otp-digit'));
+
+                            if (!form || !hiddenInput || !digits.length || group.dataset.otpMounted === 'true') {
+                                return;
+                            }
+
+                            function syncHidden() {
+                                hiddenInput.value = digits.map(function (input) {
+                                    return input.value;
+                                }).join('');
+
+                                digits.forEach(function (input) {
+                                    input.classList.toggle('is-filled', input.value !== '');
+                                });
+                            }
+
+                            digits.forEach(function (input, index) {
+                                input.addEventListener('input', function () {
+                                    input.value = input.value.replace(/\D/g, '').slice(0, 1);
+                                    syncHidden();
+
+                                    if (input.value && digits[index + 1]) {
+                                        digits[index + 1].focus();
+                                    }
+                                });
+
+                                input.addEventListener('keydown', function (event) {
+                                    if (event.key === 'Backspace' && !input.value && digits[index - 1]) {
+                                        digits[index - 1].focus();
+                                    }
+
+                                    if (event.key === 'ArrowLeft' && digits[index - 1]) {
+                                        event.preventDefault();
+                                        digits[index - 1].focus();
+                                    }
+
+                                    if (event.key === 'ArrowRight' && digits[index + 1]) {
+                                        event.preventDefault();
+                                        digits[index + 1].focus();
+                                    }
+                                });
+
+                                input.addEventListener('paste', function (event) {
+                                    event.preventDefault();
+
+                                    var pasted = ((event.clipboardData && event.clipboardData.getData('text')) || '')
+                                        .replace(/\D/g, '')
+                                        .slice(0, digits.length);
+
+                                    if (!pasted) {
+                                        return;
+                                    }
+
+                                    digits.forEach(function (digitInput, digitIndex) {
+                                        digitInput.value = pasted[digitIndex] || '';
+                                    });
+
+                                    syncHidden();
+                                    digits[Math.min(pasted.length, digits.length) - 1].focus();
+                                });
+                            });
+
+                            form.addEventListener('submit', syncHidden);
+                            group.dataset.otpMounted = 'true';
+                            syncHidden();
+                        });
+                    }
+
+                    function clearFormErrors(form) {
+                        form.querySelectorAll('.ajax-error').forEach(function (node) {
+                            node.remove();
+                        });
+
+                        form.querySelectorAll('.is-invalid').forEach(function (node) {
+                            node.classList.remove('is-invalid');
+                        });
+                    }
+
+                    function applyFormErrors(form, errors) {
+                        Object.entries(errors || {}).forEach(function (entry) {
+                            var field = entry[0];
+                            var messages = entry[1];
+                            var input = form.querySelector('[name="' + field + '"]');
+
+                            if (! input) {
+                                return;
+                            }
+
+                            input.classList.add('is-invalid');
+
+                            var error = document.createElement('small');
+                            error.className = 'ajax-error';
+                            error.textContent = Array.isArray(messages) ? messages[0] : messages;
+                            input.insertAdjacentElement('afterend', error);
+                        });
+                    }
+
+                    function showFormMessage(form, message, className) {
+                        form.querySelectorAll('.ajax-form-alert').forEach(function (node) {
+                            node.remove();
+                        });
+
+                        if (! message) {
+                            return;
+                        }
+
+                        var alert = document.createElement('div');
+                        alert.className = (className || 'alert-success') + ' ajax-form-alert';
+                        alert.textContent = message;
+                        form.insertAdjacentElement('afterbegin', alert);
+                    }
+
+                    document.addEventListener('submit', function (event) {
+                        var form = event.target.closest('form[data-ajax-form]');
+
+                        if (! form) {
+                            return;
+                        }
+
+                        event.preventDefault();
+                        clearFormErrors(form);
+
+                        var submitter = event.submitter;
+
+                        if (submitter) {
+                            submitter.disabled = true;
+                        }
+
+                        var formData = new FormData(form);
+
+                        if (submitter && submitter.name && ! formData.has(submitter.name)) {
+                            formData.append(submitter.name, submitter.value || '1');
+                        }
+
+                        fetch(form.action, {
+                            method: form.method || 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: formData,
+                            credentials: 'same-origin'
+                        })
+                            .then(function (response) {
+                                return response.json()
+                                    .catch(function () { return {}; })
+                                    .then(function (payload) { return { response: response, payload: payload }; });
+                            })
+                            .then(function (result) {
+                                var response = result.response;
+                                var payload = result.payload;
+
+                                if (! response.ok) {
+                                    if (response.status === 422) {
+                                        applyFormErrors(form, payload.errors || {});
+                                        showFormMessage(form, payload.message || 'Please review the highlighted fields.', 'alert-success alert-warning-like');
+                                        return;
+                                    }
+
+                                    showFormMessage(form, payload.message || 'Something went wrong. Please try again.', 'alert-success alert-warning-like');
+                                    return;
+                                }
+
+                                var mode = form.dataset.ajaxForm;
+
+                                if (mode === 'registration' && verificationModalRoot && payload.modal_html) {
+                                    verificationModalRoot.innerHTML = payload.modal_html;
+                                    mountOtpGroups(verificationModalRoot);
+                                    return;
+                                }
+
+                                if (mode === 'verification' && payload.completed && payload.continue_url) {
+                                    window.location.href = payload.continue_url;
+                                    return;
+                                }
+
+                                if (mode === 'verification' && verificationModalRoot && payload.modal_html) {
+                                    verificationModalRoot.innerHTML = payload.modal_html;
+                                    mountOtpGroups(verificationModalRoot);
+                                    return;
+                                }
+
+                                if (mode === 'wizard') {
+                                    showFormMessage(form, payload.message);
+
+                                    if (payload.submitted && payload.redirect_url) {
+                                        window.location.href = payload.redirect_url;
+                                        return;
+                                    }
+
+                                    if (payload.next_step && wizardRoot && wizardRoot.__showStep) {
+                                        wizardRoot.__showStep(Number(payload.next_step));
+                                    }
+                                }
+                            })
+                            .catch(function () {
+                                showFormMessage(form, 'Something went wrong. Please try again.', 'alert-success alert-warning-like');
+                            })
+                            .finally(function () {
+                                if (submitter) {
+                                    submitter.disabled = false;
+                                }
+                            });
+                    });
 
                     mobileNavGroups.forEach(function (group) {
                         var trigger = group.querySelector('[data-mobile-nav-trigger]');
@@ -193,6 +407,8 @@
                             }
                         });
                     });
+
+                    mountOtpGroups(document);
 
                     if (panelRoot && triggers.length) {
                         var panels = panelRoot.querySelectorAll('[data-admin-panel]');
@@ -263,6 +479,60 @@
 
                         showSlide(0);
                         startSlider();
+                    }
+
+                    wizardRoot = document.querySelector('[data-profile-wizard]');
+
+                    if (wizardRoot) {
+                        var stepInputs = wizardRoot.querySelectorAll('input[name="wizard_step"]');
+                        var stepLabel = wizardRoot.querySelector('[data-wizard-step-label]');
+                        var stepItems = wizardRoot.querySelectorAll('[data-wizard-step-item]');
+                        var panels = wizardRoot.querySelectorAll('[data-wizard-panel]');
+                        var triggers = wizardRoot.querySelectorAll('[data-step-target]');
+                        var initialStep = Number(wizardRoot.dataset.initialStep || 2);
+
+                        function showWizardStep(step) {
+                            stepInputs.forEach(function (input) {
+                                input.disabled = Number(input.value) !== step;
+                            });
+
+                            panels.forEach(function (panel) {
+                                var isActive = Number(panel.dataset.wizardPanel) === step;
+
+                                panel.classList.toggle('is-active', isActive);
+
+                                panel.querySelectorAll('input, select, textarea, button').forEach(function (control) {
+                                    if (control.matches('[data-step-target]')) {
+                                        return;
+                                    }
+
+                                    if (control.name === 'wizard_step') {
+                                        control.disabled = !isActive;
+
+                                        return;
+                                    }
+
+                                    control.disabled = !isActive;
+                                });
+                            });
+
+                            stepItems.forEach(function (item) {
+                                item.classList.toggle('is-active', Number(item.dataset.wizardStepItem) === step);
+                            });
+
+                            if (stepLabel) {
+                                stepLabel.textContent = 'Step ' + step + ' of 10';
+                            }
+                        }
+
+                        triggers.forEach(function (trigger) {
+                            trigger.addEventListener('click', function () {
+                                showWizardStep(Number(trigger.dataset.stepTarget));
+                            });
+                        });
+
+                        wizardRoot.__showStep = showWizardStep;
+                        showWizardStep(initialStep);
                     }
                 });
             </script>

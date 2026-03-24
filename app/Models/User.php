@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -59,9 +60,29 @@ class User extends Authenticatable
         return $this->hasOne(MembershipApplication::class);
     }
 
+    public function verificationTokens(): HasMany
+    {
+        return $this->hasMany(ContactVerificationToken::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function hasVerifiedMobile(): bool
+    {
+        return (bool) $this->profile?->mobile_verified;
+    }
+
+    public function hasVerifiedEmail(): bool
+    {
+        return ! is_null($this->email_verified_at);
+    }
+
+    public function hasCompletedContactVerification(): bool
+    {
+        return $this->hasVerifiedEmail() && $this->hasVerifiedMobile();
     }
 
     public function memberNumber(): string

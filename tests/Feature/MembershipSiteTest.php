@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Mail\VerificationOtpMail;
 use App\Models\MembershipApplication;
-use App\Models\MembershipType;
+use App\Models\PendingRegistration;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class MembershipSiteTest extends TestCase
@@ -37,44 +39,39 @@ class MembershipSiteTest extends TestCase
         }
     }
 
-    public function test_member_can_register_and_get_membership_application(): void
+    public function test_member_can_submit_basic_info_and_create_pending_registration(): void
     {
-        $type = MembershipType::query()->where('slug', 'general')->firstOrFail();
+        Mail::fake();
 
         $response = $this->post('/membership/apply-now', [
-            'name' => 'Test Applicant',
+            'full_name' => 'Test Applicant',
+            'mobile_number' => '01700000001',
             'email' => 'applicant@example.com',
-            'password' => 'secret123',
-            'password_confirmation' => 'secret123',
-            'phone' => '01700000000',
-            'membership_type_id' => $type->id,
-            'address' => '123 Main Street',
-            'city' => 'Dhaka',
-            'country' => 'Bangladesh',
-            'occupation' => 'Engineer',
-            'bio' => 'I want to join the association.',
+            'passing_year_batch' => '2012',
+            'student_id_or_roll' => 'ST-1024',
+            'current_city' => 'Dhaka',
         ]);
 
-        $response->assertRedirect(route('member.dashboard'));
+        $response->assertRedirect(route('member.verification.show'));
 
-        $this->assertDatabaseHas('users', [
+        $this->assertDatabaseMissing('users', [
             'email' => 'applicant@example.com',
-            'role' => 'member',
-            'membership_status' => 'pending',
         ]);
 
-        $this->assertDatabaseHas('membership_applications', [
-            'status' => 'pending',
-            'current_step' => 1,
-            'membership_type_id' => $type->id,
+        $this->assertDatabaseHas('pending_registrations', [
+            'email' => 'applicant@example.com',
+            'mobile_number' => '01700000001',
+            'student_id_or_roll' => 'ST-1024',
         ]);
+
+        Mail::assertSent(VerificationOtpMail::class, 1);
     }
 
     public function test_member_can_login_and_access_dashboard(): void
     {
         $user = User::factory()->create([
             'role' => 'member',
-            'membership_status' => 'pending',
+            'membership_status' => 'pending_review',
             'approval_step' => 1,
             'password' => 'password',
         ]);
@@ -88,22 +85,106 @@ class MembershipSiteTest extends TestCase
         $this->actingAs($user)->get('/dashboard')->assertOk();
     }
 
+    public function test_pending_registration_creates_member_after_email_and_mobile_otp_verification(): void
+    {
+        Mail::fake();
+
+        $registration = PendingRegistration::query()->create([
+            'full_name' => 'Pending Applicant',
+            'email' => 'pending@example.com',
+            'mobile_number' => '01712345678',
+            'passing_year_batch' => '2012',
+            'student_id_or_roll' => 'ST-2001',
+            'current_city' => 'Dhaka',
+            'email_code' => '123456',
+            'mobile_code' => '654321',
+            'email_code_expires_at' => now()->addMinutes(15),
+            'mobile_code_expires_at' => now()->addMinutes(15),
+        ]);
+
+        $this->withSession(['pending_registration_id' => $registration->id])
+            ->post(route('member.verification.email'), ['code' => '123456'])
+            ->assertRedirect();
+
+        $this->withSession(['pending_registration_id' => $registration->id])
+            ->post(route('member.verification.mobile'), ['code' => '654321'])
+            ->assertRedirect(route('member.profile.complete', ['step' => 2]));
+
+        $member = User::query()->where('email', 'pending@example.com')->first();
+
+        $this->assertNotNull($member);
+        $this->assertNotNull($member->email_verified_at);
+        $this->assertTrue((bool) $member->profile->mobile_verified);
+        $this->assertDatabaseHas('membership_applications', [
+            'user_id' => $member->id,
+            'status' => 'unverified',
+        ]);
+        $this->assertNotNull($registration->fresh()->completed_at);
+    }
+
+    public function test_member_can_open_and_save_profile_completion_step(): void
+    {
+        $member = User::factory()->create([
+            'role' => 'member',
+            'membership_status' => 'unverified',
+            'approval_step' => 1,
+            'phone' => '01700000000',
+        ]);
+
+        $member->profile()->create([
+            'mobile_number' => '01700000000',
+            'passing_year_batch' => '2012',
+            'student_id_or_roll' => 'ST-1024',
+            'current_city' => 'Dhaka',
+            'country' => 'Bangladesh',
+            'completion_step' => 1,
+        ]);
+
+        $member->application()->create([
+            'status' => 'unverified',
+            'current_step' => 1,
+            'total_steps' => 10,
+        ]);
+
+        $this->actingAs($member)
+            ->get(route('member.profile.complete', ['step' => 2]))
+            ->assertOk()
+            ->assertSee('Academic Info');
+
+        $this->actingAs($member)
+            ->post(route('member.profile.complete.save'), [
+                'wizard_step' => 2,
+                'ssc_passing_year' => '2010',
+                'hsc_passing_year' => '2012',
+                'group' => 'Science',
+                'shift' => 'Morning',
+                'campus_branch' => 'Main Campus',
+                'next_step' => 3,
+            ])
+            ->assertRedirect(route('member.profile.complete', ['step' => 3]));
+
+        $this->assertDatabaseHas('member_profiles', [
+            'user_id' => $member->id,
+            'ssc_passing_year' => '2010',
+            'group' => 'Science',
+            'completion_step' => 2,
+        ]);
+    }
+
     public function test_admin_can_advance_application(): void
     {
         $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
-        $type = MembershipType::query()->where('slug', 'general')->firstOrFail();
         $member = User::factory()->create([
             'role' => 'member',
-            'membership_status' => 'pending',
+            'membership_status' => 'pending_review',
             'approval_step' => 1,
         ]);
 
         $application = MembershipApplication::query()->create([
             'user_id' => $member->id,
-            'membership_type_id' => $type->id,
             'status' => 'pending',
             'current_step' => 1,
-            'total_steps' => $type->steps_count,
+            'total_steps' => 10,
             'submitted_at' => now(),
         ]);
 
@@ -123,20 +204,18 @@ class MembershipSiteTest extends TestCase
     public function test_admin_dashboard_shows_application_queue_actions(): void
     {
         $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
-        $type = MembershipType::query()->where('slug', 'general')->firstOrFail();
         $member = User::factory()->create([
             'role' => 'member',
-            'membership_status' => 'pending',
+            'membership_status' => 'pending_review',
             'approval_step' => 1,
             'phone' => '01700000000',
         ]);
 
         MembershipApplication::query()->create([
             'user_id' => $member->id,
-            'membership_type_id' => $type->id,
             'status' => 'pending',
             'current_step' => 1,
-            'total_steps' => $type->steps_count,
+            'total_steps' => 10,
             'submitted_at' => now(),
         ]);
 
@@ -150,23 +229,22 @@ class MembershipSiteTest extends TestCase
 
     public function test_member_document_routes_are_available_and_certificate_requires_active_status(): void
     {
-        $type = MembershipType::query()->where('slug', 'general')->firstOrFail();
         $member = User::factory()->create([
             'role' => 'member',
-            'membership_status' => 'pending',
+            'membership_status' => 'pending_review',
             'approval_step' => 1,
         ]);
 
         $member->profile()->create([
-            'membership_type_id' => $type->id,
-            'phone' => '01711111111',
-            'address' => 'House 1',
-            'city' => 'Dhaka',
+            'mobile_number' => '01711111111',
+            'primary_mobile' => '01711111111',
+            'present_address' => 'House 1',
+            'current_city' => 'Dhaka',
+            'city_district' => 'Dhaka',
             'country' => 'Bangladesh',
         ]);
 
         $member->application()->create([
-            'membership_type_id' => $type->id,
             'status' => 'pending',
             'current_step' => 1,
             'total_steps' => 3,
@@ -177,7 +255,7 @@ class MembershipSiteTest extends TestCase
         $this->actingAs($member)->get(route('member.documents.id-card'))->assertOk();
         $this->actingAs($member)->get(route('member.documents.certificate'))->assertForbidden();
 
-        $member->update(['membership_status' => 'active']);
+        $member->update(['membership_status' => 'verified']);
         $member->application()->update(['status' => 'approved', 'approved_at' => now()]);
 
         $this->actingAs($member)->get(route('member.documents.certificate'))->assertOk();

@@ -12,7 +12,6 @@ class MembershipApplication extends Model
 
     protected $fillable = [
         'user_id',
-        'membership_type_id',
         'status',
         'current_step',
         'total_steps',
@@ -27,16 +26,15 @@ class MembershipApplication extends Model
         'approved_at' => 'datetime',
     ];
 
+    public function isFinalReviewReady(): bool
+    {
+        return in_array($this->status, ['pending_review', 'under_review', 'approved', 'rejected'], true);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
-
-    public function membershipType(): BelongsTo
-    {
-        return $this->belongsTo(MembershipType::class);
-    }
-
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');

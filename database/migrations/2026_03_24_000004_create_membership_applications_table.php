@@ -11,8 +11,7 @@ return new class extends Migration
         Schema::create('membership_applications', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('membership_type_id')->constrained()->cascadeOnDelete();
-            $table->string('status')->default('pending');
+            $table->string('status')->default('draft');
             $table->unsignedTinyInteger('current_step')->default(1);
             $table->unsignedTinyInteger('total_steps')->default(3);
             $table->text('admin_notes')->nullable();

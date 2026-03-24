@@ -13,7 +13,7 @@ class AdminController extends Controller
     public function dashboard(): View
     {
         $applications = MembershipApplication::query()
-            ->with(['user.profile', 'membershipType.workflowSteps'])
+            ->with(['user.profile'])
             ->latest()
             ->get();
 
@@ -21,8 +21,8 @@ class AdminController extends Controller
             'menu' => SiteNavigation::menu(),
             'applications' => $applications,
             'summary' => [
-                'pending' => $applications->where('status', 'pending')->count(),
-                'under_review' => $applications->where('status', 'under_review')->count(),
+                'pending' => $applications->whereIn('status', ['draft', 'unverified', 'in_progress', 'pending_review', 'pending'])->count(),
+                'under_review' => $applications->whereIn('status', ['under_review', 'needs_correction'])->count(),
                 'approved' => $applications->where('status', 'approved')->count(),
                 'rejected' => $applications->where('status', 'rejected')->count(),
             ],
@@ -51,7 +51,7 @@ class AdminController extends Controller
 
         $application->user->update([
             'approval_step' => $nextStep,
-            'membership_status' => $isFinalStep ? 'active' : 'under_review',
+            'membership_status' => $isFinalStep ? 'verified' : 'pending_review',
         ]);
 
         return back()->with('success', 'Application moved to the next workflow step.');

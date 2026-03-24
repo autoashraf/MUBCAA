@@ -7,13 +7,13 @@
 
     <section class="certificate-sheet">
         <div class="certificate-frame">
-            <p class="document-kicker centered">Membership Certificate</p>
-            <h1 class="certificate-title">Certificate of Membership</h1>
+            <p class="document-kicker centered">Alumni Membership Certificate</p>
+            <h1 class="certificate-title">Certificate of Alumni Membership</h1>
             <p class="certificate-copy">This is to certify that</p>
             <h2 class="certificate-name">{{ $user->name }}</h2>
             <p class="certificate-copy">
                 has been admitted as a
-                <strong>{{ $profile?->membershipType?->name ?? 'Member' }}</strong>
+                <strong>Verified Alumni Member</strong>
                 of the Membership Association and is recognized as an active member of the community.
             </p>
 

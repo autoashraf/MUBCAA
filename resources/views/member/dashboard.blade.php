@@ -17,8 +17,14 @@
                         <span class="status-pill status-{{ $application?->status ?? $user->membership_status }}">
                             {{ str($application?->status ?? $user->membership_status)->replace('_', ' ')->title() }}
                         </span>
-                        <span class="dashboard-chip">{{ $user->profile?->membershipType?->name ?? 'Membership Type Pending' }}</span>
+                        <span class="dashboard-chip">Alumni Membership</span>
                         <span class="dashboard-chip">Profile {{ $profileCompletion }}% complete</span>
+                    </div>
+                    <div class="hero-actions">
+                        <a class="button button-primary" href="{{ route('member.profile.complete', ['step' => max(2, ($user->profile?->completion_step ?? 1) + 1 > 10 ? 10 : ($user->profile?->completion_step ?? 1) + 1)]) }}">
+                            Complete Alumni Profile
+                        </a>
+                        <a class="button button-secondary" href="{{ route('member.documents.profile') }}" target="_blank">View A4 Profile</a>
                     </div>
                 </div>
             </div>
@@ -46,7 +52,7 @@
                     <span class="dashboard-feature-index">03</span>
                     <div>
                         <strong>Profile Control</strong>
-                        <p>Keep your personal information updated for membership services.</p>
+                        <p>Complete your 10-step alumni profile and submit it for verification.</p>
                     </div>
                 </article>
             </div>
@@ -96,7 +102,7 @@
                         </div>
                         <div>
                             <span>City</span>
-                            <strong>{{ $user->profile?->city ?? 'Not set' }}</strong>
+                            <strong>{{ $user->profile?->city_district ?? $user->profile?->current_city ?? 'Not set' }}</strong>
                         </div>
                     </div>
                 </div>
@@ -106,16 +112,16 @@
                     <div class="dashboard-doc-links">
                         <a class="dashboard-doc-link" href="{{ route('member.documents.profile') }}" target="_blank">
                             <strong>A4 Profile</strong>
-                            <span>Printable full registration form</span>
+                            <span>Printable full alumni registration form</span>
                         </a>
                         <a class="dashboard-doc-link" href="{{ route('member.documents.id-card') }}" target="_blank">
                             <strong>ID Card</strong>
-                            <span>Print-ready front and back member card</span>
+                            <span>Print-ready alumni member card</span>
                         </a>
-                        @if ($user->membership_status === 'active')
+                        @if ($user->membership_status === 'verified')
                             <a class="dashboard-doc-link dashboard-doc-link-active" href="{{ route('member.documents.certificate') }}" target="_blank">
                                 <strong>Certificate</strong>
-                                <span>Membership certificate for active members</span>
+                                <span>Membership certificate for verified members</span>
                             </a>
                         @else
                             <div class="dashboard-doc-link dashboard-doc-link-muted">
@@ -131,7 +137,7 @@
                     <div class="snapshot-list">
                         <div><span>Email</span><strong>{{ $user->email }}</strong></div>
                         <div><span>Phone</span><strong>{{ $user->phone ?? 'Not provided' }}</strong></div>
-                        <div><span>City</span><strong>{{ $user->profile?->city ?? 'Not provided' }}</strong></div>
+                        <div><span>City</span><strong>{{ $user->profile?->city_district ?? $user->profile?->current_city ?? 'Not provided' }}</strong></div>
                         <div><span>Occupation</span><strong>{{ $user->profile?->occupation ?? 'Not provided' }}</strong></div>
                     </div>
                 </div>
@@ -148,10 +154,13 @@
                 <div class="dashboard-form-head">
                     <div>
                         <p class="panel-card-label">Profile Management</p>
-                        <h3>Edit your member profile</h3>
-                        <p class="dashboard-copy">Keep your information complete so approval, documents, and future member services work correctly.</p>
+                        <h3>Quick profile update</h3>
+                        <p class="dashboard-copy">Use the full alumni profile wizard for academic, engagement, privacy, and verification details. This section is only for quick account edits.</p>
                     </div>
-                    <button class="button button-primary" type="submit">Save Changes</button>
+                    <div class="action-row">
+                        <a class="button button-secondary" href="{{ route('member.profile.complete', ['step' => 2]) }}">Open Full Profile Wizard</a>
+                        <button class="button button-primary" type="submit">Save Changes</button>
+                    </div>
                 </div>
 
                 @if (session('success'))
@@ -176,14 +185,14 @@
                                 @error('phone') <small>{{ $message }}</small> @enderror
                             </label>
                             <label>
-                                <span>Address</span>
-                                <input type="text" name="address" value="{{ old('address', $user->profile?->address) }}" required>
-                                @error('address') <small>{{ $message }}</small> @enderror
+                                <span>Present Address</span>
+                                <input type="text" name="present_address" value="{{ old('present_address', $user->profile?->present_address) }}" required>
+                                @error('present_address') <small>{{ $message }}</small> @enderror
                             </label>
                             <label>
-                                <span>City</span>
-                                <input type="text" name="city" value="{{ old('city', $user->profile?->city) }}" required>
-                                @error('city') <small>{{ $message }}</small> @enderror
+                                <span>City / District</span>
+                                <input type="text" name="city_district" value="{{ old('city_district', $user->profile?->city_district ?? $user->profile?->current_city) }}" required>
+                                @error('city_district') <small>{{ $message }}</small> @enderror
                             </label>
                             <label>
                                 <span>Country</span>
@@ -201,7 +210,7 @@
                     <section class="dashboard-form-block">
                         <div class="dashboard-block-head">
                             <h4>Personal Details</h4>
-                            <span>Emergency contacts and profile narrative</span>
+                            <span>Personal timeline and member introduction</span>
                         </div>
                         <div class="form-grid">
                             <label>
@@ -209,22 +218,12 @@
                                 <input type="date" name="date_of_birth" value="{{ old('date_of_birth', optional($user->profile?->date_of_birth)->format('Y-m-d')) }}">
                                 @error('date_of_birth') <small>{{ $message }}</small> @enderror
                             </label>
-                            <label>
-                                <span>Emergency contact name</span>
-                                <input type="text" name="emergency_contact_name" value="{{ old('emergency_contact_name', $user->profile?->emergency_contact_name) }}">
-                                @error('emergency_contact_name') <small>{{ $message }}</small> @enderror
-                            </label>
-                            <label>
-                                <span>Emergency contact phone</span>
-                                <input type="text" name="emergency_contact_phone" value="{{ old('emergency_contact_phone', $user->profile?->emergency_contact_phone) }}">
-                                @error('emergency_contact_phone') <small>{{ $message }}</small> @enderror
-                            </label>
                         </div>
 
                         <label>
                             <span>Short bio</span>
-                            <textarea name="bio" rows="5">{{ old('bio', $user->profile?->bio) }}</textarea>
-                            @error('bio') <small>{{ $message }}</small> @enderror
+                            <textarea name="short_bio" rows="5">{{ old('short_bio', $user->profile?->short_bio) }}</textarea>
+                            @error('short_bio') <small>{{ $message }}</small> @enderror
                         </label>
                     </section>
                 </div>
