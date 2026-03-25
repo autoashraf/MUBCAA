@@ -46,6 +46,7 @@ class MemberProfile extends Model
         'professional_skills',
         'profile_photo',
         'cover_photo',
+        'business_card_upload',
         'short_bio',
         'facebook_profile_link',
         'linkedin_profile_link',

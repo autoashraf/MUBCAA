@@ -14,8 +14,8 @@ return new class extends Migration
             $table->string('mobile_number')->unique();
             $table->string('email')->unique();
             $table->string('passing_year_batch');
-            $table->string('student_id_or_roll')->unique();
-            $table->string('current_city');
+            $table->string('student_id_or_roll')->nullable()->unique();
+            $table->string('current_city')->nullable();
             $table->string('email_code', 6)->nullable();
             $table->string('mobile_code', 6)->nullable();
             $table->timestamp('email_code_expires_at')->nullable();

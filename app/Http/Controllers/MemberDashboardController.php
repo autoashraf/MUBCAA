@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -24,6 +25,7 @@ class MemberDashboardController extends Controller
             'workflowSteps' => $this->applicationWorkflowSteps($user->application),
             'profileCompletion' => $this->profileCompletion($profile),
             'stepLabels' => $this->completionSteps(),
+            'missingSubmissionItems' => $this->missingSubmissionItems($user, $profile),
         ]);
     }
 
@@ -55,6 +57,13 @@ class MemberDashboardController extends Controller
                 'Sports Activities',
                 'Training & Workshops',
             ],
+            'academicGroups' => ['Science', 'Commerce', 'Arts'],
+            'academicShifts' => ['Morning', 'Day'],
+            'campusBranches' => ['Main', 'Shewrapara', 'Ibrahimpur', 'Rupnagar'],
+            'districts' => $this->bangladeshDistricts(),
+            'occupations' => $this->occupationOptions(),
+            'designations' => $this->designationOptions(),
+            'industries' => $this->industryOptions(),
         ]);
     }
 
@@ -73,7 +82,7 @@ class MemberDashboardController extends Controller
         }
 
         DB::transaction(function () use ($request, $validated, $user, $profile, $step): void {
-            $profileData = $this->extractProfileData($request, $validated, $step);
+            $profileData = $this->extractProfileData($request, $validated, $step, $profile);
 
             $profile = $user->profile()->updateOrCreate(
                 ['user_id' => $user->id],
@@ -138,6 +147,8 @@ class MemberDashboardController extends Controller
                     'ok' => true,
                     'message' => "Draft saved for step {$step}. You can continue later.",
                     'next_step' => $step,
+                    'step_url' => route('member.profile.complete', ['step' => $step]),
+                    'summary' => $this->wizardSummary($request->user()->fresh()->load('profile', 'application'), $step),
                     'submitted' => false,
                 ]);
             }
@@ -154,6 +165,8 @@ class MemberDashboardController extends Controller
                 'ok' => true,
                 'message' => "Step {$step} saved. Continue your alumni profile.",
                 'next_step' => $nextStep,
+                'step_url' => route('member.profile.complete', ['step' => $nextStep]),
+                'summary' => $this->wizardSummary($request->user()->fresh()->load('profile', 'application'), $nextStep),
                 'submitted' => false,
             ]);
         }
@@ -222,7 +235,7 @@ class MemberDashboardController extends Controller
             3 => 'Please provide your personal details.',
             4 => 'Please provide your contact details.',
             5 => 'Please share your professional background to help us build a stronger alumni network.',
-            6 => 'Please upload your profile photo and add your online profile links if available.',
+            6 => 'Please upload your profile photo, business card, and online profile links if available.',
             7 => 'Please let us know how you would like to stay involved with the alumni association.',
             8 => 'Please provide any supporting information to help us verify your alumni profile.',
             9 => 'Please choose how your information will be displayed in the alumni directory.',
@@ -242,61 +255,63 @@ class MemberDashboardController extends Controller
     {
         return match ($step) {
             2 => [
-                'ssc_passing_year' => ['nullable', 'string', 'max:50'],
-                'hsc_passing_year' => ['nullable', 'string', 'max:50'],
-                'group' => ['nullable', 'string', 'max:255'],
-                'shift' => ['nullable', 'string', 'max:100'],
-                'campus_branch' => ['nullable', 'string', 'max:150'],
+                'ssc_passing_year' => ['required', 'string', 'max:50'],
+                'hsc_passing_year' => ['required', 'string', 'max:50'],
+                'group' => ['required', Rule::in($this->academicGroupOptions())],
+                'shift' => ['required', Rule::in($this->shiftOptions())],
+                'campus_branch' => ['required', Rule::in($this->campusOptions())],
             ],
             3 => [
-                'date_of_birth' => ['nullable', 'date'],
-                'gender' => ['nullable', Rule::in(['Male', 'Female', 'Other'])],
-                'blood_group' => ['nullable', Rule::in(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])],
-                'father_name' => ['nullable', 'string', 'max:255'],
-                'mother_name' => ['nullable', 'string', 'max:255'],
-                'marital_status' => ['nullable', Rule::in(['Single', 'Married', 'Other'])],
+                'date_of_birth' => ['required', 'date'],
+                'gender' => ['required', Rule::in(['Male', 'Female', 'Other'])],
+                'blood_group' => ['required', Rule::in(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])],
+                'father_name' => ['required', 'string', 'max:255'],
+                'mother_name' => ['required', 'string', 'max:255'],
+                'marital_status' => ['required', Rule::in(['Single', 'Married', 'Other'])],
             ],
             4 => [
                 'primary_mobile' => ['required', 'string', 'max:50'],
-                'secondary_mobile' => ['nullable', 'string', 'max:50'],
-                'whatsapp_number' => ['nullable', 'string', 'max:50'],
+                'secondary_mobile' => ['required', 'string', 'max:50'],
+                'whatsapp_number' => ['required', 'string', 'max:50'],
                 'email_address' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($request->user()->id)],
-                'present_address' => ['nullable', 'string', 'max:1000'],
-                'permanent_address' => ['nullable', 'string', 'max:1000'],
+                'present_address' => ['required', 'string', 'max:1000'],
+                'permanent_address' => ['required', 'string', 'max:1000'],
                 'country' => ['required', 'string', 'max:100'],
-                'city_district' => ['required', 'string', 'max:150'],
-                'postal_code' => ['nullable', 'string', 'max:50'],
+                'city_district' => ['required', Rule::in($this->bangladeshDistricts())],
+                'postal_code' => ['required', 'string', 'max:50'],
             ],
             5 => [
-                'occupation' => ['nullable', 'string', 'max:255'],
-                'organization_name' => ['nullable', 'string', 'max:255'],
-                'designation' => ['nullable', 'string', 'max:255'],
-                'industry' => ['nullable', 'string', 'max:255'],
-                'office_address' => ['nullable', 'string', 'max:1000'],
-                'work_email' => ['nullable', 'email', 'max:255'],
-                'business_name' => ['nullable', 'string', 'max:255'],
-                'professional_skills' => ['nullable', 'string', 'max:2000'],
+                'occupation' => ['required', Rule::in($this->occupationOptions())],
+                'organization_name' => ['required', 'string', 'max:255'],
+                'designation' => ['required', Rule::in($this->designationOptions())],
+                'industry' => ['required', Rule::in($this->industryOptions())],
+                'office_address' => ['required', 'string', 'max:1000'],
+                'work_email' => ['required', 'email', 'max:255'],
+                'business_name' => ['required', 'string', 'max:255'],
+                'professional_skills' => ['required', 'string', 'max:2000'],
             ],
             6 => [
-                'profile_photo' => ['nullable', 'image', 'max:4096'],
-                'cover_photo' => ['nullable', 'image', 'max:6144'],
-                'short_bio' => ['nullable', 'string', 'max:2000'],
-                'facebook_profile_link' => ['nullable', 'url', 'max:255'],
-                'linkedin_profile_link' => ['nullable', 'url', 'max:255'],
-                'website_portfolio_link' => ['nullable', 'url', 'max:255'],
+                'profile_photo' => [$this->requiredFileRule($request, 'profile_photo'), 'image', 'max:4096'],
+                'cover_photo' => [$this->requiredFileRule($request, 'cover_photo'), 'image', 'max:6144'],
+                'business_card_upload' => [$this->requiredFileRule($request, 'business_card_upload'), 'file', 'max:6144'],
+                'remove_profile_photo' => ['nullable', 'boolean'],
+                'remove_cover_photo' => ['nullable', 'boolean'],
+                'facebook_profile_link' => ['required', 'url', 'max:255'],
+                'linkedin_profile_link' => ['required', 'url', 'max:255'],
+                'website_portfolio_link' => ['required', 'url', 'max:255'],
             ],
             7 => [
-                'interested_in_alumni_activities' => ['nullable', Rule::in(['1', '0'])],
-                'areas_of_interest' => ['nullable', 'array'],
+                'interested_in_alumni_activities' => ['required', Rule::in(['1', '0'])],
+                'areas_of_interest' => ['required', 'array', 'min:1'],
                 'areas_of_interest.*' => ['string', 'max:100'],
-                'volunteer_interest' => ['nullable', Rule::in(['1', '0'])],
-                'donor_sponsor_interest' => ['nullable', Rule::in(['Yes', 'No', 'Maybe Later'])],
-                'mentor_interest' => ['nullable', Rule::in(['1', '0'])],
-                'suggestions' => ['nullable', 'string', 'max:2000'],
+                'volunteer_interest' => ['required', Rule::in(['1', '0'])],
+                'donor_sponsor_interest' => ['required', Rule::in(['Yes', 'No', 'Maybe Later'])],
+                'mentor_interest' => ['required', Rule::in(['1', '0'])],
+                'suggestions' => ['required', 'string', 'max:2000'],
             ],
             8 => [
-                'certificate_testimonial_upload' => ['nullable', 'file', 'max:6144'],
-                'supporting_document_upload' => ['nullable', 'file', 'max:6144'],
+                'certificate_testimonial_upload' => [$this->requiredFileRule($request, 'certificate_testimonial_upload'), 'file', 'max:6144'],
+                'supporting_document_upload' => [$this->requiredFileRule($request, 'supporting_document_upload'), 'file', 'max:6144'],
             ],
             9 => [
                 'profile_visibility' => ['required', Rule::in([
@@ -317,7 +332,7 @@ class MemberDashboardController extends Controller
         };
     }
 
-    private function extractProfileData(Request $request, array $validated, int $step): array
+    private function extractProfileData(Request $request, array $validated, int $step, $profile = null): array
     {
         $data = match ($step) {
             2 => $validated,
@@ -336,17 +351,11 @@ class MemberDashboardController extends Controller
                 'current_city' => $validated['city_district'],
             ],
             5 => $validated,
-            6 => array_merge(
-                collect($validated)->except(['profile_photo', 'cover_photo'])->all(),
-                $this->storeUploadedFiles($request, [
-                    'profile_photo' => 'profile_photo',
-                    'cover_photo' => 'cover_photo',
-                ]),
-            ),
+            6 => $this->stepSixProfileData($request, $validated, $profile),
             7 => [
-                'interested_in_alumni_activities' => $request->filled('interested_in_alumni_activities') ? $request->boolean('interested_in_alumni_activities') : null,
+                'interested_in_alumni_activities' => $request->filled('interested_in_alumni_activities') ? $request->boolean('interested_in_alumni_activities') : true,
                 'areas_of_interest' => $validated['areas_of_interest'] ?? [],
-                'volunteer_interest' => $request->filled('volunteer_interest') ? $request->boolean('volunteer_interest') : null,
+                'volunteer_interest' => $request->filled('volunteer_interest') ? $request->boolean('volunteer_interest') : true,
                 'donor_sponsor_interest' => $validated['donor_sponsor_interest'] ?? null,
                 'mentor_interest' => $request->filled('mentor_interest') ? $request->boolean('mentor_interest') : null,
                 'suggestions' => $validated['suggestions'] ?? null,
@@ -366,12 +375,41 @@ class MemberDashboardController extends Controller
         return $data;
     }
 
-    private function storeUploadedFiles(Request $request, array $map): array
+    private function stepSixProfileData(Request $request, array $validated, $profile = null): array
+    {
+        $data = collect($validated)
+            ->except(['profile_photo', 'cover_photo', 'business_card_upload', 'remove_profile_photo', 'remove_cover_photo'])
+            ->all();
+
+        if ($request->boolean('remove_profile_photo') && $profile?->profile_photo) {
+            Storage::disk('public')->delete($profile->profile_photo);
+            $data['profile_photo'] = null;
+        }
+
+        if ($request->boolean('remove_cover_photo') && $profile?->cover_photo) {
+            Storage::disk('public')->delete($profile->cover_photo);
+            $data['cover_photo'] = null;
+        }
+
+        $uploads = $this->storeUploadedFiles($request, [
+            'profile_photo' => 'profile_photo',
+            'cover_photo' => 'cover_photo',
+            'business_card_upload' => 'business_card_upload',
+        ], $profile);
+
+        return array_merge($data, $uploads);
+    }
+
+    private function storeUploadedFiles(Request $request, array $map, $profile = null): array
     {
         $stored = [];
 
         foreach ($map as $field => $column) {
             if ($request->hasFile($field)) {
+                if ($profile?->{$column}) {
+                    Storage::disk('public')->delete($profile->{$column});
+                }
+
                 $stored[$column] = $request->file($field)->store('member-profile', 'public');
             }
         }
@@ -397,7 +435,7 @@ class MemberDashboardController extends Controller
             $profile->city_district,
             $profile->occupation,
             $profile->organization_name,
-            $profile->short_bio,
+            $profile->business_card_upload,
             $profile->profile_visibility,
             $profile->contact_visibility,
         ];
@@ -420,5 +458,172 @@ class MemberDashboardController extends Controller
             ->take(max(1, min((int) ($application?->total_steps ?? 4), count($steps))))
             ->map(fn (array $step) => (object) $step)
             ->all();
+    }
+
+    private function missingSubmissionItems($user, $profile): array
+    {
+        $steps = [
+            2 => [
+                'Passing Year SSC' => $profile?->ssc_passing_year,
+                'Passing Year HSC' => $profile?->hsc_passing_year,
+                'Group' => $profile?->group,
+                'Shift' => $profile?->shift,
+                'Campus / Branch' => $profile?->campus_branch,
+            ],
+            3 => [
+                'Father’s Name' => $profile?->father_name,
+                'Mother’s Name' => $profile?->mother_name,
+                'Date of Birth' => $profile?->date_of_birth,
+                'Gender' => $profile?->gender,
+                'Blood Group' => $profile?->blood_group,
+                'Marital Status' => $profile?->marital_status,
+            ],
+            4 => [
+                'Primary Mobile Number' => $profile?->primary_mobile ?: $user->phone,
+                'Email Address' => $profile?->email_address ?: $user->email,
+                'Present Address' => $profile?->present_address,
+                'Permanent Address' => $profile?->permanent_address,
+                'Country' => $profile?->country,
+                'City / District' => $profile?->city_district ?: $profile?->current_city,
+                'Postal Code' => $profile?->postal_code,
+            ],
+            5 => [
+                'Occupation' => $profile?->occupation,
+                'Organization / Company Name' => $profile?->organization_name,
+                'Designation / Job Title' => $profile?->designation,
+                'Industry' => $profile?->industry,
+                'Office Address' => $profile?->office_address,
+                'Work Email' => $profile?->work_email,
+                'Business Name' => $profile?->business_name,
+                'Professional Skills / Expertise' => $profile?->professional_skills,
+            ],
+            6 => [
+                'Profile Photo' => $profile?->profile_photo,
+                'Business Card Upload' => $profile?->business_card_upload,
+            ],
+            7 => [
+                'Areas of Interest' => filled($profile?->areas_of_interest) ? 'filled' : null,
+                'Donor / Sponsor Interest' => $profile?->donor_sponsor_interest,
+                'Mentor Interest' => ! is_null($profile?->mentor_interest) ? 'filled' : null,
+            ],
+            8 => [
+                'SSC Certificate / Testimonial / Admit Card' => $profile?->certificate_testimonial_upload,
+            ],
+            9 => [
+                'Profile Visibility' => $profile?->profile_visibility,
+                'Contact Visibility' => $profile?->contact_visibility,
+            ],
+            10 => [
+                'Information Accuracy Confirmation' => $profile?->information_accuracy_confirmation,
+                'Terms & Privacy Agreement' => $profile?->terms_privacy_agreement,
+                'Admin Verification Agreement' => $profile?->admin_verification_agreement,
+            ],
+        ];
+
+        return collect($steps)->map(function (array $fields, int $stepNumber) {
+            $missing = collect($fields)
+                ->filter(fn ($value) => blank($value) || $value === false)
+                ->keys()
+                ->values()
+                ->all();
+
+            return [
+                'step' => $stepNumber,
+                'title' => $this->completionSteps()[$stepNumber],
+                'missing' => $missing,
+            ];
+        })->filter(fn (array $item) => count($item['missing']) > 0)->values()->all();
+    }
+
+    private function wizardSummary($user, int $step): array
+    {
+        $status = $user->application?->status ?? $user->membership_status;
+
+        return [
+            'status' => $status,
+            'status_label' => str($status)->replace('_', ' ')->title()->toString(),
+            'completion' => $this->profileCompletion($user->profile),
+            'step' => $step,
+        ];
+    }
+
+    private function requiredFileRule(Request $request, string $field): string
+    {
+        $profile = $request->user()?->profile;
+
+        if ($request->hasFile($field)) {
+            return 'required';
+        }
+
+        return match ($field) {
+            'profile_photo' => blank($profile?->profile_photo) || $request->boolean('remove_profile_photo') ? 'required' : 'nullable',
+            'cover_photo' => blank($profile?->cover_photo) || $request->boolean('remove_cover_photo') ? 'required' : 'nullable',
+            'business_card_upload' => blank($profile?->business_card_upload) ? 'required' : 'nullable',
+            'certificate_testimonial_upload' => blank($profile?->certificate_testimonial_upload) ? 'required' : 'nullable',
+            'supporting_document_upload' => blank($profile?->supporting_document_upload) ? 'required' : 'nullable',
+            default => 'required',
+        };
+    }
+
+    private function academicGroupOptions(): array
+    {
+        return ['Science', 'Commerce', 'Arts'];
+    }
+
+    private function shiftOptions(): array
+    {
+        return ['Morning', 'Day'];
+    }
+
+    private function campusOptions(): array
+    {
+        return ['Main', 'Shewrapara', 'Ibrahimpur', 'Rupnagar'];
+    }
+
+    private function bangladeshDistricts(): array
+    {
+        return [
+            'Bagerhat', 'Bandarban', 'Barguna', 'Barishal', 'Bhola', 'Bogura', 'Brahmanbaria', 'Chandpur',
+            'Chattogram', "Chuadanga", 'Cox’s Bazar', 'Cumilla', 'Dhaka', 'Dinajpur', 'Faridpur',
+            'Feni', 'Gaibandha', 'Gazipur', 'Gopalganj', 'Habiganj', 'Jamalpur', 'Jashore', 'Jhalokathi',
+            'Jhenaidah', 'Joypurhat', 'Khagrachhari', 'Khulna', 'Kishoreganj', 'Kurigram', 'Kushtia',
+            'Lakshmipur', 'Lalmonirhat', 'Madaripur', 'Magura', 'Manikganj', 'Meherpur', 'Moulvibazar',
+            'Munshiganj', 'Mymensingh', 'Naogaon', 'Narail', 'Narayanganj', 'Narsingdi', 'Natore',
+            'Netrokona', 'Nilphamari', 'Noakhali', 'Pabna', 'Panchagarh', 'Patuakhali', 'Pirojpur',
+            'Rajbari', 'Rajshahi', 'Rangamati', 'Rangpur', 'Satkhira', 'Shariatpur', 'Sherpur', 'Sirajganj',
+            'Sunamganj', 'Sylhet', 'Tangail', 'Thakurgaon',
+        ];
+    }
+
+    private function occupationOptions(): array
+    {
+        return [
+            'Student', 'Teacher', 'Engineer', 'Doctor', 'Business Owner', 'Entrepreneur', 'Banker',
+            'Government Service', 'Private Service', 'Lawyer', 'Accountant', 'Architect', 'Freelancer',
+            'IT Professional', 'Software Developer', 'Designer', 'Consultant', 'Journalist', 'Researcher',
+            'NGO Professional', 'Marketing Professional', 'Sales Professional', 'Social Worker', 'Retired', 'Other',
+        ];
+    }
+
+    private function designationOptions(): array
+    {
+        return [
+            'Intern', 'Executive', 'Senior Executive', 'Officer', 'Senior Officer', 'Assistant Manager',
+            'Deputy Manager', 'Manager', 'Senior Manager', 'Assistant Director', 'Deputy Director',
+            'Director', 'Head of Department', 'Coordinator', 'Consultant', 'Lecturer', 'Senior Lecturer',
+            'Professor', 'Assistant Professor', 'Associate Professor', 'Engineer', 'Senior Engineer',
+            'Doctor', 'Specialist', 'Founder', 'Co-Founder', 'CEO', 'COO', 'CFO', 'Owner', 'Proprietor', 'Other',
+        ];
+    }
+
+    private function industryOptions(): array
+    {
+        return [
+            'Education', 'Information Technology', 'Software', 'Healthcare', 'Banking', 'Finance',
+            'Insurance', 'Government', 'Telecommunication', 'Manufacturing', 'Garments & Textile',
+            'Construction', 'Real Estate', 'E-commerce', 'Retail', 'Logistics', 'Transportation',
+            'Media & Communication', 'Marketing & Advertising', 'Hospitality', 'Travel & Tourism',
+            'NGO & Development', 'Agriculture', 'Pharmaceutical', 'Energy', 'Legal Services', 'Other',
+        ];
     }
 }

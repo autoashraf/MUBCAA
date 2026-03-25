@@ -14,8 +14,8 @@
                     <p class="lead">Please complete your registration step by step. You can save your progress at each step and continue later. Your membership profile will be submitted for admin verification after the final step.</p>
                 </div>
                 <div class="dashboard-badges">
-                    <span class="status-pill status-{{ $application?->status ?? $user->membership_status }}">{{ str($application?->status ?? $user->membership_status)->replace('_', ' ')->title() }}</span>
-                    <span class="dashboard-chip">Profile {{ $profileCompletion }}% complete</span>
+                    <span class="status-pill status-{{ $application?->status ?? $user->membership_status }}" data-wizard-status-pill>{{ str($application?->status ?? $user->membership_status)->replace('_', ' ')->title() }}</span>
+                    <span class="dashboard-chip" data-wizard-completion-chip>Profile {{ $profileCompletion }}% complete</span>
                     <span class="dashboard-chip" data-wizard-step-label>Step {{ $activeStep }} of 10</span>
                 </div>
             </div>
@@ -24,22 +24,6 @@
 
     <section class="section">
         <div class="wrap registration-shell" data-profile-wizard data-initial-step="{{ $activeStep }}">
-            <aside class="list-card registration-side-card">
-                <h3>Profile steps</h3>
-                <ol class="registration-step-list detailed-steps">
-                    @foreach ($steps as $number => $label)
-                        @if ($number >= 2)
-                            <li class="@if ($number === $activeStep) is-active @elseif (($profile?->completion_step ?? 1) >= $number) is-complete @endif" data-wizard-step-item="{{ $number }}">
-                                <button class="registration-step-button" type="button" data-step-target="{{ $number }}">
-                                    <strong>Step {{ $number }}</strong>
-                                    <span>{{ $label }}</span>
-                                </button>
-                            </li>
-                        @endif
-                    @endforeach
-                </ol>
-            </aside>
-
             <form class="form-card registration-form-card" method="POST" action="{{ route('member.profile.complete.save') }}" enctype="multipart/form-data" data-ajax-form="wizard">
                 @csrf
                 @if (session('success'))
@@ -75,17 +59,32 @@
                                     </label>
                                     <label>
                                         <span>Group</span>
-                                        <input type="text" name="group" value="{{ old('group', $profile?->group) }}" placeholder="Enter your group">
+                                        <select name="group">
+                                            <option value="">Select group</option>
+                                            @foreach ($academicGroups as $option)
+                                                <option value="{{ $option }}" @selected(old('group', $profile?->group) === $option)>{{ $option }}</option>
+                                            @endforeach
+                                        </select>
                                         @error('group') <small>{{ $message }}</small> @enderror
                                     </label>
                                     <label>
                                         <span>Shift</span>
-                                        <input type="text" name="shift" value="{{ old('shift', $profile?->shift) }}" placeholder="Enter your shift">
+                                        <select name="shift">
+                                            <option value="">Select shift</option>
+                                            @foreach ($academicShifts as $option)
+                                                <option value="{{ $option }}" @selected(old('shift', $profile?->shift) === $option)>{{ $option }}</option>
+                                            @endforeach
+                                        </select>
                                         @error('shift') <small>{{ $message }}</small> @enderror
                                     </label>
                                     <label>
                                         <span>Campus / Branch</span>
-                                        <input type="text" name="campus_branch" value="{{ old('campus_branch', $profile?->campus_branch) }}" placeholder="Enter your campus or branch">
+                                        <select name="campus_branch">
+                                            <option value="">Select campus</option>
+                                            @foreach ($campusBranches as $option)
+                                                <option value="{{ $option }}" @selected(old('campus_branch', $profile?->campus_branch) === $option)>{{ $option }}</option>
+                                            @endforeach
+                                        </select>
                                         @error('campus_branch') <small>{{ $message }}</small> @enderror
                                     </label>
                                 </div>
@@ -171,12 +170,19 @@
                                     </label>
                                     <label>
                                         <span>Country</span>
-                                        <input type="text" name="country" value="{{ old('country', $profile?->country ?? 'Bangladesh') }}" placeholder="Enter your country">
+                                        <select name="country">
+                                            <option value="Bangladesh" selected>Bangladesh</option>
+                                        </select>
                                         @error('country') <small>{{ $message }}</small> @enderror
                                     </label>
                                     <label>
                                         <span>City / District</span>
-                                        <input type="text" name="city_district" value="{{ old('city_district', $profile?->city_district ?? $profile?->current_city) }}" placeholder="Enter your city or district">
+                                        <select name="city_district">
+                                            <option value="">Select district</option>
+                                            @foreach ($districts as $option)
+                                                <option value="{{ $option }}" @selected(old('city_district', $profile?->city_district ?? $profile?->current_city) === $option)>{{ $option }}</option>
+                                            @endforeach
+                                        </select>
                                         @error('city_district') <small>{{ $message }}</small> @enderror
                                     </label>
                                     <label>
@@ -187,10 +193,10 @@
                                 </div>
                             @elseif ($number === 5)
                                 <div class="form-grid">
-                                    <label><span>Occupation</span><input type="text" name="occupation" value="{{ old('occupation', $profile?->occupation) }}" placeholder="Enter your occupation">@error('occupation') <small>{{ $message }}</small> @enderror</label>
+                                    <label><span>Occupation</span><select name="occupation"><option value="">Select occupation</option>@foreach ($occupations as $option)<option value="{{ $option }}" @selected(old('occupation', $profile?->occupation) === $option)>{{ $option }}</option>@endforeach</select>@error('occupation') <small>{{ $message }}</small> @enderror</label>
                                     <label><span>Organization / Company Name</span><input type="text" name="organization_name" value="{{ old('organization_name', $profile?->organization_name) }}" placeholder="Enter your company or organization name">@error('organization_name') <small>{{ $message }}</small> @enderror</label>
-                                    <label><span>Designation / Job Title</span><input type="text" name="designation" value="{{ old('designation', $profile?->designation) }}" placeholder="Enter your designation">@error('designation') <small>{{ $message }}</small> @enderror</label>
-                                    <label><span>Industry</span><input type="text" name="industry" value="{{ old('industry', $profile?->industry) }}" placeholder="Enter your industry">@error('industry') <small>{{ $message }}</small> @enderror</label>
+                                    <label><span>Designation / Job Title</span><select name="designation"><option value="">Select designation</option>@foreach ($designations as $option)<option value="{{ $option }}" @selected(old('designation', $profile?->designation) === $option)>{{ $option }}</option>@endforeach</select>@error('designation') <small>{{ $message }}</small> @enderror</label>
+                                    <label><span>Industry</span><select name="industry"><option value="">Select industry</option>@foreach ($industries as $option)<option value="{{ $option }}" @selected(old('industry', $profile?->industry) === $option)>{{ $option }}</option>@endforeach</select>@error('industry') <small>{{ $message }}</small> @enderror</label>
                                     <label class="label-wide"><span>Office Address</span><textarea name="office_address" rows="4" placeholder="Enter your office address">{{ old('office_address', $profile?->office_address) }}</textarea>@error('office_address') <small>{{ $message }}</small> @enderror</label>
                                     <label><span>Work Email</span><input type="email" name="work_email" value="{{ old('work_email', $profile?->work_email) }}" placeholder="Enter your work email">@error('work_email') <small>{{ $message }}</small> @enderror</label>
                                     <label><span>Business Name</span><input type="text" name="business_name" value="{{ old('business_name', $profile?->business_name) }}" placeholder="Enter your business name, if applicable">@error('business_name') <small>{{ $message }}</small> @enderror</label>
@@ -198,10 +204,60 @@
                                 <label><span>Professional Skills / Expertise</span><textarea name="professional_skills" rows="5" placeholder="Mention your skills, expertise, or areas of specialization">{{ old('professional_skills', $profile?->professional_skills) }}</textarea>@error('professional_skills') <small>{{ $message }}</small> @enderror</label>
                             @elseif ($number === 6)
                                 <div class="form-grid">
-                                    <label><span>Profile Photo</span><input type="file" name="profile_photo" accept="image/*"><small>Upload a clear passport-size or professional photo</small>@error('profile_photo') <small>{{ $message }}</small> @enderror</label>
-                                    <label><span>Cover Photo</span><input type="file" name="cover_photo" accept="image/*"><small>Optional</small>@error('cover_photo') <small>{{ $message }}</small> @enderror</label>
+                                    <label>
+                                        <span>Profile Photo</span>
+                                        <div class="image-preview-field">
+                                            @php
+                                                $profilePhotoExists = filled($profile?->profile_photo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($profile->profile_photo);
+                                            @endphp
+                                            <div class="image-preview-box image-preview-box-square" data-image-preview-box>
+                                                <button class="image-remove-button @if (! $profilePhotoExists) is-hidden @endif" type="button" data-remove-image-button="profile_photo" aria-label="Remove profile photo">×</button>
+                                                <input type="hidden" name="remove_profile_photo" value="0" data-remove-image-input="profile_photo">
+                                                @if ($profilePhotoExists)
+                                                    <img
+                                                        src="{{ asset('storage/'.$profile->profile_photo) }}"
+                                                        alt="Profile photo preview"
+                                                        data-image-preview-target="profile_photo"
+                                                    >
+                                                @else
+                                                    <span class="image-preview-placeholder" data-image-preview-target="profile_photo">Photo Preview</span>
+                                                @endif
+                                            </div>
+                                            <input class="visually-hidden-file-input" type="file" name="profile_photo" accept="image/*" data-image-preview-input="profile_photo" id="profile-photo-input">
+                                            <button class="button button-secondary image-upload-trigger" type="button" data-image-upload-trigger="profile-photo-input">Choose Profile Photo</button>
+                                        </div>
+                                        <small>Upload a clear passport-size or professional photo</small>
+                                        @error('profile_photo') <small>{{ $message }}</small> @enderror
+                                        @error('remove_profile_photo') <small>{{ $message }}</small> @enderror
+                                    </label>
+                                    <label>
+                                        <span>Cover Photo</span>
+                                        <div class="image-preview-field">
+                                            @php
+                                                $coverPhotoExists = filled($profile?->cover_photo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($profile->cover_photo);
+                                            @endphp
+                                            <div class="image-preview-box image-preview-box-cover" data-image-preview-box>
+                                                <button class="image-remove-button @if (! $coverPhotoExists) is-hidden @endif" type="button" data-remove-image-button="cover_photo" aria-label="Remove cover photo">×</button>
+                                                <input type="hidden" name="remove_cover_photo" value="0" data-remove-image-input="cover_photo">
+                                                @if ($coverPhotoExists)
+                                                    <img
+                                                        src="{{ asset('storage/'.$profile->cover_photo) }}"
+                                                        alt="Cover photo preview"
+                                                        data-image-preview-target="cover_photo"
+                                                    >
+                                                @else
+                                                    <span class="image-preview-placeholder" data-image-preview-target="cover_photo">Cover Preview</span>
+                                                @endif
+                                            </div>
+                                            <input class="visually-hidden-file-input" type="file" name="cover_photo" accept="image/*" data-image-preview-input="cover_photo" id="cover-photo-input">
+                                            <button class="button button-secondary image-upload-trigger" type="button" data-image-upload-trigger="cover-photo-input">Choose Cover Photo</button>
+                                        </div>
+                                        <small>Optional</small>
+                                        @error('cover_photo') <small>{{ $message }}</small> @enderror
+                                        @error('remove_cover_photo') <small>{{ $message }}</small> @enderror
+                                    </label>
+                                    <label><span>Business Card Upload</span><input class="visually-hidden-file-input" type="file" name="business_card_upload" accept=".jpg,.jpeg,.png,.webp,.pdf" id="business-card-input"><button class="button button-secondary image-upload-trigger" type="button" data-image-upload-trigger="business-card-input">Choose Business Card</button><small>Upload your business card</small>@error('business_card_upload') <small>{{ $message }}</small> @enderror</label>
                                 </div>
-                                <label><span>Short Bio</span><textarea name="short_bio" rows="5" placeholder="Write a short introduction about yourself">{{ old('short_bio', $profile?->short_bio) }}</textarea>@error('short_bio') <small>{{ $message }}</small> @enderror</label>
                                 <div class="form-grid">
                                     <label><span>Facebook Profile Link</span><input type="url" name="facebook_profile_link" value="{{ old('facebook_profile_link', $profile?->facebook_profile_link) }}" placeholder="Paste your Facebook profile URL">@error('facebook_profile_link') <small>{{ $message }}</small> @enderror</label>
                                     <label><span>LinkedIn Profile Link</span><input type="url" name="linkedin_profile_link" value="{{ old('linkedin_profile_link', $profile?->linkedin_profile_link) }}" placeholder="Paste your LinkedIn profile URL">@error('linkedin_profile_link') <small>{{ $message }}</small> @enderror</label>
@@ -209,8 +265,8 @@
                                 </div>
                             @elseif ($number === 7)
                                 <div class="form-grid">
-                                    <label><span>Are you interested in joining alumni activities?</span><select name="interested_in_alumni_activities"><option value="">Select one</option><option value="1" @selected((string) old('interested_in_alumni_activities', (int) $profile?->interested_in_alumni_activities) === '1')>Yes</option><option value="0" @selected((string) old('interested_in_alumni_activities', (int) $profile?->interested_in_alumni_activities) === '0')>No</option></select>@error('interested_in_alumni_activities') <small>{{ $message }}</small> @enderror</label>
-                                    <label><span>Would you like to volunteer for alumni programs?</span><select name="volunteer_interest"><option value="">Select one</option><option value="1" @selected((string) old('volunteer_interest', (int) $profile?->volunteer_interest) === '1')>Yes</option><option value="0" @selected((string) old('volunteer_interest', (int) $profile?->volunteer_interest) === '0')>No</option></select>@error('volunteer_interest') <small>{{ $message }}</small> @enderror</label>
+                                    <label><span>Are you interested in joining alumni activities?</span><select name="interested_in_alumni_activities"><option value="1" @selected((string) old('interested_in_alumni_activities', is_null($profile?->interested_in_alumni_activities) ? '1' : (string) (int) $profile?->interested_in_alumni_activities) === '1')>Yes</option><option value="0" @selected((string) old('interested_in_alumni_activities', is_null($profile?->interested_in_alumni_activities) ? '1' : (string) (int) $profile?->interested_in_alumni_activities) === '0')>No</option></select>@error('interested_in_alumni_activities') <small>{{ $message }}</small> @enderror</label>
+                                    <label><span>Would you like to volunteer for alumni programs?</span><select name="volunteer_interest"><option value="1" @selected((string) old('volunteer_interest', is_null($profile?->volunteer_interest) ? '1' : (string) (int) $profile?->volunteer_interest) === '1')>Yes</option><option value="0" @selected((string) old('volunteer_interest', is_null($profile?->volunteer_interest) ? '1' : (string) (int) $profile?->volunteer_interest) === '0')>No</option></select>@error('volunteer_interest') <small>{{ $message }}</small> @enderror</label>
                                     <label><span>Would you like to support alumni initiatives in the future as a donor or sponsor?</span><select name="donor_sponsor_interest"><option value="">Select one</option>@foreach (['Yes', 'No', 'Maybe Later'] as $option)<option value="{{ $option }}" @selected(old('donor_sponsor_interest', $profile?->donor_sponsor_interest) === $option)>{{ $option }}</option>@endforeach</select>@error('donor_sponsor_interest') <small>{{ $message }}</small> @enderror</label>
                                     <label><span>Would you be interested in mentoring current students?</span><select name="mentor_interest"><option value="">Select one</option><option value="1" @selected((string) old('mentor_interest', (int) $profile?->mentor_interest) === '1')>Yes</option><option value="0" @selected((string) old('mentor_interest', (int) $profile?->mentor_interest) === '0')>No</option></select>@error('mentor_interest') <small>{{ $message }}</small> @enderror</label>
                                 </div>
@@ -218,9 +274,10 @@
                                     <legend>Areas of Interest</legend>
                                     <div class="checkbox-grid">
                                         @foreach ($areasOfInterest as $interest)
-                                            <label class="checkbox-item">
+                                            <label class="checkbox-item checkbox-interest-card">
                                                 <input type="checkbox" name="areas_of_interest[]" value="{{ $interest }}" @checked(in_array($interest, old('areas_of_interest', $profile?->areas_of_interest ?? []), true))>
-                                                <span>{{ $interest }}</span>
+                                                <span class="checkbox-indicator"></span>
+                                                <span class="checkbox-copy">{{ $interest }}</span>
                                             </label>
                                         @endforeach
                                     </div>
@@ -228,8 +285,8 @@
                                 <label><span>Suggestions for the Alumni Association</span><textarea name="suggestions" rows="5" placeholder="Share your ideas or suggestions">{{ old('suggestions', $profile?->suggestions) }}</textarea>@error('suggestions') <small>{{ $message }}</small> @enderror</label>
                             @elseif ($number === 8)
                                 <div class="form-grid">
-                                    <label><span>Certificate / Testimonial Upload</span><input type="file" name="certificate_testimonial_upload"><small>Optional</small>@error('certificate_testimonial_upload') <small>{{ $message }}</small> @enderror</label>
-                                    <label><span>Supporting Document Upload</span><input type="file" name="supporting_document_upload"><small>Optional</small>@error('supporting_document_upload') <small>{{ $message }}</small> @enderror</label>
+                                    <label><span>SSC Certificate / Testimonial / Admit Card</span><input type="file" name="certificate_testimonial_upload">@error('certificate_testimonial_upload') <small>{{ $message }}</small> @enderror</label>
+                                    <label><span>Supporting Document Upload</span><input type="file" name="supporting_document_upload">@error('supporting_document_upload') <small>{{ $message }}</small> @enderror</label>
                                 </div>
                             @elseif ($number === 9)
                                 <div class="form-grid">

@@ -172,6 +172,29 @@
                     var mobileNavGroups = document.querySelectorAll('[data-mobile-nav-group]');
                     var wizardRoot;
 
+                    function updateWizardSummary(summary) {
+                        if (!summary) {
+                            return;
+                        }
+
+                        var statusPill = document.querySelector('[data-wizard-status-pill]');
+                        var completionChip = document.querySelector('[data-wizard-completion-chip]');
+                        var stepLabel = document.querySelector('[data-wizard-step-label]');
+
+                        if (statusPill) {
+                            statusPill.className = 'status-pill status-' + summary.status;
+                            statusPill.textContent = summary.status_label;
+                        }
+
+                        if (completionChip) {
+                            completionChip.textContent = 'Profile ' + summary.completion + '% complete';
+                        }
+
+                        if (stepLabel) {
+                            stepLabel.textContent = 'Step ' + summary.step + ' of 10';
+                        }
+                    }
+
                     function mountOtpGroups(root) {
                         (root || document).querySelectorAll('[data-otp-group]').forEach(function (group) {
                             var form = group.closest('form');
@@ -241,6 +264,105 @@
                             form.addEventListener('submit', syncHidden);
                             group.dataset.otpMounted = 'true';
                             syncHidden();
+                        });
+                    }
+
+                    function mountImagePreviews(root) {
+                        function placeholderText(targetName) {
+                            return targetName === 'cover_photo' ? 'Cover Preview' : 'Photo Preview';
+                        }
+
+                        (root || document).querySelectorAll('[data-image-upload-trigger]').forEach(function (button) {
+                            if (button.dataset.triggerMounted === 'true') {
+                                return;
+                            }
+
+                            button.addEventListener('click', function () {
+                                var input = document.getElementById(button.dataset.imageUploadTrigger);
+
+                                if (input) {
+                                    input.click();
+                                }
+                            });
+
+                            button.dataset.triggerMounted = 'true';
+                        });
+
+                        (root || document).querySelectorAll('[data-image-preview-input]').forEach(function (input) {
+                            if (input.dataset.previewMounted === 'true') {
+                                return;
+                            }
+
+                            input.addEventListener('change', function () {
+                                var targetName = input.dataset.imagePreviewInput;
+                                var target = document.querySelector('[data-image-preview-target="' + targetName + '"]');
+                                var removeInput = document.querySelector('[data-remove-image-input="' + targetName + '"]');
+                                var removeButton = document.querySelector('[data-remove-image-button="' + targetName + '"]');
+                                var file = input.files && input.files[0];
+
+                                if (!target || !file || !file.type.startsWith('image/')) {
+                                    return;
+                                }
+
+                                var reader = new FileReader();
+
+                                reader.onload = function (event) {
+                                    if (target.tagName === 'IMG') {
+                                        target.src = event.target.result;
+                                    } else {
+                                        var image = document.createElement('img');
+                                        image.src = event.target.result;
+                                        image.alt = 'Selected preview image';
+                                        image.setAttribute('data-image-preview-target', targetName);
+                                        target.replaceWith(image);
+                                    }
+
+                                    if (removeInput) {
+                                        removeInput.value = '0';
+                                    }
+
+                                    if (removeButton) {
+                                        removeButton.classList.remove('is-hidden');
+                                    }
+                                };
+
+                                reader.readAsDataURL(file);
+                            });
+
+                            input.dataset.previewMounted = 'true';
+                        });
+
+                        (root || document).querySelectorAll('[data-remove-image-button]').forEach(function (button) {
+                            if (button.dataset.removeMounted === 'true') {
+                                return;
+                            }
+
+                            button.addEventListener('click', function () {
+                                var targetName = button.dataset.removeImageButton;
+                                var hiddenInput = document.querySelector('[data-remove-image-input="' + targetName + '"]');
+                                var target = document.querySelector('[data-image-preview-target="' + targetName + '"]');
+                                var fileInput = document.querySelector('[data-image-preview-input="' + targetName + '"]');
+
+                                if (hiddenInput) {
+                                    hiddenInput.value = '1';
+                                }
+
+                                if (fileInput) {
+                                    fileInput.value = '';
+                                }
+
+                                if (target) {
+                                    var placeholder = document.createElement('span');
+                                    placeholder.className = 'image-preview-placeholder';
+                                    placeholder.setAttribute('data-image-preview-target', targetName);
+                                    placeholder.textContent = placeholderText(targetName);
+                                    target.replaceWith(placeholder);
+                                }
+
+                                button.classList.add('is-hidden');
+                            });
+
+                            button.dataset.removeMounted = 'true';
                         });
                     }
 
@@ -366,6 +488,12 @@
                                         return;
                                     }
 
+                                    if (payload.step_url) {
+                                        window.history.replaceState({}, '', payload.step_url);
+                                    }
+
+                                    updateWizardSummary(payload.summary);
+
                                     if (payload.next_step && wizardRoot && wizardRoot.__showStep) {
                                         wizardRoot.__showStep(Number(payload.next_step));
                                     }
@@ -409,6 +537,7 @@
                     });
 
                     mountOtpGroups(document);
+                    mountImagePreviews(document);
 
                     if (panelRoot && triggers.length) {
                         var panels = panelRoot.querySelectorAll('[data-admin-panel]');
@@ -485,7 +614,7 @@
 
                     if (wizardRoot) {
                         var stepInputs = wizardRoot.querySelectorAll('input[name="wizard_step"]');
-                        var stepLabel = wizardRoot.querySelector('[data-wizard-step-label]');
+                        var stepLabel = document.querySelector('[data-wizard-step-label]');
                         var stepItems = wizardRoot.querySelectorAll('[data-wizard-step-item]');
                         var panels = wizardRoot.querySelectorAll('[data-wizard-panel]');
                         var triggers = wizardRoot.querySelectorAll('[data-step-target]');
@@ -523,6 +652,8 @@
                             if (stepLabel) {
                                 stepLabel.textContent = 'Step ' + step + ' of 10';
                             }
+
+                            window.history.replaceState({}, '', '/dashboard/profile/complete/' + step);
                         }
 
                         triggers.forEach(function (trigger) {

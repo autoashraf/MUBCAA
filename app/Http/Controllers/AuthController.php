@@ -8,6 +8,7 @@ use App\Support\SiteNavigation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -52,11 +53,15 @@ class AuthController extends Controller
         return redirect()->route('member.dashboard');
     }
 
-    public function showRegistration(): View
+    public function showRegistration(Request $request): View
     {
+        [$captchaLeft, $captchaRight] = $this->generateCaptchaChallenge($request);
+
         return view('pages.apply', [
             'menu' => SiteNavigation::menu(),
             'registrationStatuses' => ['Draft', 'Unverified', 'In Progress', 'Pending Review', 'Verified'],
+            'captchaLeft' => $captchaLeft,
+            'captchaRight' => $captchaRight,
         ]);
     }
 
@@ -67,15 +72,33 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'mobile_number' => ['required', 'string', 'max:50', 'unique:users,phone'],
             'passing_year_batch' => ['required', 'string', 'max:50'],
-            'student_id_or_roll' => ['required', 'string', 'max:100', 'unique:member_profiles,student_id_or_roll'],
-            'current_city' => ['required', 'string', 'max:100'],
+            'captcha_answer' => ['required', 'integer'],
         ]);
+
+        $captchaSum = (int) $request->session()->get('registration_captcha_a', -1) + (int) $request->session()->get('registration_captcha_b', -1);
+
+        if ((int) $validated['captcha_answer'] !== $captchaSum) {
+            $validator = Validator::make([], []);
+            $validator->errors()->add('captcha_answer', 'The captcha answer is incorrect.');
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'ok' => false,
+                    'errors' => [
+                        'captcha_answer' => ['The captcha answer is incorrect.'],
+                    ],
+                ], 422);
+            }
+
+            return back()
+                ->withErrors($validator)
+                ->withInput($request->except('captcha_answer'));
+        }
 
         $registration = DB::transaction(function () use ($validated): PendingRegistration {
             PendingRegistration::query()
                 ->whereIn('email', [$validated['email']])
                 ->orWhere('mobile_number', $validated['mobile_number'])
-                ->orWhere('student_id_or_roll', $validated['student_id_or_roll'])
                 ->delete();
 
             return PendingRegistration::query()->create([
@@ -83,15 +106,14 @@ class AuthController extends Controller
                 'email' => $validated['email'],
                 'mobile_number' => $validated['mobile_number'],
                 'passing_year_batch' => $validated['passing_year_batch'],
-                'student_id_or_roll' => $validated['student_id_or_roll'],
-                'current_city' => $validated['current_city'],
             ]);
         });
 
         $request->session()->put('pending_registration_id', $registration->id);
         $this->verificationService->issueForPendingRegistration($registration);
+        $request->session()->forget(['registration_captcha_a', 'registration_captcha_b']);
 
-        $message = 'Basic information saved. Verify your mobile number and email address with OTP codes to create your member account.';
+        $message = 'Thank you for completing Step 1. Your preliminary registration has been successfully submitted. Please verify your email and mobile OTP to continue the remaining steps of your membership application. Once all required information has been submitted, the Alumni Association will review and verify your details carefully. Upon successful verification, you will be officially confirmed as a Verified Member.';
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -113,6 +135,17 @@ class AuthController extends Controller
         return redirect()
             ->route('member.verification.show')
             ->with('success', $message);
+    }
+
+    private function generateCaptchaChallenge(Request $request): array
+    {
+        $request->session()->put('registration_captcha_a', random_int(1, 9));
+        $request->session()->put('registration_captcha_b', random_int(1, 9));
+
+        return [
+            (int) $request->session()->get('registration_captcha_a'),
+            (int) $request->session()->get('registration_captcha_b'),
+        ];
     }
 
     public function logout(Request $request): RedirectResponse

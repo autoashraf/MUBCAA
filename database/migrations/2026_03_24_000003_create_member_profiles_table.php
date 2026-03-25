@@ -52,6 +52,7 @@ return new class extends Migration
 
             $table->string('profile_photo')->nullable();
             $table->string('cover_photo')->nullable();
+            $table->string('business_card_upload')->nullable();
             $table->text('short_bio')->nullable();
             $table->string('facebook_profile_link')->nullable();
             $table->string('linkedin_profile_link')->nullable();

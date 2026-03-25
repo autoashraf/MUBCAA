@@ -82,6 +82,28 @@
                         @endforeach
                     </div>
                 </div>
+
+                <div class="panel-card dashboard-status-card">
+                    <div class="dashboard-status-head">
+                        <div>
+                            <p class="panel-card-label">Still Not Submitted</p>
+                            <h3>Incomplete fields</h3>
+                        </div>
+                    </div>
+
+                    @if (count($missingSubmissionItems))
+                        <div class="missing-submission-list">
+                            @foreach ($missingSubmissionItems as $item)
+                                <article class="missing-submission-item">
+                                    <strong>Step {{ $item['step'] }}: {{ $item['title'] }}</strong>
+                                    <span>{{ implode(', ', $item['missing']) }}</span>
+                                </article>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="alert-success">All required profile sections are submitted.</div>
+                    @endif
+                </div>
             </div>
 
             <aside class="dashboard-side">

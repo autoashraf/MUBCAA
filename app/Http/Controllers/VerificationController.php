@@ -26,10 +26,14 @@ class VerificationController extends Controller
     public function show(Request $request): View
     {
         [$target, $mode] = $this->resolveVerificationTarget($request);
+        $captchaLeft = (int) $request->session()->get('registration_captcha_a', 1);
+        $captchaRight = (int) $request->session()->get('registration_captcha_b', 1);
 
         return view('pages.apply', [
             'menu' => SiteNavigation::menu(),
             'registrationStatuses' => ['Draft', 'Unverified', 'In Progress', 'Pending Review', 'Verified'],
+            'captchaLeft' => $captchaLeft,
+            'captchaRight' => $captchaRight,
             'showVerificationModal' => true,
             'verificationMode' => $mode,
             'verificationTarget' => $target,
@@ -234,8 +238,6 @@ class VerificationController extends Controller
                 'mobile_number' => $registration->mobile_number,
                 'mobile_verified' => ! is_null($registration->mobile_verified_at),
                 'passing_year_batch' => $registration->passing_year_batch,
-                'student_id_or_roll' => $registration->student_id_or_roll,
-                'current_city' => $registration->current_city,
                 'country' => 'Bangladesh',
                 'completion_step' => 1,
             ]);

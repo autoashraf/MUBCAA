@@ -2,6 +2,123 @@ import './bootstrap';
 
 document.addEventListener('DOMContentLoaded', () => {
     const verificationModalRoot = document.querySelector('[data-verification-modal-root]');
+    const updateWizardSummary = (summary) => {
+        if (!summary) {
+            return;
+        }
+
+        const statusPill = document.querySelector('[data-wizard-status-pill]');
+        const completionChip = document.querySelector('[data-wizard-completion-chip]');
+        const stepLabel = document.querySelector('[data-wizard-step-label]');
+
+        if (statusPill) {
+            statusPill.className = `status-pill status-${summary.status}`;
+            statusPill.textContent = summary.status_label;
+        }
+
+        if (completionChip) {
+            completionChip.textContent = `Profile ${summary.completion}% complete`;
+        }
+
+        if (stepLabel) {
+            stepLabel.textContent = `Step ${summary.step} of 10`;
+        }
+    };
+
+    const mountImagePreviews = (root = document) => {
+        const placeholderText = (targetName) => targetName === 'cover_photo' ? 'Cover Preview' : 'Photo Preview';
+
+        root.querySelectorAll('[data-image-upload-trigger]').forEach((button) => {
+            if (button.dataset.triggerMounted === 'true') {
+                return;
+            }
+
+            button.addEventListener('click', () => {
+                const input = document.getElementById(button.dataset.imageUploadTrigger);
+
+                input?.click();
+            });
+
+            button.dataset.triggerMounted = 'true';
+        });
+
+        root.querySelectorAll('[data-image-preview-input]').forEach((input) => {
+            if (input.dataset.previewMounted === 'true') {
+                return;
+            }
+
+            input.addEventListener('change', () => {
+                const targetName = input.dataset.imagePreviewInput;
+                const target = document.querySelector(`[data-image-preview-target="${targetName}"]`);
+                const removeInput = document.querySelector(`[data-remove-image-input="${targetName}"]`);
+                const removeButton = document.querySelector(`[data-remove-image-button="${targetName}"]`);
+                const file = input.files?.[0];
+
+                if (!target || !file || !file.type.startsWith('image/')) {
+                    return;
+                }
+
+                const reader = new FileReader();
+
+                reader.onload = (event) => {
+                    if (target.tagName === 'IMG') {
+                        target.src = event.target?.result;
+                    } else {
+                        const image = document.createElement('img');
+                        image.src = event.target?.result;
+                        image.alt = 'Selected preview image';
+                        image.setAttribute('data-image-preview-target', targetName);
+                        target.replaceWith(image);
+                    }
+
+                    if (removeInput) {
+                        removeInput.value = '0';
+                    }
+
+                    if (removeButton) {
+                        removeButton.classList.remove('is-hidden');
+                    }
+                };
+
+                reader.readAsDataURL(file);
+            });
+
+            input.dataset.previewMounted = 'true';
+        });
+
+        root.querySelectorAll('[data-remove-image-button]').forEach((button) => {
+            if (button.dataset.removeMounted === 'true') {
+                return;
+            }
+
+            button.addEventListener('click', () => {
+                const targetName = button.dataset.removeImageButton;
+                const hiddenInput = document.querySelector(`[data-remove-image-input="${targetName}"]`);
+                const target = document.querySelector(`[data-image-preview-target="${targetName}"]`);
+                const fileInput = document.querySelector(`[data-image-preview-input="${targetName}"]`);
+
+                if (hiddenInput) {
+                    hiddenInput.value = '1';
+                }
+
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+
+                if (target) {
+                    const placeholder = document.createElement('span');
+                    placeholder.className = 'image-preview-placeholder';
+                    placeholder.setAttribute('data-image-preview-target', targetName);
+                    placeholder.textContent = placeholderText(targetName);
+                    target.replaceWith(placeholder);
+                }
+
+                button.classList.add('is-hidden');
+            });
+
+            button.dataset.removeMounted = 'true';
+        });
+    };
 
     const mountOtpGroups = (root = document) => {
         root.querySelectorAll('[data-otp-group]').forEach((group) => {
@@ -178,6 +295,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                if (payload.step_url) {
+                    window.history.replaceState({}, '', payload.step_url);
+                }
+
+                updateWizardSummary(payload.summary);
+
                 if (payload.next_step && wizardRoot?.__showStep) {
                     wizardRoot.__showStep(Number(payload.next_step));
                 }
@@ -194,6 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileNavGroups = document.querySelectorAll('[data-mobile-nav-group]');
 
     mountOtpGroups();
+    mountImagePreviews();
 
     mobileNavGroups.forEach((group) => {
         const trigger = group.querySelector('[data-mobile-nav-trigger]');
@@ -304,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (wizardRoot) {
         const stepInputs = wizardRoot.querySelectorAll('input[name="wizard_step"]');
-        const stepLabel = wizardRoot.querySelector('[data-wizard-step-label]');
+        const stepLabel = document.querySelector('[data-wizard-step-label]');
         const stepItems = wizardRoot.querySelectorAll('[data-wizard-step-item]');
         const panels = wizardRoot.querySelectorAll('[data-wizard-panel]');
         const triggers = wizardRoot.querySelectorAll('[data-step-target]');
@@ -341,6 +465,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (stepLabel) {
                 stepLabel.textContent = `Step ${step} of 10`;
             }
+
+            window.history.replaceState({}, '', `/dashboard/profile/complete/${step}`);
         };
 
         triggers.forEach((trigger) => {

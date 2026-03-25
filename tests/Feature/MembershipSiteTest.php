@@ -43,13 +43,15 @@ class MembershipSiteTest extends TestCase
     {
         Mail::fake();
 
-        $response = $this->post('/membership/apply-now', [
+        $response = $this->withSession([
+            'registration_captcha_a' => 4,
+            'registration_captcha_b' => 5,
+        ])->post('/membership/apply-now', [
             'full_name' => 'Test Applicant',
             'mobile_number' => '01700000001',
             'email' => 'applicant@example.com',
             'passing_year_batch' => '2012',
-            'student_id_or_roll' => 'ST-1024',
-            'current_city' => 'Dhaka',
+            'captcha_answer' => 9,
         ]);
 
         $response->assertRedirect(route('member.verification.show'));
@@ -61,7 +63,6 @@ class MembershipSiteTest extends TestCase
         $this->assertDatabaseHas('pending_registrations', [
             'email' => 'applicant@example.com',
             'mobile_number' => '01700000001',
-            'student_id_or_roll' => 'ST-1024',
         ]);
 
         Mail::assertSent(VerificationOtpMail::class, 1);
@@ -94,8 +95,6 @@ class MembershipSiteTest extends TestCase
             'email' => 'pending@example.com',
             'mobile_number' => '01712345678',
             'passing_year_batch' => '2012',
-            'student_id_or_roll' => 'ST-2001',
-            'current_city' => 'Dhaka',
             'email_code' => '123456',
             'mobile_code' => '654321',
             'email_code_expires_at' => now()->addMinutes(15),
@@ -158,7 +157,7 @@ class MembershipSiteTest extends TestCase
                 'hsc_passing_year' => '2012',
                 'group' => 'Science',
                 'shift' => 'Morning',
-                'campus_branch' => 'Main Campus',
+                'campus_branch' => 'Main',
                 'next_step' => 3,
             ])
             ->assertRedirect(route('member.profile.complete', ['step' => 3]));
