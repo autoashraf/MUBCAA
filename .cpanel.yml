@@ -3,6 +3,22 @@ deployment:
   tasks:
     - export DEPLOYPATH=/home/mubcaa/site.mubcaa.com
     - /bin/mkdir -p $DEPLOYPATH
+    - /bin/rm -rf $DEPLOYPATH/app
+    - /bin/rm -rf $DEPLOYPATH/bootstrap
+    - /bin/rm -rf $DEPLOYPATH/config
+    - /bin/rm -rf $DEPLOYPATH/database
+    - /bin/rm -rf $DEPLOYPATH/public
+    - /bin/rm -rf $DEPLOYPATH/resources
+    - /bin/rm -rf $DEPLOYPATH/routes
+    - /bin/rm -f $DEPLOYPATH/artisan
+    - /bin/rm -f $DEPLOYPATH/composer.json
+    - /bin/rm -f $DEPLOYPATH/composer.lock
+    - /bin/rm -f $DEPLOYPATH/package.json
+    - /bin/rm -f $DEPLOYPATH/phpunit.xml
+    - /bin/rm -f $DEPLOYPATH/vite.config.js
+    - /bin/rm -f $DEPLOYPATH/.htaccess
+    - /bin/rm -f $DEPLOYPATH/index.php
+    - /bin/rm -f $DEPLOYPATH/DEPLOYED_SHA
     - /bin/cp -R app $DEPLOYPATH
     - /bin/cp -R bootstrap $DEPLOYPATH
     - /bin/cp -R config $DEPLOYPATH
