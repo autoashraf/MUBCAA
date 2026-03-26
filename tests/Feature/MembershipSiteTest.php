@@ -70,6 +70,8 @@ class MembershipSiteTest extends TestCase
 
     public function test_member_can_login_and_access_dashboard(): void
     {
+        Mail::fake();
+
         $user = User::factory()->create([
             'role' => 'member',
             'membership_status' => 'pending_review',
@@ -78,13 +80,23 @@ class MembershipSiteTest extends TestCase
         ]);
 
         $response = $this->post('/login', [
-            'email' => $user->email,
-            'password' => 'password',
+            'identifier' => $user->email,
         ]);
 
-        $response->assertRedirect(route('member.dashboard'));
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('login_otp_user_id', $user->id);
+
+        $code = session('login_otp_code');
+
+        $verifyResponse = $this->post(route('login.verify'), [
+            'code' => $code,
+        ]);
+
+        $verifyResponse->assertRedirect(route('member.dashboard'));
         $this->actingAs($user)->get('/dashboard')->assertOk();
         $this->actingAs($user)->get(route('member.profile'))->assertOk()->assertSee('Member Profile');
+
+        Mail::assertSent(VerificationOtpMail::class, 1);
     }
 
     public function test_pending_registration_creates_member_after_email_and_mobile_otp_verification(): void

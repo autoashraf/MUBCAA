@@ -31,6 +31,8 @@ Route::redirect('/home', '/')->name('home.redirect');
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
+    Route::post('/login/verify', [AuthController::class, 'verifyLoginOtp'])->name('login.verify');
+    Route::post('/login/resend', [AuthController::class, 'resendLoginOtp'])->name('login.resend');
     Route::get('/membership/apply-now', [AuthController::class, 'showRegistration'])->name('membership.apply');
     Route::post('/membership/apply-now', [AuthController::class, 'register'])->name('membership.apply.store');
 });

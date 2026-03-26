@@ -13,13 +13,14 @@ class VerificationOtpMail extends Mailable
     public function __construct(
         public object $user,
         public string $code,
+        public string $purpose = 'verification',
     ) {
     }
 
     public function build(): self
     {
         return $this
-            ->subject('Your MUBCAA verification code')
+            ->subject($this->purpose === 'login' ? 'Your MUBCAA sign-in code' : 'Your MUBCAA verification code')
             ->view('emails.verification-otp');
     }
 }
