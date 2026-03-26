@@ -84,6 +84,7 @@ class MembershipSiteTest extends TestCase
 
         $response->assertRedirect(route('member.dashboard'));
         $this->actingAs($user)->get('/dashboard')->assertOk();
+        $this->actingAs($user)->get(route('member.profile'))->assertOk()->assertSee('Member Profile');
     }
 
     public function test_pending_registration_creates_member_after_email_and_mobile_otp_verification(): void
@@ -224,6 +225,17 @@ class MembershipSiteTest extends TestCase
             ->assertSee('Application Queue')
             ->assertSee('Advance to Next Step')
             ->assertSee('Reject Application');
+
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard', ['search' => $member->email, 'status' => 'pending_review']))
+            ->assertOk()
+            ->assertSee($member->email);
+
+        $this->actingAs($admin)
+            ->get(route('admin.applications.show', $member->application))
+            ->assertOk()
+            ->assertSee('Admin Application View')
+            ->assertSee($member->name);
     }
 
     public function test_member_document_routes_are_available_and_certificate_requires_active_status(): void
@@ -250,13 +262,15 @@ class MembershipSiteTest extends TestCase
             'submitted_at' => now(),
         ]);
 
-        $this->actingAs($member)->get(route('member.documents.profile'))->assertOk();
-        $this->actingAs($member)->get(route('member.documents.id-card'))->assertOk();
+        $this->actingAs($member)->get(route('member.documents.profile'))->assertForbidden();
+        $this->actingAs($member)->get(route('member.documents.id-card'))->assertForbidden();
         $this->actingAs($member)->get(route('member.documents.certificate'))->assertForbidden();
 
         $member->update(['membership_status' => 'verified']);
         $member->application()->update(['status' => 'approved', 'approved_at' => now()]);
 
+        $this->actingAs($member)->get(route('member.documents.profile'))->assertOk();
+        $this->actingAs($member)->get(route('member.documents.id-card'))->assertOk();
         $this->actingAs($member)->get(route('member.documents.certificate'))->assertOk();
     }
 

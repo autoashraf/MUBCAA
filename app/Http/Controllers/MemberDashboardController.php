@@ -13,6 +13,20 @@ use Illuminate\View\View;
 
 class MemberDashboardController extends Controller
 {
+    public function profile(Request $request): View
+    {
+        $user = $request->user()->load('profile', 'application');
+        $profile = $user->profile;
+
+        return view('member.profile', [
+            'menu' => SiteNavigation::menu(),
+            'user' => $user,
+            'profile' => $profile,
+            'application' => $user->application,
+            'profileCompletion' => $this->profileCompletion($user, $profile),
+        ]);
+    }
+
     public function index(Request $request): View
     {
         $user = $request->user()->load('profile', 'application');
@@ -23,7 +37,7 @@ class MemberDashboardController extends Controller
             'user' => $user,
             'application' => $user->application,
             'workflowSteps' => $this->applicationWorkflowSteps($user->application),
-            'profileCompletion' => $this->profileCompletion($profile),
+            'profileCompletion' => $this->profileCompletion($user, $profile),
             'stepLabels' => $this->completionSteps(),
             'missingSubmissionItems' => $this->missingSubmissionItems($user, $profile),
         ]);
@@ -43,7 +57,7 @@ class MemberDashboardController extends Controller
             'application' => $user->application,
             'steps' => $steps,
             'currentStep' => $step,
-            'profileCompletion' => $this->profileCompletion($profile),
+            'profileCompletion' => $this->profileCompletion($user, $profile),
             'stepDescriptions' => $this->stepDescriptions(),
             'areasOfInterest' => [
                 'Networking Events',
@@ -60,6 +74,7 @@ class MemberDashboardController extends Controller
             'academicGroups' => ['Science', 'Commerce', 'Arts'],
             'academicShifts' => ['Morning', 'Day'],
             'campusBranches' => ['Main', 'Shewrapara', 'Ibrahimpur', 'Rupnagar'],
+            'passingYears' => $this->passingYearOptions(),
             'districts' => $this->bangladeshDistricts(),
             'occupations' => $this->occupationOptions(),
             'designations' => $this->designationOptions(),
@@ -130,7 +145,7 @@ class MemberDashboardController extends Controller
             if ($request->expectsJson()) {
                 return response()->json([
                     'ok' => true,
-                    'message' => 'Thank you for completing your alumni membership profile. Your profile has been submitted successfully and is now Pending Review.',
+                    'message' => 'Thank you for completing your alumni membership profile. Your profile has been submitted successfully and is now under review.',
                     'redirect_url' => route('member.dashboard'),
                     'submitted' => true,
                 ]);
@@ -138,7 +153,7 @@ class MemberDashboardController extends Controller
 
             return redirect()
                 ->route('member.dashboard')
-                ->with('success', 'Thank you for completing your alumni membership profile. Your profile has been submitted successfully and is now Pending Review.');
+                ->with('success', 'Thank you for completing your alumni membership profile. Your profile has been submitted successfully and is now under review.');
         }
 
         if ($request->boolean('save_as_draft')) {
@@ -286,9 +301,6 @@ class MemberDashboardController extends Controller
                 'designation' => ['required', Rule::in($this->designationOptions())],
                 'industry' => ['required', Rule::in($this->industryOptions())],
                 'office_address' => ['required', 'string', 'max:1000'],
-                'work_email' => ['required', 'email', 'max:255'],
-                'business_name' => ['required', 'string', 'max:255'],
-                'professional_skills' => ['required', 'string', 'max:2000'],
             ],
             6 => [
                 'profile_photo' => [$this->requiredFileRule($request, 'profile_photo'), 'image', 'max:4096'],
@@ -417,32 +429,88 @@ class MemberDashboardController extends Controller
         return $stored;
     }
 
-    private function profileCompletion($profile): int
+    private function profileCompletion($user, $profile): int
     {
         if (! $profile) {
             return 10;
         }
 
-        $fields = [
-            $profile->student_id_or_roll,
-            $profile->passing_year_batch,
-            $profile->date_of_birth,
-            $profile->gender,
-            $profile->father_name,
-            $profile->mother_name,
-            $profile->present_address,
-            $profile->country,
-            $profile->city_district,
-            $profile->occupation,
-            $profile->organization_name,
-            $profile->business_card_upload,
-            $profile->profile_visibility,
-            $profile->contact_visibility,
-        ];
+        $fields = collect($this->completionFieldGroups($user, $profile))
+            ->flatten(1)
+            ->values()
+            ->all();
 
         $completed = collect($fields)->filter(fn ($value) => filled($value))->count();
 
         return (int) max(10, round(($completed / count($fields)) * 100));
+    }
+
+    private function completionFieldGroups($user, $profile): array
+    {
+        return [
+            2 => [
+                $profile?->ssc_passing_year,
+                $profile?->hsc_passing_year,
+                $profile?->group,
+                $profile?->shift,
+                $profile?->campus_branch,
+            ],
+            3 => [
+                $profile?->father_name,
+                $profile?->mother_name,
+                $profile?->date_of_birth,
+                $profile?->gender,
+                $profile?->blood_group,
+                $profile?->marital_status,
+            ],
+            4 => [
+                $profile?->primary_mobile ?: $user->phone,
+                $profile?->secondary_mobile,
+                $profile?->whatsapp_number,
+                $profile?->email_address ?: $user->email,
+                $profile?->present_address,
+                $profile?->permanent_address,
+                $profile?->country,
+                $profile?->city_district,
+                $profile?->postal_code,
+            ],
+            5 => [
+                $profile?->occupation,
+                $profile?->organization_name,
+                $profile?->designation,
+                $profile?->industry,
+                $profile?->office_address,
+            ],
+            6 => [
+                $profile?->profile_photo,
+                $profile?->cover_photo,
+                $profile?->business_card_upload,
+                $profile?->facebook_profile_link,
+                $profile?->linkedin_profile_link,
+                $profile?->website_portfolio_link,
+            ],
+            7 => [
+                ! is_null($profile?->interested_in_alumni_activities) ? 'filled' : null,
+                filled($profile?->areas_of_interest) ? 'filled' : null,
+                ! is_null($profile?->volunteer_interest) ? 'filled' : null,
+                $profile?->donor_sponsor_interest,
+                ! is_null($profile?->mentor_interest) ? 'filled' : null,
+                $profile?->suggestions,
+            ],
+            8 => [
+                $profile?->certificate_testimonial_upload,
+                $profile?->supporting_document_upload,
+            ],
+            9 => [
+                $profile?->profile_visibility,
+                $profile?->contact_visibility,
+            ],
+            10 => [
+                $profile?->information_accuracy_confirmation ? 'filled' : null,
+                $profile?->terms_privacy_agreement ? 'filled' : null,
+                $profile?->admin_verification_agreement ? 'filled' : null,
+            ],
+        ];
     }
 
     private function applicationWorkflowSteps($application): array
@@ -450,7 +518,7 @@ class MemberDashboardController extends Controller
         $steps = [
             ['step_number' => 1, 'title' => 'Profile Created', 'description' => 'Basic registration completed and profile created.'],
             ['step_number' => 2, 'title' => 'Profile In Progress', 'description' => 'Member continues profile completion and contact verification.'],
-            ['step_number' => 3, 'title' => 'Pending Review', 'description' => 'Final profile submitted for admin review.'],
+            ['step_number' => 3, 'title' => 'Under Review', 'description' => 'Final profile submitted for admin review.'],
             ['step_number' => 4, 'title' => 'Verified Member', 'description' => 'Admin approves the alumni membership profile.'],
         ];
 
@@ -493,9 +561,6 @@ class MemberDashboardController extends Controller
                 'Designation / Job Title' => $profile?->designation,
                 'Industry' => $profile?->industry,
                 'Office Address' => $profile?->office_address,
-                'Work Email' => $profile?->work_email,
-                'Business Name' => $profile?->business_name,
-                'Professional Skills / Expertise' => $profile?->professional_skills,
             ],
             6 => [
                 'Profile Photo' => $profile?->profile_photo,
@@ -541,8 +606,10 @@ class MemberDashboardController extends Controller
 
         return [
             'status' => $status,
-            'status_label' => str($status)->replace('_', ' ')->title()->toString(),
-            'completion' => $this->profileCompletion($user->profile),
+            'status_label' => $status === 'pending_review'
+                ? 'Under Review'
+                : str($status)->replace('_', ' ')->title()->toString(),
+            'completion' => $this->profileCompletion($user, $user->profile),
             'step' => $step,
         ];
     }
@@ -568,6 +635,11 @@ class MemberDashboardController extends Controller
     private function academicGroupOptions(): array
     {
         return ['Science', 'Commerce', 'Arts'];
+    }
+
+    private function passingYearOptions(): array
+    {
+        return array_map('strval', range((int) date('Y'), 1970));
     }
 
     private function shiftOptions(): array

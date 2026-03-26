@@ -34,7 +34,7 @@
                 <section class="id-meta-grid">
                     <div class="id-meta">
                         <span>Status</span>
-                        <strong>{{ str($user->membership_status)->replace('_', ' ')->title() }}</strong>
+                        <strong>{{ $user->membership_status === 'pending_review' ? 'Under Review' : str($user->membership_status)->replace('_', ' ')->title() }}</strong>
                     </div>
                     <div class="id-meta">
                         <span>Phone</span>

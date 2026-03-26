@@ -100,13 +100,27 @@
                     </div>
                     <div class="header-actions">
                         @auth
-                            <a class="mini-link" href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : $memberLanding }}">
-                                {{ auth()->user()->isAdmin() ? 'Admin' : 'Dashboard' }}
-                            </a>
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <button class="mini-link mini-link-button" type="submit">Logout</button>
-                            </form>
+                            <details class="profile-tray">
+                                <summary class="profile-tray-toggle" aria-label="Open profile menu">
+                                    <span class="profile-tray-avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
+                                </summary>
+                                <div class="profile-tray-menu">
+                                    <div class="profile-tray-head">
+                                        <strong>{{ auth()->user()->name }}</strong>
+                                        <span>{{ auth()->user()->isAdmin() ? 'Admin' : 'Member' }}</span>
+                                    </div>
+                                    @unless (auth()->user()->isAdmin())
+                                        <a class="profile-tray-link" href="{{ route('member.profile') }}">Profile</a>
+                                    @endunless
+                                    <a class="profile-tray-link" href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : $memberLanding }}">
+                                        {{ auth()->user()->isAdmin() ? 'Admin Dashboard' : 'Dashboard' }}
+                                    </a>
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button class="profile-tray-link profile-tray-button" type="submit">Logout</button>
+                                    </form>
+                                </div>
+                            </details>
                         @else
                             <a class="mini-link" href="{{ route('login') }}">Login</a>
                             <a class="mini-link mini-link-primary" href="{{ route('membership.apply') }}">Join Us</a>

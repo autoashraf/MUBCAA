@@ -14,7 +14,7 @@
                     <p class="lead">Please complete your registration step by step. You can save your progress at each step and continue later. Your membership profile will be submitted for admin verification after the final step.</p>
                 </div>
                 <div class="dashboard-badges">
-                    <span class="status-pill status-{{ $application?->status ?? $user->membership_status }}" data-wizard-status-pill>{{ str($application?->status ?? $user->membership_status)->replace('_', ' ')->title() }}</span>
+                    <span class="status-pill status-{{ $application?->status ?? $user->membership_status }}" data-wizard-status-pill>{{ ($application?->status ?? $user->membership_status) === 'pending_review' ? 'Under Review' : str($application?->status ?? $user->membership_status)->replace('_', ' ')->title() }}</span>
                     <span class="dashboard-chip" data-wizard-completion-chip>Profile {{ $profileCompletion }}% complete</span>
                     <span class="dashboard-chip" data-wizard-step-label>Step {{ $activeStep }} of 10</span>
                 </div>
@@ -49,12 +49,22 @@
                                 <div class="form-grid">
                                     <label>
                                         <span>Passing Year SSC</span>
-                                        <input type="text" name="ssc_passing_year" value="{{ old('ssc_passing_year', $profile?->ssc_passing_year) }}" placeholder="Enter your SSC passing year">
+                                        <select name="ssc_passing_year">
+                                            <option value="">Select year</option>
+                                            @foreach ($passingYears as $option)
+                                                <option value="{{ $option }}" @selected(old('ssc_passing_year', $profile?->ssc_passing_year) === $option)>{{ $option }}</option>
+                                            @endforeach
+                                        </select>
                                         @error('ssc_passing_year') <small>{{ $message }}</small> @enderror
                                     </label>
                                     <label>
                                         <span>Passing Year HSC</span>
-                                        <input type="text" name="hsc_passing_year" value="{{ old('hsc_passing_year', $profile?->hsc_passing_year) }}" placeholder="Enter your HSC passing year">
+                                        <select name="hsc_passing_year">
+                                            <option value="">Select year</option>
+                                            @foreach ($passingYears as $option)
+                                                <option value="{{ $option }}" @selected(old('hsc_passing_year', $profile?->hsc_passing_year) === $option)>{{ $option }}</option>
+                                            @endforeach
+                                        </select>
                                         @error('hsc_passing_year') <small>{{ $message }}</small> @enderror
                                     </label>
                                     <label>
@@ -198,10 +208,7 @@
                                     <label><span>Designation / Job Title</span><select name="designation"><option value="">Select designation</option>@foreach ($designations as $option)<option value="{{ $option }}" @selected(old('designation', $profile?->designation) === $option)>{{ $option }}</option>@endforeach</select>@error('designation') <small>{{ $message }}</small> @enderror</label>
                                     <label><span>Industry</span><select name="industry"><option value="">Select industry</option>@foreach ($industries as $option)<option value="{{ $option }}" @selected(old('industry', $profile?->industry) === $option)>{{ $option }}</option>@endforeach</select>@error('industry') <small>{{ $message }}</small> @enderror</label>
                                     <label class="label-wide"><span>Office Address</span><textarea name="office_address" rows="4" placeholder="Enter your office address">{{ old('office_address', $profile?->office_address) }}</textarea>@error('office_address') <small>{{ $message }}</small> @enderror</label>
-                                    <label><span>Work Email</span><input type="email" name="work_email" value="{{ old('work_email', $profile?->work_email) }}" placeholder="Enter your work email">@error('work_email') <small>{{ $message }}</small> @enderror</label>
-                                    <label><span>Business Name</span><input type="text" name="business_name" value="{{ old('business_name', $profile?->business_name) }}" placeholder="Enter your business name, if applicable">@error('business_name') <small>{{ $message }}</small> @enderror</label>
                                 </div>
-                                <label><span>Professional Skills / Expertise</span><textarea name="professional_skills" rows="5" placeholder="Mention your skills, expertise, or areas of specialization">{{ old('professional_skills', $profile?->professional_skills) }}</textarea>@error('professional_skills') <small>{{ $message }}</small> @enderror</label>
                             @elseif ($number === 6)
                                 <div class="form-grid">
                                     <label>
@@ -312,7 +319,7 @@
                                     <button class="button button-secondary" type="submit" name="save_as_draft" value="1">Save as Draft</button>
                                     <button class="button button-primary" type="submit" name="next_step" value="{{ $number + 1 }}">Save &amp; Continue</button>
                                 @else
-                                    <button class="button button-primary" type="submit" name="submit_for_verification" value="1">Submit for Verification</button>
+                                    <button class="button button-primary" type="submit" name="submit_for_verification" value="1">Submit for Review</button>
                                 @endif
                             </div>
                         </section>

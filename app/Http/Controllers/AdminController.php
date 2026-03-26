@@ -10,22 +10,63 @@ use Illuminate\View\View;
 
 class AdminController extends Controller
 {
-    public function dashboard(): View
+    public function dashboard(Request $request): View
     {
+        $search = trim((string) $request->input('search'));
+        $status = (string) $request->input('status', 'all');
+
         $applications = MembershipApplication::query()
             ->with(['user.profile'])
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->whereHas('user', function ($userQuery) use ($search): void {
+                    $userQuery->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                });
+            })
+            ->when($status !== 'all', function ($query) use ($status): void {
+                $query->where('status', $status);
+            })
             ->latest()
             ->get();
+
+        $allApplications = MembershipApplication::query()->get();
 
         return view('admin.dashboard', [
             'menu' => SiteNavigation::menu(),
             'applications' => $applications,
-            'summary' => [
-                'pending' => $applications->whereIn('status', ['draft', 'unverified', 'in_progress', 'pending_review', 'pending'])->count(),
-                'under_review' => $applications->whereIn('status', ['under_review', 'needs_correction'])->count(),
-                'approved' => $applications->where('status', 'approved')->count(),
-                'rejected' => $applications->where('status', 'rejected')->count(),
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
             ],
+            'statusOptions' => [
+                'all' => 'All statuses',
+                'draft' => 'Draft',
+                'unverified' => 'Unverified',
+                'in_progress' => 'In Progress',
+                'pending_review' => 'Pending Review',
+                'under_review' => 'Under Review',
+                'approved' => 'Approved',
+                'rejected' => 'Rejected',
+            ],
+            'summary' => [
+                'pending' => $allApplications->whereIn('status', ['draft', 'unverified', 'in_progress', 'pending_review', 'pending'])->count(),
+                'under_review' => $allApplications->whereIn('status', ['under_review', 'needs_correction'])->count(),
+                'approved' => $allApplications->where('status', 'approved')->count(),
+                'rejected' => $allApplications->where('status', 'rejected')->count(),
+            ],
+        ]);
+    }
+
+    public function show(MembershipApplication $application): View
+    {
+        $application->load(['user.profile', 'reviewer']);
+
+        return view('admin.show', [
+            'menu' => SiteNavigation::menu(),
+            'application' => $application,
+            'user' => $application->user,
+            'profile' => $application->user->profile,
         ]);
     }
 

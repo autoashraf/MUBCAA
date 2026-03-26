@@ -71,6 +71,7 @@ Route::post('/contact', [SiteController::class, 'storeContact'])->name('contact.
 
 Route::middleware('auth')->group(function (): void {
     Route::get('/dashboard', [MemberDashboardController::class, 'index'])->name('member.dashboard');
+    Route::get('/profile', [MemberDashboardController::class, 'profile'])->name('member.profile');
     Route::get('/membership/profile-completion/{step?}', [MemberDashboardController::class, 'showCompletion'])->name('member.profile.complete');
     Route::post('/membership/profile-completion', [MemberDashboardController::class, 'saveCompletion'])->name('member.profile.complete.save');
     Route::put('/dashboard/profile', [MemberDashboardController::class, 'updateProfile'])->name('member.profile.update');
@@ -81,6 +82,7 @@ Route::middleware('auth')->group(function (): void {
 
 Route::prefix('admin')->middleware(['auth', 'admin'])->group(function (): void {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+    Route::get('/applications/{application}', [AdminController::class, 'show'])->name('admin.applications.show');
     Route::post('/applications/{application}/advance', [AdminController::class, 'advance'])->name('admin.applications.advance');
     Route::post('/applications/{application}/reject', [AdminController::class, 'reject'])->name('admin.applications.reject');
 });

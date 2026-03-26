@@ -86,8 +86,8 @@
                     <section id="overview" class="page-hero admin-page-hero">
                         <div>
                             <p class="eyebrow">Admin Dashboard</p>
-                            <h1>Membership applications</h1>
-                            <p class="lead">Review the queue, monitor approval status, and manage membership workflow from a clean card layout.</p>
+                            <h1>Admin Panel</h1>
+                            <p class="lead">Review applications, search the queue, and move members through approval with a cleaner control surface.</p>
                         </div>
                     </section>
 
@@ -113,6 +113,27 @@
                             <p>Applications declined with admin notes.</p>
                         </article>
                     </section>
+
+                    <section class="admin-filter-bar">
+                        <form class="admin-filter-form" method="GET" action="{{ route('admin.dashboard') }}">
+                            <label>
+                                <span>Search</span>
+                                <input type="text" name="search" value="{{ $filters['search'] }}" placeholder="Search by name, email, or phone">
+                            </label>
+                            <label>
+                                <span>Status</span>
+                                <select name="status">
+                                    @foreach ($statusOptions as $value => $label)
+                                        <option value="{{ $value }}" @selected($filters['status'] === $value)>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                            <div class="admin-filter-actions">
+                                <button class="button button-primary" type="submit">Apply Filters</button>
+                                <a class="button button-secondary" href="{{ route('admin.dashboard') }}">Reset</a>
+                            </div>
+                        </form>
+                    </section>
                 </section>
 
                 <section class="admin-panel" data-admin-panel="queue">
@@ -132,6 +153,17 @@
                                             <p class="dashboard-copy">Step {{ $application->current_step }} / {{ $application->total_steps }}</p>
                                         </div>
                                         <span class="status-pill status-{{ $application->status }}">{{ str($application->status)->replace('_', ' ')->title() }}</span>
+                                    </div>
+
+                                    <div class="admin-application-summary">
+                                        <div><span>Member No</span><strong>{{ $application->user->memberNumber() }}</strong></div>
+                                        <div><span>Submitted</span><strong>{{ optional($application->submitted_at)->format('d M Y') ?: 'Not submitted' }}</strong></div>
+                                        <div><span>City</span><strong>{{ $application->user->profile?->city_district ?: 'Not added' }}</strong></div>
+                                        <div><span>Occupation</span><strong>{{ $application->user->profile?->occupation ?: 'Not added' }}</strong></div>
+                                    </div>
+
+                                    <div class="admin-card-actions">
+                                        <a class="button button-secondary" href="{{ route('admin.applications.show', $application) }}">Open Application</a>
                                     </div>
 
                                     @if (! in_array($application->status, ['approved', 'rejected'], true))

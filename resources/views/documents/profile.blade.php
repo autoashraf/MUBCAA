@@ -14,7 +14,7 @@
             </div>
             <div class="document-meta">
                 <div><span>Member No</span><strong>{{ $user->memberNumber() }}</strong></div>
-                <div><span>Status</span><strong>{{ str($user->membership_status)->replace('_', ' ')->title() }}</strong></div>
+                <div><span>Status</span><strong>{{ $user->membership_status === 'pending_review' ? 'Under Review' : str($user->membership_status)->replace('_', ' ')->title() }}</strong></div>
                 <div><span>Generated</span><strong>{{ now()->format('d M Y') }}</strong></div>
             </div>
         </header>
@@ -40,7 +40,7 @@
             </div>
             <dl class="detail-list detail-list-document">
                 <div><dt>Registration Type</dt><dd>Alumni Membership</dd></div>
-                <div><dt>Workflow Status</dt><dd>{{ str($application?->status ?? 'pending')->replace('_', ' ')->title() }}</dd></div>
+                <div><dt>Workflow Status</dt><dd>{{ ($application?->status ?? 'pending') === 'pending_review' ? 'Under Review' : str($application?->status ?? 'pending')->replace('_', ' ')->title() }}</dd></div>
                 <div><dt>Approval Step</dt><dd>{{ $application?->current_step ?? 1 }} / {{ $application?->total_steps ?? 1 }}</dd></div>
                 <div><dt>Submitted At</dt><dd>{{ optional($application?->submitted_at)->format('d M Y h:i A') ?: 'N/A' }}</dd></div>
                 <div><dt>Approved At</dt><dd>{{ optional($application?->approved_at)->format('d M Y h:i A') ?: 'Pending' }}</dd></div>
