@@ -70,7 +70,7 @@ class AdminController extends Controller
         ]);
     }
 
-    public function advance(Request $request, MembershipApplication $application): RedirectResponse
+    public function approve(Request $request, MembershipApplication $application): RedirectResponse
     {
         $request->validate([
             'admin_notes' => ['nullable', 'string', 'max:2000'],
@@ -78,24 +78,20 @@ class AdminController extends Controller
 
         $application->load('user');
 
-        $nextStep = min($application->current_step + 1, $application->total_steps);
-        $isFinalStep = $nextStep >= $application->total_steps;
-        $status = $isFinalStep ? 'approved' : 'under_review';
-
         $application->update([
-            'current_step' => $nextStep,
-            'status' => $status,
+            'current_step' => $application->total_steps,
+            'status' => 'approved',
             'admin_notes' => $request->input('admin_notes'),
             'reviewed_by' => $request->user()->id,
-            'approved_at' => $isFinalStep ? now() : null,
+            'approved_at' => now(),
         ]);
 
         $application->user->update([
-            'approval_step' => $nextStep,
-            'membership_status' => $isFinalStep ? 'verified' : 'pending_review',
+            'approval_step' => $application->total_steps,
+            'membership_status' => 'verified',
         ]);
 
-        return back()->with('success', 'Application moved to the next workflow step.');
+        return back()->with('success', 'Application approved successfully.');
     }
 
     public function reject(Request $request, MembershipApplication $application): RedirectResponse

@@ -3397,6 +3397,28 @@ small {
     line-height: 1.55;
 }
 
+.file-link-with-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--accent-dark);
+    font-weight: 600;
+    word-break: break-word;
+}
+
+.file-link-with-icon span:first-child {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 999px;
+    background: rgba(185, 92, 53, 0.12);
+    font-size: 0.78rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
 @keyframes review-banner-rise {
     from {
         opacity: 0;

@@ -36,6 +36,13 @@ class AuthController extends Controller
         ]);
     }
 
+    public function showAdminLogin(): View
+    {
+        return view('auth.admin-login', [
+            'menu' => SiteNavigation::menu(),
+        ]);
+    }
+
     public function login(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -50,6 +57,12 @@ class AuthController extends Controller
             ]);
         }
 
+        if ($user->isAdmin()) {
+            return back()->withInput($request->only('identifier'))->withErrors([
+                'identifier' => 'Admins must log in with email and password.',
+            ]);
+        }
+
         [$channel, $contactValue] = $this->resolveLoginChannel($user, $validated['identifier']);
 
         $this->issueLoginOtp($request, $user, $channel, $contactValue);
@@ -57,6 +70,32 @@ class AuthController extends Controller
         return redirect()
             ->route('login')
             ->with('success', 'We sent a 6-digit OTP to your registered '.($channel === 'email' ? 'email address.' : 'mobile number.'));
+    }
+
+    public function adminLogin(Request $request): RedirectResponse
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ]);
+
+        if (! Auth::attempt($credentials, false)) {
+            return back()->withInput($request->only('email'))->withErrors([
+                'email' => 'The provided admin credentials do not match our records.',
+            ]);
+        }
+
+        $request->session()->regenerate();
+
+        if (! $request->user()->isAdmin()) {
+            Auth::logout();
+
+            return back()->withInput($request->only('email'))->withErrors([
+                'email' => 'This login form is for admin access only.',
+            ]);
+        }
+
+        return redirect()->route('admin.dashboard');
     }
 
     public function verifyLoginOtp(Request $request): RedirectResponse

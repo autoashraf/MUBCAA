@@ -32,6 +32,7 @@ class MembershipSiteTest extends TestCase
             '/memories',
             '/contact',
             '/login',
+            '/admin/login',
         ];
 
         foreach ($routes as $route) {
@@ -97,6 +98,19 @@ class MembershipSiteTest extends TestCase
         $this->actingAs($user)->get(route('member.profile'))->assertOk()->assertSee('Member Profile');
 
         Mail::assertSent(VerificationOtpMail::class, 1);
+    }
+
+    public function test_admin_can_login_with_email_and_password(): void
+    {
+        $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
+
+        $response = $this->post('/admin/login', [
+            'email' => $admin->email,
+            'password' => 'password',
+        ]);
+
+        $response->assertRedirect(route('admin.dashboard'));
+        $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertSee('Admin Panel');
     }
 
     public function test_pending_registration_creates_member_after_email_and_mobile_otp_verification(): void
@@ -183,7 +197,7 @@ class MembershipSiteTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_advance_application(): void
+    public function test_admin_can_approve_application(): void
     {
         $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
         $member = User::factory()->create([
@@ -201,15 +215,15 @@ class MembershipSiteTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->post(route('admin.applications.advance', $application), [
+            ->post(route('admin.applications.approve', $application), [
                 'admin_notes' => 'Looks good.',
             ])
             ->assertRedirect();
 
         $this->assertDatabaseHas('membership_applications', [
             'id' => $application->id,
-            'current_step' => 2,
-            'status' => 'under_review',
+            'current_step' => 10,
+            'status' => 'approved',
         ]);
     }
 
@@ -234,8 +248,8 @@ class MembershipSiteTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('Application Queue')
-            ->assertSee('Advance to Next Step')
+            ->assertSee('Admin Panel')
+            ->assertSee('Approve Application')
             ->assertSee('Reject Application');
 
         $this->actingAs($admin)

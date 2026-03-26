@@ -35,6 +35,7 @@
             <div class="login-stack">
                 <form class="form-card login-card" method="POST" action="{{ route('login.attempt') }}">
                     @csrf
+                    <input type="hidden" name="login_type" value="member">
 
                     <div class="dashboard-form-head login-card-head">
                         <div>
@@ -52,6 +53,9 @@
                     <div class="action-row login-card-actions">
                         <button class="button button-primary" type="submit">Send OTP</button>
                         <a class="button button-secondary" href="{{ route('membership.apply') }}">Create account</a>
+                    </div>
+                    <div class="action-row login-card-actions">
+                        <a class="text-link-button text-link-inline" href="{{ route('admin.login') }}">Admin login</a>
                     </div>
                 </form>
 

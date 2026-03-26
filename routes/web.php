@@ -33,6 +33,8 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
     Route::post('/login/verify', [AuthController::class, 'verifyLoginOtp'])->name('login.verify');
     Route::post('/login/resend', [AuthController::class, 'resendLoginOtp'])->name('login.resend');
+    Route::get('/admin/login', [AuthController::class, 'showAdminLogin'])->name('admin.login');
+    Route::post('/admin/login', [AuthController::class, 'adminLogin'])->name('admin.login.attempt');
     Route::get('/membership/apply-now', [AuthController::class, 'showRegistration'])->name('membership.apply');
     Route::post('/membership/apply-now', [AuthController::class, 'register'])->name('membership.apply.store');
 });
@@ -85,6 +87,6 @@ Route::middleware('auth')->group(function (): void {
 Route::prefix('admin')->middleware(['auth', 'admin'])->group(function (): void {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/applications/{application}', [AdminController::class, 'show'])->name('admin.applications.show');
-    Route::post('/applications/{application}/advance', [AdminController::class, 'advance'])->name('admin.applications.advance');
+    Route::post('/applications/{application}/approve', [AdminController::class, 'approve'])->name('admin.applications.approve');
     Route::post('/applications/{application}/reject', [AdminController::class, 'reject'])->name('admin.applications.reject');
 });
