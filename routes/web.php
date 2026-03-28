@@ -27,7 +27,7 @@ Route::get('/__mubcaa_check', function () {
 
 Route::get('/', [SiteController::class, 'home'])->name('home');
 Route::redirect('/home', '/')->name('home.redirect');
-Route::get('/r/{code}', [AuthController::class, 'affiliateRedirect'])->name('affiliate.redirect');
+Route::get('/r/{user}', [AuthController::class, 'affiliateRedirect'])->name('affiliate.redirect');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');

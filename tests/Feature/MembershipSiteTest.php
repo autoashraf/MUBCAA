@@ -79,18 +79,19 @@ class MembershipSiteTest extends TestCase
             'approval_step' => 1,
         ]);
 
-        $this->get(route('affiliate.redirect', ['code' => $referrer->affiliate_code]))
-            ->assertRedirect(route('membership.apply', ['ref' => $referrer->affiliate_code]));
+        $this->get($referrer->affiliateLink())
+            ->assertRedirect(route('membership.apply'))
+            ->assertSessionHas('affiliate_referrer_id', $referrer->id);
 
         $this->withSession([
             'registration_captcha_a' => 2,
             'registration_captcha_b' => 3,
+            'affiliate_referrer_id' => $referrer->id,
         ])->post('/membership/apply-now', [
             'full_name' => 'Referral Applicant',
             'mobile_number' => '01700000009',
             'email' => 'referral@example.com',
             'passing_year_batch' => '2011',
-            'referral_code' => $referrer->affiliate_code,
             'captcha_answer' => 5,
         ])->assertRedirect(route('member.verification.show'));
 

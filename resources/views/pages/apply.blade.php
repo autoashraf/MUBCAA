@@ -13,9 +13,6 @@
         <div class="wrap registration-shell">
             <form class="form-card registration-form-card" method="POST" action="{{ route('membership.apply.store') }}" data-ajax-form="registration">
                 @csrf
-                @if (! empty($referralCode))
-                    <input type="hidden" name="referral_code" value="{{ $referralCode }}">
-                @endif
 
                 <div class="dashboard-form-head">
                     <div>

@@ -176,9 +176,8 @@ class AuthController extends Controller
     public function showRegistration(Request $request): View
     {
         [$captchaLeft, $captchaRight] = $this->generateCaptchaChallenge($request);
-        $referralCode = Str::upper(trim((string) $request->query('ref', '')));
         $affiliateReferrer = User::query()
-            ->where('affiliate_code', $referralCode)
+            ->whereKey($request->session()->get('affiliate_referrer_id'))
             ->where('role', 'member')
             ->first();
 
@@ -187,7 +186,6 @@ class AuthController extends Controller
             'registrationStatuses' => ['Draft', 'Unverified', 'In Progress', 'Pending Review', 'Verified'],
             'captchaLeft' => $captchaLeft,
             'captchaRight' => $captchaRight,
-            'referralCode' => $affiliateReferrer?->affiliate_code,
             'affiliateReferrer' => $affiliateReferrer,
         ]);
     }
@@ -199,7 +197,6 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'mobile_number' => ['required', 'string', 'max:50', 'unique:users,phone'],
             'passing_year_batch' => ['required', 'string', 'max:50'],
-            'referral_code' => ['nullable', 'string', Rule::exists('users', 'affiliate_code')->where(fn ($query) => $query->where('role', 'member'))],
             'captcha_answer' => ['required', 'integer'],
         ]);
 
@@ -229,9 +226,10 @@ class AuthController extends Controller
                 ->orWhere('mobile_number', $validated['mobile_number'])
                 ->delete();
 
-            $referrer = blank($validated['referral_code'] ?? null)
-                ? null
-                : User::query()->where('affiliate_code', $validated['referral_code'])->where('role', 'member')->first();
+            $referrer = User::query()
+                ->whereKey(request()->session()->get('affiliate_referrer_id'))
+                ->where('role', 'member')
+                ->first();
 
             return PendingRegistration::query()->create([
                 'full_name' => $validated['full_name'],
@@ -245,6 +243,7 @@ class AuthController extends Controller
         $request->session()->put('pending_registration_id', $registration->id);
         $this->verificationService->issueForPendingRegistration($registration);
         $request->session()->forget(['registration_captcha_a', 'registration_captcha_b']);
+        $request->session()->forget('affiliate_referrer_id');
 
         $message = 'Thank you for completing Step 1. Your preliminary registration has been successfully submitted. Please verify your email and mobile OTP to continue the remaining steps of your membership application. Once all required information has been submitted, the Alumni Association will review and verify your details carefully. Upon successful verification, you will be officially confirmed as a Verified Member.';
 
@@ -281,15 +280,15 @@ class AuthController extends Controller
         ];
     }
 
-    public function affiliateRedirect(string $code): RedirectResponse
+    public function affiliateRedirect(Request $request, User $user): RedirectResponse
     {
-        $code = Str::upper(trim($code));
-
-        if (! User::query()->where('affiliate_code', $code)->where('role', 'member')->exists()) {
+        if (! $request->hasValidSignature() || $user->role !== 'member') {
             return redirect()->route('membership.apply');
         }
 
-        return redirect()->route('membership.apply', ['ref' => $code]);
+        $request->session()->put('affiliate_referrer_id', $user->id);
+
+        return redirect()->route('membership.apply');
     }
 
     public function logout(Request $request): RedirectResponse

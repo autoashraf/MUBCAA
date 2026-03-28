@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -126,6 +127,6 @@ class User extends Authenticatable
 
     public function affiliateLink(): string
     {
-        return route('affiliate.redirect', ['code' => $this->affiliate_code ?: $this->defaultAffiliateCode()]);
+        return URL::signedRoute('affiliate.redirect', ['user' => $this->id]);
     }
 }
