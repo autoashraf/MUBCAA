@@ -2753,6 +2753,12 @@ small {
     margin-inline: auto;
 }
 
+.login-otp-modal-close-row {
+    display: flex;
+    justify-content: flex-end;
+    padding: 1rem 1rem 0;
+}
+
 .login-otp-modal .login-card {
     margin: 0;
     border: 0;

@@ -68,6 +68,9 @@
             <div class="verification-modal-backdrop"></div>
             <div class="wrap">
                 <div class="verification-modal login-otp-modal">
+                    <div class="login-otp-modal-close-row">
+                        <a class="mini-link" href="{{ route('login', ['close_otp' => 1]) }}">Close</a>
+                    </div>
                     <form class="form-card login-card login-card-otp" method="POST" action="{{ route('login.verify') }}">
                         @csrf
 

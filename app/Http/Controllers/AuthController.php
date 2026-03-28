@@ -32,6 +32,10 @@ class AuthController extends Controller
 
     public function showLogin(): View
     {
+        if (request()->boolean('close_otp')) {
+            $this->forgetLoginOtp(request());
+        }
+
         return view('auth.login', [
             'menu' => SiteNavigation::menu(),
             'loginOtpPending' => session()->has('login_otp_user_id'),
