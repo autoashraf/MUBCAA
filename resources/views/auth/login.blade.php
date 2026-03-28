@@ -81,12 +81,6 @@
 
                         <p class="dashboard-copy">OTP sent to <strong>{{ $loginOtpContact }}</strong></p>
 
-                        @if ($loginOtpPreview)
-                            <div class="verification-preview">
-                                <p>{{ strtoupper($loginOtpChannel) }} OTP: {{ $loginOtpPreview }}</p>
-                            </div>
-                        @endif
-
                         <label class="otp-field">
                             <input type="hidden" name="code">
                             <div class="otp-digit-group" data-otp-group>

@@ -16,14 +16,6 @@
                         <div class="alert-success">{{ $verificationSuccessMessage }}</div>
                     @endif
 
-                    @if (app()->environment(['local', 'testing']))
-                        <div class="verification-dev-note">
-                            <strong>Local/Test Preview</strong>
-                            <p>Email OTP: {{ $emailToken ?? 'Already verified' }}</p>
-                            <p>Mobile OTP: {{ $mobileToken ?? 'Already verified' }}</p>
-                        </div>
-                    @endif
-
                     <div class="form-card verification-panel">
                         <div class="dashboard-form-head verification-panel-head">
                             <div>

@@ -41,8 +41,6 @@ class VerificationController extends Controller
             'verificationMobile' => $mode === 'pending' ? $target->mobile_number : ($target->profile?->mobile_number ?: $target->phone),
             'emailVerified' => $target->hasVerifiedEmail(),
             'mobileVerified' => $target->hasVerifiedMobile(),
-            'emailToken' => $mode === 'pending' ? $target->email_code : $target->verificationTokens()->where('channel', 'email')->whereNull('verified_at')->latest()->value('code'),
-            'mobileToken' => $mode === 'pending' ? $target->mobile_code : $target->verificationTokens()->where('channel', 'mobile')->whereNull('verified_at')->latest()->value('code'),
             'verificationContinueUrl' => $mode === 'pending'
                 ? route('member.profile.complete', ['step' => 2])
                 : route('member.profile.complete', ['step' => max(2, $target->profile?->completion_step ?? 2)]),
@@ -191,12 +189,6 @@ class VerificationController extends Controller
             'verificationMobile' => $mode === 'pending' ? $target->mobile_number : ($target->profile?->mobile_number ?: $target->phone),
             'emailVerified' => $target->hasVerifiedEmail(),
             'mobileVerified' => $target->hasVerifiedMobile(),
-            'emailToken' => $mode === 'pending'
-                ? $target->email_code
-                : $target->verificationTokens()->where('channel', 'email')->whereNull('verified_at')->latest()->value('code'),
-            'mobileToken' => $mode === 'pending'
-                ? $target->mobile_code
-                : $target->verificationTokens()->where('channel', 'mobile')->whereNull('verified_at')->latest()->value('code'),
             'verificationContinueUrl' => $mode === 'pending'
                 ? route('member.profile.complete', ['step' => 2])
                 : route('member.profile.complete', ['step' => max(2, $target->profile?->completion_step ?? 2)]),

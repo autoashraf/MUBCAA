@@ -34,13 +34,6 @@
                             </div>
                         </div>
 
-                        @if (app()->environment(['local', 'testing']))
-                            <div class="verification-dev-note">
-                                <strong>Local/Test Preview</strong>
-                                <p>Email OTP: {{ $emailToken?->code ?? 'Already verified' }}</p>
-                                <p>Mobile OTP: {{ $mobileToken?->code ?? 'Already verified' }}</p>
-                            </div>
-                        @endif
                     </div>
 
                     <div class="verification-panels">

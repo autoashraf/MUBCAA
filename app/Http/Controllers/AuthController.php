@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PendingRegistration;
 use App\Services\ContactVerificationService;
+use App\Services\MimSmsService;
 use App\Support\SiteNavigation;
 use App\Mail\VerificationOtpMail;
 use App\Models\User;
@@ -25,6 +26,7 @@ class AuthController extends Controller
 {
     public function __construct(
         private readonly ContactVerificationService $verificationService,
+        private readonly MimSmsService $sms,
     ) {
     }
 
@@ -35,7 +37,6 @@ class AuthController extends Controller
             'loginOtpPending' => session()->has('login_otp_user_id'),
             'loginOtpChannel' => session('login_otp_channel'),
             'loginOtpContact' => session('login_otp_contact'),
-            'loginOtpPreview' => App::environment(['local', 'testing']) ? session('login_otp_code') : null,
         ]);
     }
 
@@ -256,8 +257,6 @@ class AuthController extends Controller
                     'verificationMobile' => $registration->mobile_number,
                     'emailVerified' => false,
                     'mobileVerified' => false,
-                    'emailToken' => $registration->fresh()->email_code,
-                    'mobileToken' => $registration->fresh()->mobile_code,
                     'verificationContinueUrl' => route('member.profile.complete', ['step' => 2]),
                     'verificationSuccessMessage' => $message,
                 ])->render(),
@@ -356,11 +355,7 @@ class AuthController extends Controller
         }
 
         if ($channel === 'mobile' && filled($contactValue)) {
-            Log::info('Login mobile OTP generated.', [
-                'user_id' => $user->id,
-                'mobile_number' => $contactValue,
-                'otp' => $code,
-            ]);
+            $this->sms->sendOtp($contactValue, $code, 'member-login');
         }
     }
 

@@ -13,6 +13,11 @@ use Illuminate\Support\Facades\Mail;
 
 class ContactVerificationService
 {
+    public function __construct(
+        private readonly MimSmsService $sms,
+    ) {
+    }
+
     public function issueForPendingRegistration(PendingRegistration $registration): void
     {
         if (! $registration->hasVerifiedEmail()) {
@@ -144,11 +149,7 @@ class ContactVerificationService
         }
 
         if ($channel === 'mobile' && filled($contactValue)) {
-            Log::info('Pending registration mobile OTP generated.', [
-                'pending_registration_id' => $registration->id,
-                'mobile_number' => $contactValue,
-                'otp' => $code,
-            ]);
+            $this->sms->sendOtp($contactValue, $code, 'pending-registration-mobile-verification');
         }
 
         return $registration->fresh();
@@ -190,11 +191,7 @@ class ContactVerificationService
         }
 
         if ($channel === 'mobile' && filled($contactValue)) {
-            Log::info('Mobile verification OTP generated.', [
-                'user_id' => $user->id,
-                'mobile_number' => $contactValue,
-                'otp' => $token->code,
-            ]);
+            $this->sms->sendOtp($contactValue, $token->code, 'member-mobile-verification');
         }
 
         return $token;
