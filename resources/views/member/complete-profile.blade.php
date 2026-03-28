@@ -150,7 +150,7 @@
                                 <div class="form-grid">
                                     <label>
                                         <span>Primary Mobile Number</span>
-                                        <input type="text" name="primary_mobile" value="{{ old('primary_mobile', $profile?->primary_mobile ?? $user->phone) }}" placeholder="Enter your primary mobile number">
+                                        <input type="text" name="primary_mobile" value="{{ old('primary_mobile', $profile?->primary_mobile ?? $user->phone) }}" placeholder="Enter your primary mobile number" readonly>
                                         @error('primary_mobile') <small>{{ $message }}</small> @enderror
                                     </label>
                                     <label>
@@ -161,11 +161,28 @@
                                     <label>
                                         <span>WhatsApp Number</span>
                                         <input type="text" name="whatsapp_number" value="{{ old('whatsapp_number', $profile?->whatsapp_number) }}" placeholder="Enter your WhatsApp number">
+                                        <div class="inline-checkbox-option" data-whatsapp-sync-wrapper>
+                                            <div class="inline-checkbox-control">
+                                                <input
+                                                    type="checkbox"
+                                                    value="1"
+                                                    data-whatsapp-same-toggle
+                                                    data-primary-source="primary_mobile"
+                                                    data-whatsapp-target="whatsapp_number"
+                                                    @checked(old('whatsapp_number', $profile?->whatsapp_number) && old('whatsapp_number', $profile?->whatsapp_number) === old('primary_mobile', $profile?->primary_mobile ?? $user->phone))
+                                                >
+                                                <span class="inline-checkbox-box" aria-hidden="true"></span>
+                                                <span class="inline-checkbox-copy">
+                                                    <strong>Use primary mobile number</strong>
+                                                    <small data-whatsapp-sync-note>Synced from primary mobile</small>
+                                                </span>
+                                            </div>
+                                        </div>
                                         @error('whatsapp_number') <small>{{ $message }}</small> @enderror
                                     </label>
                                     <label>
                                         <span>Email Address</span>
-                                        <input type="email" name="email_address" value="{{ old('email_address', $profile?->email_address ?? $user->email) }}" placeholder="Enter your email address">
+                                        <input type="email" name="email_address" value="{{ old('email_address', $profile?->email_address ?? $user->email) }}" placeholder="Enter your email address" readonly>
                                         @error('email_address') <small>{{ $message }}</small> @enderror
                                     </label>
                                     <label class="label-wide">

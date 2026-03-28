@@ -106,13 +106,6 @@ class MemberDashboardController extends Controller
                 ]),
             );
 
-            if ($step === 4) {
-                $user->update([
-                    'email' => $validated['email_address'],
-                    'phone' => $validated['primary_mobile'],
-                ]);
-            }
-
             $application = $user->application;
             $submitted = $request->boolean('submit_for_verification');
             $status = $submitted ? 'pending_review' : ($step > 1 ? 'in_progress' : 'unverified');
@@ -350,11 +343,11 @@ class MemberDashboardController extends Controller
             2 => $validated,
             3 => $validated,
             4 => [
-                'primary_mobile' => $validated['primary_mobile'],
-                'mobile_number' => $validated['primary_mobile'],
+                'primary_mobile' => $profile?->primary_mobile ?: $request->user()->phone,
+                'mobile_number' => $profile?->primary_mobile ?: $request->user()->phone,
                 'secondary_mobile' => $validated['secondary_mobile'] ?? null,
                 'whatsapp_number' => $validated['whatsapp_number'] ?? null,
-                'email_address' => $validated['email_address'],
+                'email_address' => $profile?->email_address ?: $request->user()->email,
                 'present_address' => $validated['present_address'] ?? null,
                 'permanent_address' => $validated['permanent_address'] ?? null,
                 'country' => $validated['country'],

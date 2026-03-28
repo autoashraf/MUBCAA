@@ -380,6 +380,81 @@
                         });
                     }
 
+                    function mountWhatsappSync(root) {
+                        (root || document).querySelectorAll('[data-whatsapp-same-toggle]').forEach(function (toggle) {
+                            if (toggle.dataset.whatsappMounted === 'true') {
+                                return;
+                            }
+
+                            var wrapper = toggle.closest('[data-whatsapp-sync-wrapper]');
+                            var form = toggle.closest('form');
+                            var primary = form ? form.querySelector('[name="' + toggle.dataset.primarySource + '"]') : null;
+                            var whatsapp = form ? form.querySelector('[name="' + toggle.dataset.whatsappTarget + '"]') : null;
+
+                            if (!primary || !whatsapp) {
+                                return;
+                            }
+
+                            function syncState() {
+                                var note = wrapper ? wrapper.querySelector('[data-whatsapp-sync-note]') : null;
+
+                                if (toggle.checked) {
+                                    whatsapp.value = primary.value;
+                                    whatsapp.readOnly = true;
+                                    if (wrapper) {
+                                        wrapper.classList.add('is-active');
+                                    }
+                                    if (note) {
+                                        note.hidden = false;
+                                    }
+                                } else {
+                                    whatsapp.readOnly = false;
+                                    if (wrapper) {
+                                        wrapper.classList.remove('is-active');
+                                    }
+                                    if (note) {
+                                        note.hidden = true;
+                                    }
+                                }
+                            }
+
+                            if (wrapper) {
+                                wrapper.addEventListener('click', function (event) {
+                                    if (event.target === toggle) {
+                                        return;
+                                    }
+
+                                    toggle.checked = !toggle.checked;
+                                    toggle.dispatchEvent(new Event('change', { bubbles: true }));
+                                });
+
+                                wrapper.addEventListener('keydown', function (event) {
+                                    if (event.key !== ' ' && event.key !== 'Enter') {
+                                        return;
+                                    }
+
+                                    event.preventDefault();
+                                    toggle.checked = !toggle.checked;
+                                    toggle.dispatchEvent(new Event('change', { bubbles: true }));
+                                });
+
+                                if (!wrapper.hasAttribute('tabindex')) {
+                                    wrapper.tabIndex = 0;
+                                }
+                            }
+
+                            toggle.addEventListener('change', syncState);
+                            primary.addEventListener('input', function () {
+                                if (toggle.checked) {
+                                    whatsapp.value = primary.value;
+                                }
+                            });
+
+                            syncState();
+                            toggle.dataset.whatsappMounted = 'true';
+                        });
+                    }
+
                     function clearFormErrors(form) {
                         form.querySelectorAll('.ajax-error').forEach(function (node) {
                             node.remove();
@@ -552,6 +627,7 @@
 
                     mountOtpGroups(document);
                     mountImagePreviews(document);
+                    mountWhatsappSync(document);
 
                     if (panelRoot && triggers.length) {
                         var panels = panelRoot.querySelectorAll('[data-admin-panel]');

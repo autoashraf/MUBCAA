@@ -118,13 +118,6 @@ class AdminController extends Controller
             ]);
         }
 
-        if ($step === 4) {
-            $user->update([
-                'email' => $validated['email_address'],
-                'phone' => $validated['primary_mobile'],
-            ]);
-        }
-
         if ($step === 10) {
             $profile->update([
                 'submitted_for_review_at' => $profile->submitted_for_review_at,

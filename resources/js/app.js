@@ -120,6 +120,74 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const mountWhatsappSync = (root = document) => {
+        root.querySelectorAll('[data-whatsapp-same-toggle]').forEach((toggle) => {
+            if (toggle.dataset.whatsappMounted === 'true') {
+                return;
+            }
+
+            const wrapper = toggle.closest('[data-whatsapp-sync-wrapper]');
+            const primary = toggle.closest('form')?.querySelector(`[name="${toggle.dataset.primarySource}"]`);
+            const whatsapp = toggle.closest('form')?.querySelector(`[name="${toggle.dataset.whatsappTarget}"]`);
+
+            if (!primary || !whatsapp) {
+                return;
+            }
+
+            const syncState = () => {
+                const note = wrapper?.querySelector('[data-whatsapp-sync-note]');
+
+                if (toggle.checked) {
+                    whatsapp.value = primary.value;
+                    whatsapp.readOnly = true;
+                    wrapper?.classList.add('is-active');
+                    if (note) {
+                        note.hidden = false;
+                    }
+                } else {
+                    whatsapp.readOnly = false;
+                    wrapper?.classList.remove('is-active');
+                    if (note) {
+                        note.hidden = true;
+                    }
+                }
+            };
+
+            wrapper?.addEventListener('click', (event) => {
+                if (event.target === toggle) {
+                    return;
+                }
+
+                toggle.checked = !toggle.checked;
+                toggle.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+
+            wrapper?.addEventListener('keydown', (event) => {
+                if (event.key !== ' ' && event.key !== 'Enter') {
+                    return;
+                }
+
+                event.preventDefault();
+                toggle.checked = !toggle.checked;
+                toggle.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+
+            toggle.addEventListener('change', syncState);
+            primary.addEventListener('input', () => {
+                if (toggle.checked) {
+                    whatsapp.value = primary.value;
+                }
+            });
+
+            if (wrapper && !wrapper.hasAttribute('tabindex')) {
+                wrapper.tabIndex = 0;
+            }
+
+            syncState();
+            toggle.dataset.whatsappMounted = 'true';
+        });
+    };
+
     const mountOtpGroups = (root = document) => {
         root.querySelectorAll('[data-otp-group]').forEach((group) => {
             const form = group.closest('form');
@@ -318,6 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     mountOtpGroups();
     mountImagePreviews();
+    mountWhatsappSync();
 
     mobileNavGroups.forEach((group) => {
         const trigger = group.querySelector('[data-mobile-nav-trigger]');
