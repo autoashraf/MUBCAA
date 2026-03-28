@@ -137,14 +137,16 @@
                             </div>
                             @if ($profilePhotoUrl)
                                 <div class="admin-file-actions" data-admin-file-row="profile_photo">
-                                    <div class="admin-hover-preview">
-                                        <button class="file-link-with-icon admin-inline-preview-trigger" type="button">
-                                            <span aria-hidden="true">↗</span><span>Preview</span>
-                                        </button>
-                                        <div class="admin-hover-preview-popover">
-                                            <img class="admin-hover-preview-image" src="{{ $profilePhotoUrl }}" alt="Profile photo preview">
-                                        </div>
-                                    </div>
+                                    <button
+                                        class="file-link-with-icon admin-modal-preview-trigger"
+                                        type="button"
+                                        data-admin-modal-preview
+                                        data-preview-title="Profile Photo"
+                                        data-preview-src="{{ $profilePhotoUrl }}"
+                                        data-preview-type="image"
+                                    >
+                                        <span aria-hidden="true">↗</span><span>Preview</span>
+                                    </button>
                                     <a class="file-link-with-icon" href="{{ $profilePhotoUrl }}" download><span aria-hidden="true">↓</span><span>Download</span></a>
                                     <button class="file-link-with-icon admin-remove-file-button" type="button" data-admin-remove-file="profile_photo"><span aria-hidden="true">×</span><span>Remove</span></button>
                                 </div>
@@ -167,14 +169,16 @@
                             </div>
                             @if ($coverPhotoUrl)
                                 <div class="admin-file-actions" data-admin-file-row="cover_photo">
-                                    <div class="admin-hover-preview">
-                                        <button class="file-link-with-icon admin-inline-preview-trigger" type="button">
-                                            <span aria-hidden="true">↗</span><span>Preview</span>
-                                        </button>
-                                        <div class="admin-hover-preview-popover">
-                                            <img class="admin-hover-preview-image" src="{{ $coverPhotoUrl }}" alt="Cover photo preview">
-                                        </div>
-                                    </div>
+                                    <button
+                                        class="file-link-with-icon admin-modal-preview-trigger"
+                                        type="button"
+                                        data-admin-modal-preview
+                                        data-preview-title="Cover Photo"
+                                        data-preview-src="{{ $coverPhotoUrl }}"
+                                        data-preview-type="image"
+                                    >
+                                        <span aria-hidden="true">↗</span><span>Preview</span>
+                                    </button>
                                     <a class="file-link-with-icon" href="{{ $coverPhotoUrl }}" download><span aria-hidden="true">↓</span><span>Download</span></a>
                                     <button class="file-link-with-icon admin-remove-file-button" type="button" data-admin-remove-file="cover_photo"><span aria-hidden="true">×</span><span>Remove</span></button>
                                 </div>
@@ -197,20 +201,17 @@
                             </div>
                             @if ($businessCardUrl)
                                 <div class="admin-file-actions" data-admin-file-row="business_card_upload">
-                                    <div class="admin-hover-preview">
-                                        <button class="file-link-with-icon admin-inline-preview-trigger" type="button">
-                                            <span aria-hidden="true">↗</span><span>Preview</span>
-                                        </button>
-                                        <div class="admin-hover-preview-popover">
-                                            @if ($mediaPreviewType($profile?->business_card_upload) === 'image')
-                                                <img class="admin-hover-preview-image" src="{{ $businessCardUrl }}" alt="Business card preview">
-                                            @elseif ($mediaPreviewType($profile?->business_card_upload) === 'pdf')
-                                                <iframe class="admin-hover-preview-frame" src="{{ $businessCardUrl }}#toolbar=0" title="Business card preview"></iframe>
-                                            @else
-                                                <div class="admin-hover-preview-filecard">{{ $mediaExtension($profile?->business_card_upload) }} file</div>
-                                            @endif
-                                        </div>
-                                    </div>
+                                    <button
+                                        class="file-link-with-icon admin-modal-preview-trigger"
+                                        type="button"
+                                        data-admin-modal-preview
+                                        data-preview-title="Business Card"
+                                        data-preview-src="{{ $businessCardUrl }}"
+                                        data-preview-type="{{ $mediaPreviewType($profile?->business_card_upload) }}"
+                                        data-preview-extension="{{ $mediaExtension($profile?->business_card_upload) }}"
+                                    >
+                                        <span aria-hidden="true">↗</span><span>Preview</span>
+                                    </button>
                                     <a class="file-link-with-icon" href="{{ $businessCardUrl }}" download><span aria-hidden="true">↓</span><span>Download</span></a>
                                     <button class="file-link-with-icon admin-remove-file-button" type="button" data-admin-remove-file="business_card_upload"><span aria-hidden="true">×</span><span>Remove</span></button>
                                 </div>
@@ -260,20 +261,17 @@
                             </div>
                             @if ($certificateUrl)
                                 <div class="admin-file-actions" data-admin-file-row="certificate_testimonial_upload">
-                                    <div class="admin-hover-preview">
-                                        <button class="file-link-with-icon admin-inline-preview-trigger" type="button">
-                                            <span aria-hidden="true">↗</span><span>Preview</span>
-                                        </button>
-                                        <div class="admin-hover-preview-popover">
-                                            @if ($mediaPreviewType($profile?->certificate_testimonial_upload) === 'image')
-                                                <img class="admin-hover-preview-image" src="{{ $certificateUrl }}" alt="Certificate preview">
-                                            @elseif ($mediaPreviewType($profile?->certificate_testimonial_upload) === 'pdf')
-                                                <iframe class="admin-hover-preview-frame" src="{{ $certificateUrl }}#toolbar=0" title="Certificate preview"></iframe>
-                                            @else
-                                                <div class="admin-hover-preview-filecard">{{ $mediaExtension($profile?->certificate_testimonial_upload) }} file</div>
-                                            @endif
-                                        </div>
-                                    </div>
+                                    <button
+                                        class="file-link-with-icon admin-modal-preview-trigger"
+                                        type="button"
+                                        data-admin-modal-preview
+                                        data-preview-title="SSC Certificate / Testimonial / Admit Card"
+                                        data-preview-src="{{ $certificateUrl }}"
+                                        data-preview-type="{{ $mediaPreviewType($profile?->certificate_testimonial_upload) }}"
+                                        data-preview-extension="{{ $mediaExtension($profile?->certificate_testimonial_upload) }}"
+                                    >
+                                        <span aria-hidden="true">↗</span><span>Preview</span>
+                                    </button>
                                     <a class="file-link-with-icon" href="{{ $certificateUrl }}" download><span aria-hidden="true">↓</span><span>Download</span></a>
                                     <button class="file-link-with-icon admin-remove-file-button" type="button" data-admin-remove-file="certificate_testimonial_upload"><span aria-hidden="true">×</span><span>Remove</span></button>
                                 </div>
@@ -296,20 +294,17 @@
                             </div>
                             @if ($supportingUrl)
                                 <div class="admin-file-actions" data-admin-file-row="supporting_document_upload">
-                                    <div class="admin-hover-preview">
-                                        <button class="file-link-with-icon admin-inline-preview-trigger" type="button">
-                                            <span aria-hidden="true">↗</span><span>Preview</span>
-                                        </button>
-                                        <div class="admin-hover-preview-popover">
-                                            @if ($mediaPreviewType($profile?->supporting_document_upload) === 'image')
-                                                <img class="admin-hover-preview-image" src="{{ $supportingUrl }}" alt="Supporting document preview">
-                                            @elseif ($mediaPreviewType($profile?->supporting_document_upload) === 'pdf')
-                                                <iframe class="admin-hover-preview-frame" src="{{ $supportingUrl }}#toolbar=0" title="Supporting document preview"></iframe>
-                                            @else
-                                                <div class="admin-hover-preview-filecard">{{ $mediaExtension($profile?->supporting_document_upload) }} file</div>
-                                            @endif
-                                        </div>
-                                    </div>
+                                    <button
+                                        class="file-link-with-icon admin-modal-preview-trigger"
+                                        type="button"
+                                        data-admin-modal-preview
+                                        data-preview-title="Supporting Document"
+                                        data-preview-src="{{ $supportingUrl }}"
+                                        data-preview-type="{{ $mediaPreviewType($profile?->supporting_document_upload) }}"
+                                        data-preview-extension="{{ $mediaExtension($profile?->supporting_document_upload) }}"
+                                    >
+                                        <span aria-hidden="true">↗</span><span>Preview</span>
+                                    </button>
                                     <a class="file-link-with-icon" href="{{ $supportingUrl }}" download><span aria-hidden="true">↓</span><span>Download</span></a>
                                     <button class="file-link-with-icon admin-remove-file-button" type="button" data-admin-remove-file="supporting_document_upload"><span aria-hidden="true">×</span><span>Remove</span></button>
                                 </div>
@@ -374,6 +369,20 @@
             </article>
         </div>
 
+        <div class="admin-file-preview-modal" data-admin-file-preview-modal hidden>
+            <div class="admin-file-preview-backdrop" data-admin-file-preview-close></div>
+            <div class="admin-file-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="admin-file-preview-title">
+                <div class="admin-file-preview-head">
+                    <div>
+                        <p class="eyebrow">File Preview</p>
+                        <h2 id="admin-file-preview-title">Preview</h2>
+                    </div>
+                    <button class="admin-file-preview-close" type="button" data-admin-file-preview-close aria-label="Close preview">×</button>
+                </div>
+                <div class="admin-file-preview-body" data-admin-file-preview-body></div>
+            </div>
+        </div>
+
     </div>
 @endsection
 
@@ -410,6 +419,86 @@
                         }
                     }
                 });
+            });
+
+            const previewModal = document.querySelector('[data-admin-file-preview-modal]');
+            const previewBody = previewModal?.querySelector('[data-admin-file-preview-body]');
+            const previewTitle = previewModal?.querySelector('#admin-file-preview-title');
+            let previousActiveElement = null;
+
+            const closePreviewModal = () => {
+                if (! previewModal || ! previewBody) {
+                    return;
+                }
+
+                previewModal.hidden = true;
+                document.body.classList.remove('admin-preview-open');
+                previewBody.innerHTML = '';
+
+                if (previousActiveElement instanceof HTMLElement) {
+                    previousActiveElement.focus();
+                }
+            };
+
+            const openPreviewModal = (button) => {
+                if (! previewModal || ! previewBody || ! previewTitle) {
+                    return;
+                }
+
+                previousActiveElement = button;
+
+                const title = button.dataset.previewTitle || 'Preview';
+                const src = button.dataset.previewSrc || '';
+                const type = button.dataset.previewType || 'file';
+                const extension = button.dataset.previewExtension || 'File';
+
+                previewTitle.textContent = title;
+                previewBody.innerHTML = '';
+
+                if (type === 'image') {
+                    const image = document.createElement('img');
+                    image.className = 'admin-file-preview-image';
+                    image.src = src;
+                    image.alt = `${title} preview`;
+                    previewBody.appendChild(image);
+                } else if (type === 'pdf') {
+                    const frame = document.createElement('iframe');
+                    frame.className = 'admin-file-preview-frame';
+                    frame.src = `${src}#toolbar=0`;
+                    frame.title = `${title} preview`;
+                    previewBody.appendChild(frame);
+                } else {
+                    const fallback = document.createElement('div');
+                    fallback.className = 'admin-file-preview-fallback';
+                    fallback.innerHTML = `<strong>${extension} file</strong><p>Preview is not available for this file type.</p>`;
+
+                    const openLink = document.createElement('a');
+                    openLink.className = 'button button-secondary';
+                    openLink.href = src;
+                    openLink.target = '_blank';
+                    openLink.rel = 'noopener';
+                    openLink.textContent = 'Open File';
+
+                    fallback.appendChild(openLink);
+                    previewBody.appendChild(fallback);
+                }
+
+                previewModal.hidden = false;
+                document.body.classList.add('admin-preview-open');
+            };
+
+            document.querySelectorAll('[data-admin-modal-preview]').forEach((button) => {
+                button.addEventListener('click', () => openPreviewModal(button));
+            });
+
+            previewModal?.querySelectorAll('[data-admin-file-preview-close]').forEach((element) => {
+                element.addEventListener('click', closePreviewModal);
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && previewModal && ! previewModal.hidden) {
+                    closePreviewModal();
+                }
             });
         })();
     </script>

@@ -5467,65 +5467,108 @@ small {
     cursor: pointer;
 }
 
-.admin-hover-preview {
-    position: relative;
-    display: inline-flex;
+.admin-file-preview-modal[hidden] {
+    display: none;
 }
 
-.admin-hover-preview-popover {
+.admin-preview-open {
+    overflow: hidden;
+}
+
+.admin-file-preview-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+}
+
+.admin-file-preview-backdrop {
     position: absolute;
-    top: calc(100% + 0.55rem);
-    left: 0;
-    z-index: 14;
-    width: 220px;
-    padding: 0.5rem;
+    inset: 0;
+    background: rgba(14, 19, 21, 0.48);
+    backdrop-filter: blur(4px);
+}
+
+.admin-file-preview-dialog {
+    position: relative;
+    z-index: 1;
+    width: min(1120px, calc(100vw - 3rem));
+    max-height: calc(100vh - 3rem);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
     border: 1px solid rgba(28, 35, 38, 0.08);
-    border-radius: 0.9rem;
-    background: rgba(255, 252, 247, 0.98);
-    box-shadow: 0 18px 34px rgba(24, 34, 39, 0.12);
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(6px);
-    transition: opacity 160ms ease, transform 160ms ease, visibility 160ms ease;
+    border-radius: 1.35rem;
+    background: rgba(255, 252, 247, 0.99);
+    box-shadow: 0 28px 70px rgba(12, 18, 20, 0.22);
 }
 
-.admin-hover-preview:hover .admin-hover-preview-popover,
-.admin-hover-preview:focus-within .admin-hover-preview-popover {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
+.admin-file-preview-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.2rem 1.25rem 1rem;
+    border-bottom: 1px solid rgba(28, 35, 38, 0.08);
 }
 
-.admin-hover-preview-image,
-.admin-hover-preview-frame {
+.admin-file-preview-head h2 {
+    margin: 0.25rem 0 0;
+}
+
+.admin-file-preview-close {
+    width: 2.8rem;
+    height: 2.8rem;
+    border: 1px solid rgba(28, 35, 38, 0.08);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.88);
+    font: inherit;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.admin-file-preview-body {
+    padding: 1rem 1.25rem 1.25rem;
+    overflow: auto;
+}
+
+.admin-file-preview-image,
+.admin-file-preview-frame {
     display: block;
     width: 100%;
+    min-height: 420px;
     border: 1px solid rgba(28, 35, 38, 0.08);
-    border-radius: 0.7rem;
+    border-radius: 1rem;
     background: #fff;
 }
 
-.admin-hover-preview-image {
-    height: 160px;
-    object-fit: cover;
+.admin-file-preview-image {
+    object-fit: contain;
+    max-height: calc(100vh - 11rem);
 }
 
-.admin-hover-preview-frame {
-    height: 200px;
+.admin-file-preview-frame {
+    height: calc(100vh - 11rem);
 }
 
-.admin-hover-preview-filecard {
-    min-height: 110px;
+.admin-file-preview-fallback {
+    min-height: 240px;
     display: grid;
     place-items: center;
+    gap: 0.9rem;
+    padding: 1.25rem;
     border: 1px dashed rgba(28, 35, 38, 0.14);
-    border-radius: 0.75rem;
-    color: var(--muted);
-    background: rgba(255, 255, 255, 0.72);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.76);
     text-align: center;
-    padding: 1rem;
-    font-size: 0.92rem;
-    font-weight: 600;
+}
+
+.admin-file-preview-fallback p {
+    margin: 0;
+    color: var(--muted);
 }
 
 .admin-simple-list {
