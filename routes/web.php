@@ -86,7 +86,9 @@ Route::middleware('auth')->group(function (): void {
 
 Route::prefix('admin')->middleware(['auth', 'admin'])->group(function (): void {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+    Route::get('/applications', [AdminController::class, 'applications'])->name('admin.applications.index');
     Route::get('/applications/{application}', [AdminController::class, 'show'])->name('admin.applications.show');
+    Route::post('/applications/{application}/edit', [AdminController::class, 'update'])->name('admin.applications.update');
     Route::post('/applications/{application}/approve', [AdminController::class, 'approve'])->name('admin.applications.approve');
     Route::post('/applications/{application}/reject', [AdminController::class, 'reject'])->name('admin.applications.reject');
 });

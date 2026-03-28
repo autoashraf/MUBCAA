@@ -249,18 +249,21 @@ class MembershipSiteTest extends TestCase
             ->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee('Admin Panel')
-            ->assertSee('Approve Application')
-            ->assertSee('Reject Application');
+            ->assertDontSee('Approve Application')
+            ->assertDontSee('Reject Application');
 
         $this->actingAs($admin)
-            ->get(route('admin.dashboard', ['search' => $member->email, 'status' => 'pending_review']))
+            ->get(route('admin.applications.index', ['search' => $member->email, 'status' => 'pending']))
             ->assertOk()
+            ->assertSee('Applications')
+            ->assertSee('Open Application')
+            ->assertDontSee('Reject Application')
             ->assertSee($member->email);
 
         $this->actingAs($admin)
             ->get(route('admin.applications.show', $member->application))
             ->assertOk()
-            ->assertSee('Admin Application View')
+            ->assertSee('Application Review')
             ->assertSee($member->name);
     }
 
