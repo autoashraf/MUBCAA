@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
@@ -28,6 +29,8 @@ class User extends Authenticatable
         'role',
         'membership_status',
         'approval_step',
+        'affiliate_code',
+        'referred_by_user_id',
     ];
 
     /**
@@ -50,6 +53,17 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    protected static function booted(): void
+    {
+        static::created(function (User $user): void {
+            if (blank($user->affiliate_code)) {
+                $user->forceFill([
+                    'affiliate_code' => $user->defaultAffiliateCode(),
+                ])->saveQuietly();
+            }
+        });
+    }
+
     public function profile(): HasOne
     {
         return $this->hasOne(MemberProfile::class);
@@ -63,6 +77,16 @@ class User extends Authenticatable
     public function verificationTokens(): HasMany
     {
         return $this->hasMany(ContactVerificationToken::class);
+    }
+
+    public function referrer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'referred_by_user_id');
+    }
+
+    public function referrals(): HasMany
+    {
+        return $this->hasMany(User::class, 'referred_by_user_id');
     }
 
     public function isAdmin(): bool
@@ -93,5 +117,15 @@ class User extends Authenticatable
     public function certificateNumber(): string
     {
         return 'CERT-'.now()->format('Y').'-'.Str::padLeft((string) $this->id, 5, '0');
+    }
+
+    public function defaultAffiliateCode(): string
+    {
+        return 'AFF'.str_pad((string) $this->id, 6, '0', STR_PAD_LEFT);
+    }
+
+    public function affiliateLink(): string
+    {
+        return route('affiliate.redirect', ['code' => $this->affiliate_code ?: $this->defaultAffiliateCode()]);
     }
 }

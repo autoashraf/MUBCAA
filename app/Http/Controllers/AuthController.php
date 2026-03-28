@@ -6,6 +6,7 @@ use App\Models\PendingRegistration;
 use App\Services\ContactVerificationService;
 use App\Support\SiteNavigation;
 use App\Mail\VerificationOtpMail;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -173,12 +176,19 @@ class AuthController extends Controller
     public function showRegistration(Request $request): View
     {
         [$captchaLeft, $captchaRight] = $this->generateCaptchaChallenge($request);
+        $referralCode = Str::upper(trim((string) $request->query('ref', '')));
+        $affiliateReferrer = User::query()
+            ->where('affiliate_code', $referralCode)
+            ->where('role', 'member')
+            ->first();
 
         return view('pages.apply', [
             'menu' => SiteNavigation::menu(),
             'registrationStatuses' => ['Draft', 'Unverified', 'In Progress', 'Pending Review', 'Verified'],
             'captchaLeft' => $captchaLeft,
             'captchaRight' => $captchaRight,
+            'referralCode' => $affiliateReferrer?->affiliate_code,
+            'affiliateReferrer' => $affiliateReferrer,
         ]);
     }
 
@@ -189,6 +199,7 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'mobile_number' => ['required', 'string', 'max:50', 'unique:users,phone'],
             'passing_year_batch' => ['required', 'string', 'max:50'],
+            'referral_code' => ['nullable', 'string', Rule::exists('users', 'affiliate_code')->where(fn ($query) => $query->where('role', 'member'))],
             'captcha_answer' => ['required', 'integer'],
         ]);
 
@@ -218,11 +229,16 @@ class AuthController extends Controller
                 ->orWhere('mobile_number', $validated['mobile_number'])
                 ->delete();
 
+            $referrer = blank($validated['referral_code'] ?? null)
+                ? null
+                : User::query()->where('affiliate_code', $validated['referral_code'])->where('role', 'member')->first();
+
             return PendingRegistration::query()->create([
                 'full_name' => $validated['full_name'],
                 'email' => $validated['email'],
                 'mobile_number' => $validated['mobile_number'],
                 'passing_year_batch' => $validated['passing_year_batch'],
+                'referred_by_user_id' => $referrer?->id,
             ]);
         });
 
@@ -263,6 +279,17 @@ class AuthController extends Controller
             (int) $request->session()->get('registration_captcha_a'),
             (int) $request->session()->get('registration_captcha_b'),
         ];
+    }
+
+    public function affiliateRedirect(string $code): RedirectResponse
+    {
+        $code = Str::upper(trim($code));
+
+        if (! User::query()->where('affiliate_code', $code)->where('role', 'member')->exists()) {
+            return redirect()->route('membership.apply');
+        }
+
+        return redirect()->route('membership.apply', ['ref' => $code]);
     }
 
     public function logout(Request $request): RedirectResponse

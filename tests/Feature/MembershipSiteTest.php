@@ -69,6 +69,48 @@ class MembershipSiteTest extends TestCase
         Mail::assertSent(VerificationOtpMail::class, 1);
     }
 
+    public function test_referral_code_is_captured_in_pending_registration_and_promoted_to_member(): void
+    {
+        Mail::fake();
+
+        $referrer = User::factory()->create([
+            'role' => 'member',
+            'membership_status' => 'verified',
+            'approval_step' => 1,
+        ]);
+
+        $this->get(route('affiliate.redirect', ['code' => $referrer->affiliate_code]))
+            ->assertRedirect(route('membership.apply', ['ref' => $referrer->affiliate_code]));
+
+        $this->withSession([
+            'registration_captcha_a' => 2,
+            'registration_captcha_b' => 3,
+        ])->post('/membership/apply-now', [
+            'full_name' => 'Referral Applicant',
+            'mobile_number' => '01700000009',
+            'email' => 'referral@example.com',
+            'passing_year_batch' => '2011',
+            'referral_code' => $referrer->affiliate_code,
+            'captcha_answer' => 5,
+        ])->assertRedirect(route('member.verification.show'));
+
+        $registration = PendingRegistration::query()->where('email', 'referral@example.com')->firstOrFail();
+        $this->assertSame($referrer->id, $registration->referred_by_user_id);
+
+        $this->withSession(['pending_registration_id' => $registration->id])
+            ->post(route('member.verification.email'), ['code' => $registration->email_code])
+            ->assertRedirect();
+
+        $this->withSession(['pending_registration_id' => $registration->id])
+            ->post(route('member.verification.mobile'), ['code' => $registration->mobile_code])
+            ->assertRedirect(route('member.profile.complete', ['step' => 2]));
+
+        $member = User::query()->where('email', 'referral@example.com')->firstOrFail();
+
+        $this->assertSame($referrer->id, $member->referred_by_user_id);
+        $this->assertNotNull($member->affiliate_code);
+    }
+
     public function test_member_can_login_and_access_dashboard(): void
     {
         Mail::fake();
@@ -265,6 +307,31 @@ class MembershipSiteTest extends TestCase
             ->assertOk()
             ->assertSee('Application Review')
             ->assertSee($member->name);
+    }
+
+    public function test_admin_can_view_affiliate_management_page(): void
+    {
+        $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
+
+        $affiliate = User::factory()->create([
+            'role' => 'member',
+            'membership_status' => 'verified',
+            'approval_step' => 1,
+        ]);
+
+        User::factory()->create([
+            'role' => 'member',
+            'membership_status' => 'pending_review',
+            'approval_step' => 1,
+            'referred_by_user_id' => $affiliate->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.affiliates.index'))
+            ->assertOk()
+            ->assertSee('Affiliates')
+            ->assertSee($affiliate->affiliate_code)
+            ->assertSee('1 referrals');
     }
 
     public function test_member_document_routes_are_available_and_certificate_requires_active_status(): void

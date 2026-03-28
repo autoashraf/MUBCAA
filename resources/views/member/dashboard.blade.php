@@ -58,7 +58,49 @@
 
     <section class="section">
         <div class="wrap dashboard-overview">
-            <div class="dashboard-main"></div>
+            <div class="dashboard-main">
+                <article class="profile-summary-card dashboard-affiliate-card">
+                    <span class="panel-card-label">Affiliate</span>
+                    <div class="dashboard-affiliate-head">
+                        <div>
+                            <h3>Invite Alumni</h3>
+                            <p class="dashboard-copy">Share your referral link to bring other alumni into the network.</p>
+                        </div>
+                        <div class="dashboard-affiliate-metrics">
+                            <span class="dashboard-chip">{{ $affiliateSummary['total'] }} referrals</span>
+                            <span class="dashboard-chip">{{ $affiliateSummary['verified'] }} verified</span>
+                            <span class="dashboard-chip">{{ $affiliateSummary['under_review'] }} under review</span>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-affiliate-grid">
+                        <label>
+                            <span>Your Affiliate Code</span>
+                            <input type="text" value="{{ $affiliateSummary['code'] }}" readonly>
+                        </label>
+                        <label class="label-wide">
+                            <span>Your Referral Link</span>
+                            <input type="text" value="{{ $affiliateSummary['link'] }}" readonly>
+                        </label>
+                    </div>
+
+                    @if ($affiliateSummary['recent']->isNotEmpty())
+                        <div class="dashboard-affiliate-list">
+                            @foreach ($affiliateSummary['recent'] as $referral)
+                                <div class="dashboard-affiliate-row">
+                                    <div>
+                                        <strong>{{ $referral->name }}</strong>
+                                        <span>{{ $referral->email }}</span>
+                                    </div>
+                                    <span class="status-pill status-{{ $referral->membership_status }}">{{ str($referral->membership_status)->replace('_', ' ')->title() }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="dashboard-copy">No referred members yet.</p>
+                    @endif
+                </article>
+            </div>
         </div>
     </section>
 

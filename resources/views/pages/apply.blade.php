@@ -13,6 +13,9 @@
         <div class="wrap registration-shell">
             <form class="form-card registration-form-card" method="POST" action="{{ route('membership.apply.store') }}" data-ajax-form="registration">
                 @csrf
+                @if (! empty($referralCode))
+                    <input type="hidden" name="referral_code" value="{{ $referralCode }}">
+                @endif
 
                 <div class="dashboard-form-head">
                     <div>
@@ -22,6 +25,13 @@
                     </div>
                     <span class="dashboard-chip">Quick Registration</span>
                 </div>
+
+                @if (! empty($affiliateReferrer))
+                    <div class="registration-referral-banner">
+                        <strong>Referred by {{ $affiliateReferrer->name }}</strong>
+                        <span>Referral code: {{ $affiliateReferrer->affiliate_code }}</span>
+                    </div>
+                @endif
 
                 <div class="form-grid">
                     <label>

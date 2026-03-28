@@ -27,6 +27,22 @@
                 <span>Rejected</span>
                 <strong>{{ $summary['rejected'] }}</strong>
             </article>
+            <article class="admin-summary-card">
+                <span>Affiliates</span>
+                <strong>{{ $affiliateOverview['members'] }}</strong>
+            </article>
+            <article class="admin-summary-card">
+                <span>Referral Signups</span>
+                <strong>{{ $affiliateOverview['referrals'] }}</strong>
+            </article>
+            <article class="admin-summary-card">
+                <span>Verified Referrals</span>
+                <strong>{{ $affiliateOverview['verified_referrals'] }}</strong>
+            </article>
+            <article class="admin-summary-card">
+                <span>Under Review Referrals</span>
+                <strong>{{ $affiliateOverview['under_review_referrals'] }}</strong>
+            </article>
         </section>
     </div>
 @endsection

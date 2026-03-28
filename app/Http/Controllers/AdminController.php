@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\MembershipApplication;
+use App\Models\User;
 use App\Support\SiteNavigation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,40 @@ class AdminController extends Controller
         return view('admin.dashboard', [
             'menu' => SiteNavigation::menu(),
             'summary' => $this->summary(),
+            'affiliateOverview' => $this->affiliateOverview(),
+        ]);
+    }
+
+    public function affiliates(Request $request): View
+    {
+        $search = trim((string) $request->input('search'));
+
+        $affiliates = User::query()
+            ->where('role', 'member')
+            ->whereNotNull('affiliate_code')
+            ->withCount([
+                'referrals as total_referrals_count',
+                'referrals as verified_referrals_count' => fn ($query) => $query->where('membership_status', 'verified'),
+                'referrals as under_review_referrals_count' => fn ($query) => $query->whereIn('membership_status', ['pending_review', 'under_review']),
+            ])
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($userQuery) use ($search): void {
+                    $userQuery->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('affiliate_code', 'like', "%{$search}%");
+                });
+            })
+            ->latest()
+            ->get();
+
+        return view('admin.affiliates', [
+            'menu' => SiteNavigation::menu(),
+            'affiliates' => $affiliates,
+            'filters' => [
+                'search' => $search,
+            ],
+            'affiliateOverview' => $this->affiliateOverview(),
         ]);
     }
 
@@ -188,6 +223,16 @@ class AdminController extends Controller
             'under_review' => $allApplications->whereIn('status', ['under_review', 'needs_correction'])->count(),
             'approved' => $allApplications->where('status', 'approved')->count(),
             'rejected' => $allApplications->where('status', 'rejected')->count(),
+        ];
+    }
+
+    private function affiliateOverview(): array
+    {
+        return [
+            'members' => User::query()->where('role', 'member')->whereNotNull('affiliate_code')->count(),
+            'referrals' => User::query()->whereNotNull('referred_by_user_id')->count(),
+            'verified_referrals' => User::query()->whereNotNull('referred_by_user_id')->where('membership_status', 'verified')->count(),
+            'under_review_referrals' => User::query()->whereNotNull('referred_by_user_id')->whereIn('membership_status', ['pending_review', 'under_review'])->count(),
         ];
     }
 

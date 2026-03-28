@@ -40,6 +40,7 @@ class MemberDashboardController extends Controller
             'profileCompletion' => $this->profileCompletion($user, $profile),
             'stepLabels' => $this->completionSteps(),
             'missingSubmissionItems' => $this->missingSubmissionItems($user, $profile),
+            'affiliateSummary' => $this->affiliateSummary($user),
         ]);
     }
 
@@ -233,6 +234,20 @@ class MemberDashboardController extends Controller
             8 => 'Verification',
             9 => 'Privacy',
             10 => 'Declaration',
+        ];
+    }
+
+    private function affiliateSummary($user): array
+    {
+        $referrals = $user->referrals()->with('application')->latest()->get();
+
+        return [
+            'code' => $user->affiliate_code ?: $user->defaultAffiliateCode(),
+            'link' => $user->affiliateLink(),
+            'total' => $referrals->count(),
+            'verified' => $referrals->where('membership_status', 'verified')->count(),
+            'under_review' => $referrals->whereIn('membership_status', ['pending_review', 'under_review'])->count(),
+            'recent' => $referrals->take(5),
         ];
     }
 

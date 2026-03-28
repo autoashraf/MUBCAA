@@ -27,6 +27,7 @@ Route::get('/__mubcaa_check', function () {
 
 Route::get('/', [SiteController::class, 'home'])->name('home');
 Route::redirect('/home', '/')->name('home.redirect');
+Route::get('/r/{code}', [AuthController::class, 'affiliateRedirect'])->name('affiliate.redirect');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -87,6 +88,7 @@ Route::middleware('auth')->group(function (): void {
 Route::prefix('admin')->middleware(['auth', 'admin'])->group(function (): void {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/applications', [AdminController::class, 'applications'])->name('admin.applications.index');
+    Route::get('/affiliates', [AdminController::class, 'affiliates'])->name('admin.affiliates.index');
     Route::get('/applications/{application}', [AdminController::class, 'show'])->name('admin.applications.show');
     Route::post('/applications/{application}/edit', [AdminController::class, 'update'])->name('admin.applications.update');
     Route::post('/applications/{application}/approve', [AdminController::class, 'approve'])->name('admin.applications.approve');

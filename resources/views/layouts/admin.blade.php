@@ -15,6 +15,7 @@
         @php
             $isDashboardView = request()->routeIs('admin.dashboard');
             $isApplicationView = request()->routeIs('admin.applications.*');
+            $isAffiliateView = request()->routeIs('admin.affiliates.*');
         @endphp
         <div class="admin-layout-shell">
             <header class="admin-layout-header">
@@ -47,6 +48,12 @@
                                 <div>
                                     <strong>Applications</strong>
                                     <span>Submitted profiles</span>
+                                </div>
+                            </a>
+                            <a class="admin-nav-item @if ($isAffiliateView) is-active @endif" href="{{ route('admin.affiliates.index') }}">
+                                <div>
+                                    <strong>Affiliates</strong>
+                                    <span>Referral members</span>
                                 </div>
                             </a>
                             <a class="admin-nav-item" href="{{ route('home') }}">

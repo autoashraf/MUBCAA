@@ -3579,6 +3579,77 @@ small {
     box-shadow: 0 10px 24px rgba(28, 35, 38, 0.04);
 }
 
+.registration-referral-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid rgba(185, 92, 53, 0.14);
+    border-radius: 1rem;
+    background: linear-gradient(180deg, rgba(255, 247, 239, 0.96), rgba(255, 240, 228, 0.9));
+}
+
+.registration-referral-banner strong {
+    color: var(--ink-950);
+}
+
+.registration-referral-banner span {
+    color: var(--muted);
+    font-size: 0.92rem;
+}
+
+.dashboard-affiliate-card {
+    display: grid;
+    gap: 1rem;
+}
+
+.dashboard-affiliate-head {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.dashboard-affiliate-metrics {
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.dashboard-affiliate-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.dashboard-affiliate-list {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.dashboard-affiliate-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 0.95rem;
+    border: 1px solid rgba(28, 35, 38, 0.08);
+    border-radius: 0.9rem;
+    background: rgba(255, 255, 255, 0.62);
+}
+
+.dashboard-affiliate-row div {
+    display: grid;
+    gap: 0.12rem;
+}
+
+.dashboard-affiliate-row span:not(.status-pill) {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
 .dashboard-metric-card strong {
     display: block;
     margin-top: 0.25rem;
@@ -5612,6 +5683,17 @@ small {
 
     .admin-step-link {
         min-width: calc(50% - 0.4rem);
+    }
+
+    .registration-referral-banner,
+    .dashboard-affiliate-head,
+    .dashboard-affiliate-row {
+        flex-direction: column;
+        align-items: start;
+    }
+
+    .dashboard-affiliate-grid {
+        grid-template-columns: 1fr;
     }
 
     .admin-file-summary {

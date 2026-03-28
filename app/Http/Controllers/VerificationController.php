@@ -227,6 +227,7 @@ class VerificationController extends Controller
                 'role' => 'member',
                 'membership_status' => 'unverified',
                 'approval_step' => 1,
+                'referred_by_user_id' => $registration->referred_by_user_id,
             ]);
 
             $user->forceFill([
