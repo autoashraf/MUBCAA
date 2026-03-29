@@ -80,6 +80,34 @@ class AuthController extends Controller
             ->with('success', 'We sent a 6-digit OTP to your registered '.($channel === 'email' ? 'email address.' : 'mobile number.'));
     }
 
+    public function checkLoginIdentifier(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'identifier' => ['required', 'string', 'max:255'],
+        ]);
+
+        $user = $this->resolveLoginUser($validated['identifier']);
+
+        if (! $user) {
+            return response()->json([
+                'exists' => false,
+                'message' => 'No member account found with this email or mobile number.',
+            ]);
+        }
+
+        if ($user->isAdmin()) {
+            return response()->json([
+                'exists' => false,
+                'message' => 'This account uses the admin login form.',
+            ]);
+        }
+
+        return response()->json([
+            'exists' => true,
+            'message' => 'Member account found. You can request an OTP.',
+        ]);
+    }
+
     public function adminLogin(Request $request): RedirectResponse
     {
         $credentials = $request->validate([

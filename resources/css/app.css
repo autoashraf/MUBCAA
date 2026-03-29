@@ -2816,6 +2816,25 @@ small {
     border-color: rgba(185, 92, 53, 0.2);
 }
 
+.login-identifier-status {
+    display: block;
+    margin-top: 0.45rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.login-identifier-status.is-success {
+    color: #166748;
+}
+
+.login-identifier-status.is-error {
+    color: #9a2f2f;
+}
+
+.login-identifier-status.is-loading {
+    color: var(--muted);
+}
+
 .site-flash-stack {
     position: fixed;
     top: 5.5rem;

@@ -321,6 +321,87 @@ document.addEventListener('DOMContentLoaded', () => {
         form.insertAdjacentElement('afterbegin', alert);
     };
 
+    const mountLoginIdentifierCheck = (root = document) => {
+        root.querySelectorAll('[data-login-identifier-input]').forEach((input) => {
+            if (input.dataset.loginIdentifierMounted === 'true') {
+                return;
+            }
+
+            const status = input.parentElement?.querySelector('[data-login-identifier-status]');
+            const checkUrl = input.dataset.loginCheckUrl;
+            let timeoutId = null;
+            let requestId = 0;
+
+            const renderStatus = (message, type) => {
+                if (!status) {
+                    return;
+                }
+
+                if (!message) {
+                    status.hidden = true;
+                    status.textContent = '';
+                    status.classList.remove('is-success', 'is-error', 'is-loading');
+                    return;
+                }
+
+                status.hidden = false;
+                status.textContent = message;
+                status.classList.remove('is-success', 'is-error', 'is-loading');
+                status.classList.add(`is-${type}`);
+            };
+
+            const runCheck = async () => {
+                const identifier = input.value.trim();
+
+                if (!identifier || identifier.length < 5 || !checkUrl) {
+                    renderStatus('', 'success');
+                    return;
+                }
+
+                const currentRequest = ++requestId;
+                renderStatus('Checking account...', 'loading');
+
+                try {
+                    const formData = new FormData();
+                    formData.append('identifier', identifier);
+                    formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="_token"]')?.value || '');
+
+                    const response = await fetch(checkUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: formData,
+                        credentials: 'same-origin',
+                    });
+
+                    const payload = await response.json().catch(() => ({}));
+
+                    if (currentRequest !== requestId) {
+                        return;
+                    }
+
+                    renderStatus(payload.message || 'Unable to verify this account.', payload.exists ? 'success' : 'error');
+                } catch (error) {
+                    if (currentRequest !== requestId) {
+                        return;
+                    }
+
+                    renderStatus('Unable to verify right now. You can still try OTP login.', 'error');
+                }
+            };
+
+            input.addEventListener('input', () => {
+                window.clearTimeout(timeoutId);
+                timeoutId = window.setTimeout(runCheck, 350);
+            });
+
+            input.addEventListener('blur', runCheck);
+            input.dataset.loginIdentifierMounted = 'true';
+        });
+    };
+
     const showSiteFlash = (message, type = 'success') => {
         if (!message) {
             return;
@@ -481,6 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mountOtpGroups();
     mountImagePreviews();
     mountWhatsappSync();
+    mountLoginIdentifierCheck();
 
     mobileNavGroups.forEach((group) => {
         const trigger = group.querySelector('[data-mobile-nav-trigger]');

@@ -32,6 +32,7 @@ Route::get('/r/{user}', [AuthController::class, 'affiliateRedirect'])->name('aff
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
+    Route::post('/login/check', [AuthController::class, 'checkLoginIdentifier'])->name('login.check');
     Route::post('/login/verify', [AuthController::class, 'verifyLoginOtp'])->name('login.verify');
     Route::post('/login/resend', [AuthController::class, 'resendLoginOtp'])->name('login.resend');
     Route::get('/admin/login', [AuthController::class, 'showAdminLogin'])->name('admin.login');

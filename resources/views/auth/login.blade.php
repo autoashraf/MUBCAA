@@ -46,7 +46,8 @@
 
                     <label>
                         <span>Email address or mobile number</span>
-                        <input type="text" name="identifier" value="{{ old('identifier') }}" placeholder="Enter your registered email or mobile" required>
+                        <input type="text" name="identifier" value="{{ old('identifier') }}" placeholder="Enter your registered email or mobile" required data-login-identifier-input data-login-check-url="{{ route('login.check') }}">
+                        <small class="login-identifier-status" data-login-identifier-status hidden></small>
                         @error('identifier') <small>{{ $message }}</small> @enderror
                     </label>
 

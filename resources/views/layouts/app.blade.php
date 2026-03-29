@@ -3,6 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>{{ $title ?? 'Membership Site' }}</title>
         <meta name="description" content="{{ $description ?? 'Membership association website built with Laravel.' }}">
         @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
@@ -534,6 +535,88 @@
                         form.insertAdjacentElement('afterbegin', alert);
                     }
 
+                    function mountLoginIdentifierCheck(root) {
+                        (root || document).querySelectorAll('[data-login-identifier-input]').forEach(function (input) {
+                            if (input.dataset.loginIdentifierMounted === 'true') {
+                                return;
+                            }
+
+                            var status = input.parentElement ? input.parentElement.querySelector('[data-login-identifier-status]') : null;
+                            var checkUrl = input.dataset.loginCheckUrl;
+                            var timeoutId = null;
+                            var requestId = 0;
+
+                            function renderStatus(message, type) {
+                                if (!status) {
+                                    return;
+                                }
+
+                                if (!message) {
+                                    status.hidden = true;
+                                    status.textContent = '';
+                                    status.classList.remove('is-success', 'is-error', 'is-loading');
+                                    return;
+                                }
+
+                                status.hidden = false;
+                                status.textContent = message;
+                                status.classList.remove('is-success', 'is-error', 'is-loading');
+                                status.classList.add('is-' + type);
+                            }
+
+                            function runCheck() {
+                                var identifier = input.value.trim();
+
+                                if (!identifier || identifier.length < 5 || !checkUrl) {
+                                    renderStatus('', 'success');
+                                    return;
+                                }
+
+                                var currentRequest = ++requestId;
+                                renderStatus('Checking account...', 'loading');
+
+                                var formData = new FormData();
+                                formData.append('identifier', identifier);
+                                formData.append('_token', (document.querySelector('meta[name="csrf-token"]') || {}).content || (document.querySelector('input[name="_token"]') || {}).value || '');
+
+                                fetch(checkUrl, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'X-Requested-With': 'XMLHttpRequest'
+                                    },
+                                    body: formData,
+                                    credentials: 'same-origin'
+                                })
+                                    .then(function (response) {
+                                        return response.json().catch(function () { return {}; });
+                                    })
+                                    .then(function (payload) {
+                                        if (currentRequest !== requestId) {
+                                            return;
+                                        }
+
+                                        renderStatus(payload.message || 'Unable to verify this account.', payload.exists ? 'success' : 'error');
+                                    })
+                                    .catch(function () {
+                                        if (currentRequest !== requestId) {
+                                            return;
+                                        }
+
+                                        renderStatus('Unable to verify right now. You can still try OTP login.', 'error');
+                                    });
+                            }
+
+                            input.addEventListener('input', function () {
+                                window.clearTimeout(timeoutId);
+                                timeoutId = window.setTimeout(runCheck, 350);
+                            });
+
+                            input.addEventListener('blur', runCheck);
+                            input.dataset.loginIdentifierMounted = 'true';
+                        });
+                    }
+
                     function showSiteFlash(message, type) {
                         if (!message) {
                             return;
@@ -723,6 +806,8 @@
                             }
                         });
                     });
+
+                    mountLoginIdentifierCheck();
 
                     mountOtpGroups(document);
                     mountImagePreviews(document);

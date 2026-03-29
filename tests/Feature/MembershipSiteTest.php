@@ -147,6 +147,23 @@ class MembershipSiteTest extends TestCase
         Mail::assertSent(VerificationOtpMail::class, 1);
     }
 
+    public function test_login_identifier_check_reports_existing_member(): void
+    {
+        $member = User::factory()->create([
+            'role' => 'member',
+            'email' => 'exists@example.com',
+            'phone' => '01700000123',
+        ]);
+
+        $this->postJson(route('login.check'), [
+            'identifier' => $member->email,
+        ])->assertOk()
+            ->assertJson([
+                'exists' => true,
+                'message' => 'Member account found. You can request an OTP.',
+            ]);
+    }
+
     public function test_admin_can_login_with_email_and_password(): void
     {
         $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
