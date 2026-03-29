@@ -51,7 +51,12 @@
 
                     <label>
                         <span>Passing Year / Batch</span>
-                        <input type="text" name="passing_year_batch" value="{{ old('passing_year_batch') }}" placeholder="Enter your passing year or batch" required>
+                        <select name="passing_year_batch" required>
+                            <option value="">Select year</option>
+                            @foreach ($passingYears as $option)
+                                <option value="{{ $option }}" @selected(old('passing_year_batch') === $option)>{{ $option }}</option>
+                            @endforeach
+                        </select>
                         @error('passing_year_batch') <small>{{ $message }}</small> @enderror
                     </label>
 
@@ -59,6 +64,8 @@
                         <span>Security Check</span>
                         <div class="captcha-inline">
                             <span class="captcha-chip">{{ $captchaLeft }} + {{ $captchaRight }} = ?</span>
+                            <input type="hidden" name="captcha_left" value="{{ $captchaLeft }}">
+                            <input type="hidden" name="captcha_right" value="{{ $captchaRight }}">
                             <input type="text" name="captcha_answer" value="{{ old('captcha_answer') }}" placeholder="Enter answer" required>
                         </div>
                         @error('captcha_answer') <small>{{ $message }}</small> @enderror
@@ -70,7 +77,9 @@
                 </div>
 
                 <div class="action-row">
-                    <button class="button button-primary" type="submit">Continue to OTP Verification</button>
+                    <button class="button button-primary button-loading-trigger" type="submit" data-loading-text="Sending OTP...">
+                        <span class="button-loading-label">Continue to OTP Verification</span>
+                    </button>
                     <a class="button button-secondary" href="{{ route('login') }}">Already have an account?</a>
                 </div>
             </form>

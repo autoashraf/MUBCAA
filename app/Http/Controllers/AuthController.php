@@ -108,6 +108,10 @@ class AuthController extends Controller
 
     public function verifyLoginOtp(Request $request): RedirectResponse
     {
+        $request->merge([
+            'code' => preg_replace('/\D+/', '', (string) $request->input('code')),
+        ]);
+
         $validated = $request->validate([
             'code' => ['required', 'digits:6'],
         ]);
@@ -173,6 +177,17 @@ class AuthController extends Controller
             ]);
         }
 
+        $lastSentAt = $payload['sent_at'] ?? null;
+
+        if ($lastSentAt && now()->diffInSeconds($lastSentAt, false) > -60) {
+            $remaining = 60 - abs(now()->diffInSeconds($lastSentAt));
+            $remaining = max(1, $remaining);
+
+            return redirect()->route('login')->withErrors([
+                'identifier' => "Please wait {$remaining} seconds before requesting another OTP.",
+            ]);
+        }
+
         $this->issueLoginOtp($request, $user, $payload['channel'], $payload['contact']);
 
         return redirect()->route('login')->with('success', 'A new OTP has been sent.');
@@ -192,6 +207,7 @@ class AuthController extends Controller
             'captchaLeft' => $captchaLeft,
             'captchaRight' => $captchaRight,
             'affiliateReferrer' => $affiliateReferrer,
+            'passingYears' => $this->passingYearOptions(),
         ]);
     }
 
@@ -201,11 +217,13 @@ class AuthController extends Controller
             'full_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'mobile_number' => ['required', 'string', 'max:50', 'unique:users,phone'],
-            'passing_year_batch' => ['required', 'string', 'max:50'],
+            'passing_year_batch' => ['required', Rule::in($this->passingYearOptions())],
+            'captcha_left' => ['required', 'integer', 'between:1,9'],
+            'captcha_right' => ['required', 'integer', 'between:1,9'],
             'captcha_answer' => ['required', 'integer'],
         ]);
 
-        $captchaSum = (int) $request->session()->get('registration_captcha_a', -1) + (int) $request->session()->get('registration_captcha_b', -1);
+        $captchaSum = (int) $validated['captcha_left'] + (int) $validated['captcha_right'];
 
         if ((int) $validated['captcha_answer'] !== $captchaSum) {
             $validator = Validator::make([], []);
@@ -283,6 +301,13 @@ class AuthController extends Controller
         ];
     }
 
+    private function passingYearOptions(): array
+    {
+        return collect(range((int) now()->year, 1970))
+            ->map(fn (int $year) => (string) $year)
+            ->all();
+    }
+
     public function affiliateRedirect(Request $request, User $user): RedirectResponse
     {
         if (! $request->hasValidSignature() || $user->role !== 'member') {
@@ -340,6 +365,7 @@ class AuthController extends Controller
         $request->session()->put('login_otp_contact', $contactValue);
         $request->session()->put('login_otp_code', $code);
         $request->session()->put('login_otp_expires_at', now()->addMinutes(15)->toDateTimeString());
+        $request->session()->put('login_otp_sent_at', now()->toDateTimeString());
 
         if ($channel === 'email' && filled($contactValue)) {
             try {
@@ -375,6 +401,9 @@ class AuthController extends Controller
             'contact' => $request->session()->get('login_otp_contact'),
             'code' => $request->session()->get('login_otp_code'),
             'expires_at' => $request->session()->get('login_otp_expires_at'),
+            'sent_at' => $request->session()->get('login_otp_sent_at')
+                ? \Illuminate\Support\Carbon::parse($request->session()->get('login_otp_sent_at'))
+                : null,
         ];
     }
 
@@ -386,6 +415,7 @@ class AuthController extends Controller
             'login_otp_contact',
             'login_otp_code',
             'login_otp_expires_at',
+            'login_otp_sent_at',
         ]);
     }
 }

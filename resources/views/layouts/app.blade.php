@@ -186,6 +186,22 @@
                     var mobileNavGroups = document.querySelectorAll('[data-mobile-nav-group]');
                     var wizardRoot;
 
+                    function closeVerificationModal(closeUrl) {
+                        if (!verificationModalRoot) {
+                            if (closeUrl) {
+                                window.location.href = closeUrl;
+                            }
+
+                            return;
+                        }
+
+                        verificationModalRoot.innerHTML = '';
+
+                        if (closeUrl) {
+                            window.history.replaceState({}, '', closeUrl);
+                        }
+                    }
+
                     function updateWizardSummary(summary) {
                         if (!summary) {
                             return;
@@ -510,9 +526,16 @@
                         clearFormErrors(form);
 
                         var submitter = event.submitter;
+                        var submitterLabel = submitter ? submitter.querySelector('.button-loading-label') : null;
+                        var originalSubmitterLabel = submitterLabel ? submitterLabel.textContent : '';
 
                         if (submitter) {
                             submitter.disabled = true;
+                            submitter.classList.add('is-loading');
+
+                            if (submitterLabel && submitter.dataset.loadingText) {
+                                submitterLabel.textContent = submitter.dataset.loadingText;
+                            }
                         }
 
                         var formData = new FormData(form);
@@ -594,8 +617,24 @@
                             .finally(function () {
                                 if (submitter) {
                                     submitter.disabled = false;
+                                    submitter.classList.remove('is-loading');
+
+                                    if (submitterLabel && originalSubmitterLabel) {
+                                        submitterLabel.textContent = originalSubmitterLabel;
+                                    }
                                 }
                             });
+                    });
+
+                    document.addEventListener('click', function (event) {
+                        var trigger = event.target.closest('[data-close-verification-modal]');
+
+                        if (!trigger) {
+                            return;
+                        }
+
+                        event.preventDefault();
+                        closeVerificationModal(trigger.getAttribute('href'));
                     });
 
                     mobileNavGroups.forEach(function (group) {

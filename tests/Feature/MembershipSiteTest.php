@@ -52,6 +52,8 @@ class MembershipSiteTest extends TestCase
             'mobile_number' => '01700000001',
             'email' => 'applicant@example.com',
             'passing_year_batch' => '2012',
+            'captcha_left' => 4,
+            'captcha_right' => 5,
             'captcha_answer' => 9,
         ]);
 
@@ -92,6 +94,8 @@ class MembershipSiteTest extends TestCase
             'mobile_number' => '01700000009',
             'email' => 'referral@example.com',
             'passing_year_batch' => '2011',
+            'captcha_left' => 2,
+            'captcha_right' => 3,
             'captcha_answer' => 5,
         ])->assertRedirect(route('member.verification.show'));
 
@@ -227,7 +231,7 @@ class MembershipSiteTest extends TestCase
                 'hsc_passing_year' => '2012',
                 'group' => 'Science',
                 'shift' => 'Morning',
-                'campus_branch' => 'Main',
+                'campus_branch' => 'Main Girls',
                 'next_step' => 3,
             ])
             ->assertRedirect(route('member.profile.complete', ['step' => 3]));

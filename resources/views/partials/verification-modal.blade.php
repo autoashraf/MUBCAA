@@ -7,7 +7,7 @@
                     <p class="eyebrow">Contact Verification</p>
                     <h1>Verify your email and mobile number</h1>
                 </div>
-                <a class="mini-link" href="{{ route('home') }}">Close</a>
+                <a class="mini-link" href="{{ route('membership.apply') }}" data-close-verification-modal>Close</a>
             </header>
 
             <div class="verification-layout verification-layout-single">

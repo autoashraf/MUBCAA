@@ -49,7 +49,7 @@ class MemberDashboardController extends Controller
         $user = $request->user()->load('profile', 'application');
         $profile = $user->profile;
         $steps = $this->completionSteps();
-        $step = max(2, min($step, 10));
+        $step = max(1, min($step, 10));
 
         return view('member.complete-profile', [
             'menu' => SiteNavigation::menu(),
@@ -73,8 +73,8 @@ class MemberDashboardController extends Controller
                 'Training & Workshops',
             ],
             'academicGroups' => ['Science', 'Commerce', 'Arts'],
-            'academicShifts' => ['Morning', 'Day'],
-            'campusBranches' => ['Main', 'Shewrapara', 'Ibrahimpur', 'Rupnagar'],
+            'academicShifts' => ['Morning', 'Day', 'Girls', 'Boys'],
+            'campusBranches' => ['Main Girls', 'Boys', 'Ibrahimpur', 'Shewrapara', 'Rupnagar', 'College Campus'],
             'passingYears' => $this->passingYearOptions(),
             'districts' => $this->bangladeshDistricts(),
             'occupations' => $this->occupationOptions(),
@@ -276,13 +276,15 @@ class MemberDashboardController extends Controller
 
     private function rulesForStep(Request $request, int $step): array
     {
+        $isDraft = $request->boolean('save_as_draft');
+
         return match ($step) {
             2 => [
-                'ssc_passing_year' => ['required', 'string', 'max:50'],
-                'hsc_passing_year' => ['required', 'string', 'max:50'],
-                'group' => ['required', Rule::in($this->academicGroupOptions())],
-                'shift' => ['required', Rule::in($this->shiftOptions())],
-                'campus_branch' => ['required', Rule::in($this->campusOptions())],
+                'ssc_passing_year' => [$isDraft ? 'nullable' : 'required_without:hsc_passing_year', 'nullable', 'string', 'max:50'],
+                'hsc_passing_year' => [$isDraft ? 'nullable' : 'required_without:ssc_passing_year', 'nullable', 'string', 'max:50'],
+                'group' => [$isDraft ? 'nullable' : 'required', Rule::in($this->academicGroupOptions())],
+                'shift' => [$isDraft ? 'nullable' : 'required', Rule::in($this->shiftOptions())],
+                'campus_branch' => [$isDraft ? 'nullable' : 'required', Rule::in($this->campusOptions())],
             ],
             3 => [
                 'date_of_birth' => ['required', 'date'],
@@ -457,8 +459,7 @@ class MemberDashboardController extends Controller
     {
         return [
             2 => [
-                $profile?->ssc_passing_year,
-                $profile?->hsc_passing_year,
+                $profile?->ssc_passing_year || $profile?->hsc_passing_year ? 'filled' : null,
                 $profile?->group,
                 $profile?->shift,
                 $profile?->campus_branch,
@@ -540,8 +541,7 @@ class MemberDashboardController extends Controller
     {
         $steps = [
             2 => [
-                'Passing Year SSC' => $profile?->ssc_passing_year,
-                'Passing Year HSC' => $profile?->hsc_passing_year,
+                'Passing Year (SSC or HSC)' => $profile?->ssc_passing_year || $profile?->hsc_passing_year ? 'filled' : null,
                 'Group' => $profile?->group,
                 'Shift' => $profile?->shift,
                 'Campus / Branch' => $profile?->campus_branch,
@@ -652,12 +652,12 @@ class MemberDashboardController extends Controller
 
     private function shiftOptions(): array
     {
-        return ['Morning', 'Day'];
+        return ['Morning', 'Day', 'Girls', 'Boys'];
     }
 
     private function campusOptions(): array
     {
-        return ['Main', 'Shewrapara', 'Ibrahimpur', 'Rupnagar'];
+        return ['Main Girls', 'Boys', 'Ibrahimpur', 'Shewrapara', 'Rupnagar', 'College Campus'];
     }
 
     private function bangladeshDistricts(): array

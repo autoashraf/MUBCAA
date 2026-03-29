@@ -49,6 +49,10 @@ class VerificationController extends Controller
 
     public function verifyEmail(Request $request): JsonResponse|RedirectResponse
     {
+        $request->merge([
+            'code' => preg_replace('/\D+/', '', (string) $request->input('code')),
+        ]);
+
         $validated = $request->validate([
             'code' => ['required', 'digits:6'],
         ]);
@@ -75,6 +79,10 @@ class VerificationController extends Controller
 
     public function verifyMobile(Request $request): JsonResponse|RedirectResponse
     {
+        $request->merge([
+            'code' => preg_replace('/\D+/', '', (string) $request->input('code')),
+        ]);
+
         $validated = $request->validate([
             'code' => ['required', 'digits:6'],
         ]);

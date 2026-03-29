@@ -34,25 +34,45 @@
                 @enderror
 
                 @foreach ($steps as $number => $label)
-                    @if ($number >= 2)
-                        <section class="wizard-panel @if ((int) $activeStep === $number) is-active @endif" data-wizard-panel="{{ $number }}">
+                    <section class="wizard-panel @if ((int) $activeStep === $number) is-active @endif" data-wizard-panel="{{ $number }}">
+                        @if ($number >= 2)
                             <input type="hidden" name="wizard_step" value="{{ $number }}" @disabled((int) $activeStep !== $number)>
+                        @endif
                             <div class="dashboard-form-head">
                                 <div>
                                     <p class="panel-card-label">Step {{ $number }}: {{ $label }}</p>
                                     <h3>{{ $label }}</h3>
-                                    <p class="dashboard-copy">{{ $stepDescriptions[$number] }}</p>
+                                    <p class="dashboard-copy">{{ $number === 1 ? 'Review the information you submitted during Step 1 before continuing to the academic section.' : $stepDescriptions[$number] }}</p>
                                 </div>
                             </div>
 
-                            @if ($number === 2)
+                            @if ($number === 1)
+                                <div class="form-grid">
+                                    <label>
+                                        <span>Full Name</span>
+                                        <input type="text" value="{{ $user->name }}" readonly>
+                                    </label>
+                                    <label>
+                                        <span>Mobile Number</span>
+                                        <input type="text" value="{{ $user->phone }}" readonly>
+                                    </label>
+                                    <label>
+                                        <span>Email Address</span>
+                                        <input type="text" value="{{ $user->email }}" readonly>
+                                    </label>
+                                    <label>
+                                        <span>Passing Year / Batch</span>
+                                        <input type="text" value="{{ $profile?->passing_year_batch }}" readonly>
+                                    </label>
+                                </div>
+                            @elseif ($number === 2)
                                 <div class="form-grid">
                                     <label>
                                         <span>Passing Year SSC</span>
                                         <select name="ssc_passing_year">
                                             <option value="">Select year</option>
                                             @foreach ($passingYears as $option)
-                                                <option value="{{ $option }}" @selected(old('ssc_passing_year', $profile?->ssc_passing_year) === $option)>{{ $option }}</option>
+                                                <option value="{{ $option }}" @selected(old('ssc_passing_year', $profile?->ssc_passing_year ?: $profile?->passing_year_batch) === $option)>{{ $option }}</option>
                                             @endforeach
                                         </select>
                                         @error('ssc_passing_year') <small>{{ $message }}</small> @enderror
@@ -62,10 +82,11 @@
                                         <select name="hsc_passing_year">
                                             <option value="">Select year</option>
                                             @foreach ($passingYears as $option)
-                                                <option value="{{ $option }}" @selected(old('hsc_passing_year', $profile?->hsc_passing_year) === $option)>{{ $option }}</option>
+                                                <option value="{{ $option }}" @selected(old('hsc_passing_year', $profile?->hsc_passing_year ?: $profile?->passing_year_batch) === $option)>{{ $option }}</option>
                                             @endforeach
                                         </select>
                                         @error('hsc_passing_year') <small>{{ $message }}</small> @enderror
+                                        <small>Enter SSC or HSC year. At least one is required.</small>
                                     </label>
                                     <label>
                                         <span>Group</span>
@@ -329,18 +350,19 @@
                             @endif
 
                             <div class="action-row wizard-nav-actions">
-                                @if ($number > 2)
+                                @if ($number === 1)
+                                    <button class="button button-primary" type="button" data-step-target="2">Continue to Step 2</button>
+                                @elseif ($number > 1)
                                     <button class="button button-secondary" type="button" data-step-target="{{ $number - 1 }}">Previous</button>
                                 @endif
-                                @if ($number < 10)
+                                @if ($number >= 2 && $number < 10)
                                     <button class="button button-secondary" type="submit" name="save_as_draft" value="1">Save as Draft</button>
                                     <button class="button button-primary" type="submit" name="next_step" value="{{ $number + 1 }}">Save &amp; Continue</button>
-                                @else
+                                @elseif ($number === 10)
                                     <button class="button button-primary" type="submit" name="submit_for_verification" value="1">Submit for Review</button>
                                 @endif
                             </div>
-                        </section>
-                    @endif
+                    </section>
                 @endforeach
             </form>
         </div>

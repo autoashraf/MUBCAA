@@ -2,6 +2,21 @@ import './bootstrap';
 
 document.addEventListener('DOMContentLoaded', () => {
     const verificationModalRoot = document.querySelector('[data-verification-modal-root]');
+    const closeVerificationModal = (closeUrl) => {
+        if (!verificationModalRoot) {
+            if (closeUrl) {
+                window.location.href = closeUrl;
+            }
+
+            return;
+        }
+
+        verificationModalRoot.innerHTML = '';
+
+        if (closeUrl) {
+            window.history.replaceState({}, '', closeUrl);
+        }
+    };
     const updateWizardSummary = (summary) => {
         if (!summary) {
             return;
@@ -301,9 +316,16 @@ document.addEventListener('DOMContentLoaded', () => {
         clearFormErrors(form);
 
         const submitter = event.submitter;
+        const submitterLabel = submitter?.querySelector('.button-loading-label');
+        const originalSubmitterLabel = submitterLabel?.textContent || '';
 
         if (submitter) {
             submitter.disabled = true;
+            submitter.classList.add('is-loading');
+
+            if (submitterLabel && submitter.dataset.loadingText) {
+                submitterLabel.textContent = submitter.dataset.loadingText;
+            }
         }
 
         const formData = new FormData(form);
@@ -378,8 +400,24 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             if (submitter) {
                 submitter.disabled = false;
+                submitter.classList.remove('is-loading');
+
+                if (submitterLabel && originalSubmitterLabel) {
+                    submitterLabel.textContent = originalSubmitterLabel;
+                }
             }
         }
+    });
+
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest('[data-close-verification-modal]');
+
+        if (!trigger) {
+            return;
+        }
+
+        event.preventDefault();
+        closeVerificationModal(trigger.getAttribute('href'));
     });
 
     const mobileNavGroups = document.querySelectorAll('[data-mobile-nav-group]');
