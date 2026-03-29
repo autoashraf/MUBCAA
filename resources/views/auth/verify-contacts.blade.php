@@ -37,10 +37,6 @@
                     </div>
 
                     <div class="verification-panels">
-                        @if (session('success'))
-                            <div class="alert-success">{{ session('success') }}</div>
-                        @endif
-
                         <div class="form-card verification-panel">
                             <div class="dashboard-form-head">
                                 <div>

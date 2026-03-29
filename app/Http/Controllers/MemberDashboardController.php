@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class MemberDashboardController extends Controller
@@ -80,6 +81,7 @@ class MemberDashboardController extends Controller
             'occupations' => $this->occupationOptions(),
             'designations' => $this->designationOptions(),
             'industries' => $this->industryOptions(),
+            'stepCompletion' => $this->stepCompletionStates($user, $profile),
         ]);
     }
 
@@ -132,6 +134,17 @@ class MemberDashboardController extends Controller
                     'submitted_for_review_at' => now(),
                     'completion_step' => 10,
                 ]);
+
+                $freshUser = $user->fresh()->load('profile', 'application');
+                $missingFields = $this->missingRequiredSubmissionItems($freshUser, $freshUser->profile);
+
+                if ($missingFields !== []) {
+                    throw ValidationException::withMessages([
+                        'submit_for_verification' => [
+                            'Complete all required fields before submission. Missing: '.implode(', ', array_slice($missingFields, 0, 6)).(count($missingFields) > 6 ? '...' : ''),
+                        ],
+                    ]);
+                }
             }
         });
 
@@ -158,6 +171,7 @@ class MemberDashboardController extends Controller
                     'next_step' => $step,
                     'step_url' => route('member.profile.complete', ['step' => $step]),
                     'summary' => $this->wizardSummary($request->user()->fresh()->load('profile', 'application'), $step),
+                    'step_completion' => $this->stepCompletionStates($request->user()->fresh()->load('profile', 'application'), $request->user()->fresh()->profile),
                     'submitted' => false,
                 ]);
             }
@@ -176,6 +190,7 @@ class MemberDashboardController extends Controller
                 'next_step' => $nextStep,
                 'step_url' => route('member.profile.complete', ['step' => $nextStep]),
                 'summary' => $this->wizardSummary($request->user()->fresh()->load('profile', 'application'), $nextStep),
+                'step_completion' => $this->stepCompletionStates($request->user()->fresh()->load('profile', 'application'), $request->user()->fresh()->profile),
                 'submitted' => false,
             ]);
         }
@@ -287,69 +302,69 @@ class MemberDashboardController extends Controller
                 'campus_branch' => [$isDraft ? 'nullable' : 'required', Rule::in($this->campusOptions())],
             ],
             3 => [
-                'date_of_birth' => ['required', 'date'],
-                'gender' => ['required', Rule::in(['Male', 'Female', 'Other'])],
-                'blood_group' => ['required', Rule::in(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])],
-                'father_name' => ['required', 'string', 'max:255'],
-                'mother_name' => ['required', 'string', 'max:255'],
-                'marital_status' => ['required', Rule::in(['Single', 'Married', 'Other'])],
+                'date_of_birth' => [$isDraft ? 'nullable' : 'required', 'date'],
+                'gender' => [$isDraft ? 'nullable' : 'required', Rule::in(['Male', 'Female', 'Other'])],
+                'blood_group' => [$isDraft ? 'nullable' : 'required', Rule::in(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])],
+                'father_name' => [$isDraft ? 'nullable' : 'required', 'string', 'max:255'],
+                'mother_name' => [$isDraft ? 'nullable' : 'required', 'string', 'max:255'],
+                'marital_status' => [$isDraft ? 'nullable' : 'required', Rule::in(['Single', 'Married', 'Other'])],
             ],
             4 => [
-                'primary_mobile' => ['required', 'string', 'max:50'],
-                'secondary_mobile' => ['required', 'string', 'max:50'],
-                'whatsapp_number' => ['required', 'string', 'max:50'],
-                'email_address' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($request->user()->id)],
-                'present_address' => ['required', 'string', 'max:1000'],
-                'permanent_address' => ['required', 'string', 'max:1000'],
-                'country' => ['required', 'string', 'max:100'],
-                'city_district' => ['required', Rule::in($this->bangladeshDistricts())],
-                'postal_code' => ['required', 'string', 'max:50'],
+                'primary_mobile' => [$isDraft ? 'nullable' : 'required', 'string', 'max:50'],
+                'secondary_mobile' => [$isDraft ? 'nullable' : 'required', 'string', 'max:50'],
+                'whatsapp_number' => [$isDraft ? 'nullable' : 'required', 'string', 'max:50'],
+                'email_address' => [$isDraft ? 'nullable' : 'required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($request->user()->id)],
+                'present_address' => [$isDraft ? 'nullable' : 'required', 'string', 'max:1000'],
+                'permanent_address' => [$isDraft ? 'nullable' : 'required', 'string', 'max:1000'],
+                'country' => [$isDraft ? 'nullable' : 'required', 'string', 'max:100'],
+                'city_district' => [$isDraft ? 'nullable' : 'required', Rule::in($this->bangladeshDistricts())],
+                'postal_code' => [$isDraft ? 'nullable' : 'required', 'string', 'max:50'],
             ],
             5 => [
-                'occupation' => ['required', Rule::in($this->occupationOptions())],
-                'organization_name' => ['required', 'string', 'max:255'],
-                'designation' => ['required', Rule::in($this->designationOptions())],
-                'industry' => ['required', Rule::in($this->industryOptions())],
-                'office_address' => ['required', 'string', 'max:1000'],
+                'occupation' => [$isDraft ? 'nullable' : 'required', Rule::in($this->occupationOptions())],
+                'organization_name' => [$isDraft ? 'nullable' : 'required', 'string', 'max:255'],
+                'designation' => [$isDraft ? 'nullable' : 'required', Rule::in($this->designationOptions())],
+                'industry' => [$isDraft ? 'nullable' : 'required', Rule::in($this->industryOptions())],
+                'office_address' => [$isDraft ? 'nullable' : 'required', 'string', 'max:1000'],
             ],
             6 => [
-                'profile_photo' => [$this->requiredFileRule($request, 'profile_photo'), 'image', 'max:4096'],
-                'cover_photo' => [$this->requiredFileRule($request, 'cover_photo'), 'image', 'max:6144'],
-                'business_card_upload' => [$this->requiredFileRule($request, 'business_card_upload'), 'file', 'max:6144'],
+                'profile_photo' => [$this->requiredFileRule($request, 'profile_photo', $isDraft), 'image', 'max:4096'],
+                'cover_photo' => [$this->requiredFileRule($request, 'cover_photo', $isDraft), 'image', 'max:6144'],
+                'business_card_upload' => [$this->requiredFileRule($request, 'business_card_upload', $isDraft), 'file', 'max:6144'],
                 'remove_profile_photo' => ['nullable', 'boolean'],
                 'remove_cover_photo' => ['nullable', 'boolean'],
-                'facebook_profile_link' => ['required', 'url', 'max:255'],
-                'linkedin_profile_link' => ['required', 'url', 'max:255'],
-                'website_portfolio_link' => ['required', 'url', 'max:255'],
+                'facebook_profile_link' => [$isDraft ? 'nullable' : 'required', 'url', 'max:255'],
+                'linkedin_profile_link' => [$isDraft ? 'nullable' : 'required', 'url', 'max:255'],
+                'website_portfolio_link' => [$isDraft ? 'nullable' : 'required', 'url', 'max:255'],
             ],
             7 => [
-                'interested_in_alumni_activities' => ['required', Rule::in(['1', '0'])],
-                'areas_of_interest' => ['required', 'array', 'min:1'],
+                'interested_in_alumni_activities' => [$isDraft ? 'nullable' : 'required', Rule::in(['1', '0'])],
+                'areas_of_interest' => [$isDraft ? 'nullable' : 'required', 'array', 'min:1'],
                 'areas_of_interest.*' => ['string', 'max:100'],
-                'volunteer_interest' => ['required', Rule::in(['1', '0'])],
-                'donor_sponsor_interest' => ['required', Rule::in(['Yes', 'No', 'Maybe Later'])],
-                'mentor_interest' => ['required', Rule::in(['1', '0'])],
-                'suggestions' => ['required', 'string', 'max:2000'],
+                'volunteer_interest' => [$isDraft ? 'nullable' : 'required', Rule::in(['1', '0'])],
+                'donor_sponsor_interest' => [$isDraft ? 'nullable' : 'required', Rule::in(['Yes', 'No', 'Maybe Later'])],
+                'mentor_interest' => [$isDraft ? 'nullable' : 'required', Rule::in(['1', '0'])],
+                'suggestions' => [$isDraft ? 'nullable' : 'required', 'string', 'max:2000'],
             ],
             8 => [
-                'certificate_testimonial_upload' => [$this->requiredFileRule($request, 'certificate_testimonial_upload'), 'file', 'max:6144'],
-                'supporting_document_upload' => [$this->requiredFileRule($request, 'supporting_document_upload'), 'file', 'max:6144'],
+                'certificate_testimonial_upload' => [$this->requiredFileRule($request, 'certificate_testimonial_upload', $isDraft), 'file', 'max:6144'],
+                'supporting_document_upload' => [$this->requiredFileRule($request, 'supporting_document_upload', $isDraft), 'file', 'max:6144'],
             ],
             9 => [
-                'profile_visibility' => ['required', Rule::in([
+                'profile_visibility' => [$isDraft ? 'nullable' : 'required', Rule::in([
                     'Show my profile in the alumni directory',
                     'Show my profile only to verified members',
                     'Keep my profile private',
                 ])],
-                'contact_visibility' => ['required', Rule::in([
+                'contact_visibility' => [$isDraft ? 'nullable' : 'required', Rule::in([
                     'Show my contact details to verified members only',
                     'Keep my contact details private',
                 ])],
             ],
             10 => [
-                'information_accuracy_confirmation' => ['accepted'],
-                'terms_privacy_agreement' => ['accepted'],
-                'admin_verification_agreement' => ['accepted'],
+                'information_accuracy_confirmation' => [$isDraft ? 'nullable' : 'accepted'],
+                'terms_privacy_agreement' => [$isDraft ? 'nullable' : 'accepted'],
+                'admin_verification_agreement' => [$isDraft ? 'nullable' : 'accepted'],
             ],
         };
     }
@@ -367,10 +382,10 @@ class MemberDashboardController extends Controller
                 'email_address' => $profile?->email_address ?: $request->user()->email,
                 'present_address' => $validated['present_address'] ?? null,
                 'permanent_address' => $validated['permanent_address'] ?? null,
-                'country' => $validated['country'],
-                'city_district' => $validated['city_district'],
+                'country' => $validated['country'] ?? null,
+                'city_district' => $validated['city_district'] ?? null,
                 'postal_code' => $validated['postal_code'] ?? null,
-                'current_city' => $validated['city_district'],
+                'current_city' => $validated['city_district'] ?? null,
             ],
             5 => $validated,
             6 => $this->stepSixProfileData($request, $validated, $profile),
@@ -622,8 +637,12 @@ class MemberDashboardController extends Controller
         ];
     }
 
-    private function requiredFileRule(Request $request, string $field): string
+    private function requiredFileRule(Request $request, string $field, bool $isDraft): string
     {
+        if ($isDraft) {
+            return 'nullable';
+        }
+
         $profile = $request->user()?->profile;
 
         if ($request->hasFile($field)) {
@@ -638,6 +657,127 @@ class MemberDashboardController extends Controller
             'supporting_document_upload' => blank($profile?->supporting_document_upload) ? 'required' : 'nullable',
             default => 'required',
         };
+    }
+
+    private function missingRequiredSubmissionItems($user, $profile): array
+    {
+        $fields = [
+            'Passing Year (SSC or HSC)' => $profile?->ssc_passing_year || $profile?->hsc_passing_year ? 'filled' : null,
+            'Group' => $profile?->group,
+            'Shift' => $profile?->shift,
+            'Campus / Branch' => $profile?->campus_branch,
+            'Father’s Name' => $profile?->father_name,
+            'Mother’s Name' => $profile?->mother_name,
+            'Date of Birth' => $profile?->date_of_birth,
+            'Gender' => $profile?->gender,
+            'Blood Group' => $profile?->blood_group,
+            'Marital Status' => $profile?->marital_status,
+            'Primary Mobile Number' => $profile?->primary_mobile ?: $user->phone,
+            'Secondary Mobile Number' => $profile?->secondary_mobile,
+            'WhatsApp Number' => $profile?->whatsapp_number,
+            'Email Address' => $profile?->email_address ?: $user->email,
+            'Present Address' => $profile?->present_address,
+            'Permanent Address' => $profile?->permanent_address,
+            'Country' => $profile?->country,
+            'City / District' => $profile?->city_district ?: $profile?->current_city,
+            'Postal Code' => $profile?->postal_code,
+            'Occupation' => $profile?->occupation,
+            'Organization / Company Name' => $profile?->organization_name,
+            'Designation / Job Title' => $profile?->designation,
+            'Industry' => $profile?->industry,
+            'Office Address' => $profile?->office_address,
+            'Profile Photo' => $profile?->profile_photo,
+            'Cover Photo' => $profile?->cover_photo,
+            'Business Card Upload' => $profile?->business_card_upload,
+            'Facebook Profile Link' => $profile?->facebook_profile_link,
+            'LinkedIn Profile Link' => $profile?->linkedin_profile_link,
+            'Website / Portfolio Link' => $profile?->website_portfolio_link,
+            'Interested in Alumni Activities' => ! is_null($profile?->interested_in_alumni_activities) ? 'filled' : null,
+            'Areas of Interest' => filled($profile?->areas_of_interest) ? 'filled' : null,
+            'Volunteer Interest' => ! is_null($profile?->volunteer_interest) ? 'filled' : null,
+            'Donor / Sponsor Interest' => $profile?->donor_sponsor_interest,
+            'Mentor Interest' => ! is_null($profile?->mentor_interest) ? 'filled' : null,
+            'Suggestions' => $profile?->suggestions,
+            'SSC Certificate / Testimonial / Admit Card' => $profile?->certificate_testimonial_upload,
+            'Supporting Document Upload' => $profile?->supporting_document_upload,
+            'Profile Visibility' => $profile?->profile_visibility,
+            'Contact Visibility' => $profile?->contact_visibility,
+            'Information Accuracy Confirmation' => $profile?->information_accuracy_confirmation ? 'filled' : null,
+            'Terms & Privacy Agreement' => $profile?->terms_privacy_agreement ? 'filled' : null,
+            'Admin Verification Agreement' => $profile?->admin_verification_agreement ? 'filled' : null,
+        ];
+
+        return collect($fields)
+            ->filter(fn ($value) => blank($value) || $value === false)
+            ->keys()
+            ->values()
+            ->all();
+    }
+
+    private function stepCompletionStates($user, $profile): array
+    {
+        $requiredByStep = [
+            2 => [
+                'Passing Year (SSC or HSC)' => $profile?->ssc_passing_year || $profile?->hsc_passing_year ? 'filled' : null,
+                'Group' => $profile?->group,
+                'Shift' => $profile?->shift,
+                'Campus / Branch' => $profile?->campus_branch,
+            ],
+            3 => [
+                'Father’s Name' => $profile?->father_name,
+                'Mother’s Name' => $profile?->mother_name,
+                'Date of Birth' => $profile?->date_of_birth,
+                'Gender' => $profile?->gender,
+                'Blood Group' => $profile?->blood_group,
+                'Marital Status' => $profile?->marital_status,
+            ],
+            4 => [
+                'Primary Mobile Number' => $profile?->primary_mobile ?: $user->phone,
+                'Secondary Mobile Number' => $profile?->secondary_mobile,
+                'WhatsApp Number' => $profile?->whatsapp_number,
+                'Email Address' => $profile?->email_address ?: $user->email,
+                'Present Address' => $profile?->present_address,
+                'Permanent Address' => $profile?->permanent_address,
+                'Country' => $profile?->country,
+                'City / District' => $profile?->city_district ?: $profile?->current_city,
+                'Postal Code' => $profile?->postal_code,
+            ],
+            5 => [
+                'Occupation' => $profile?->occupation,
+                'Organization / Company Name' => $profile?->organization_name,
+                'Designation / Job Title' => $profile?->designation,
+                'Industry' => $profile?->industry,
+                'Office Address' => $profile?->office_address,
+            ],
+            6 => [
+                'Profile Photo' => $profile?->profile_photo,
+                'Cover Photo' => $profile?->cover_photo,
+                'Business Card Upload' => $profile?->business_card_upload,
+                'Facebook Profile Link' => $profile?->facebook_profile_link,
+                'LinkedIn Profile Link' => $profile?->linkedin_profile_link,
+                'Website / Portfolio Link' => $profile?->website_portfolio_link,
+            ],
+            7 => [
+                'Interested in Alumni Activities' => ! is_null($profile?->interested_in_alumni_activities) ? 'filled' : null,
+                'Areas of Interest' => filled($profile?->areas_of_interest) ? 'filled' : null,
+                'Volunteer Interest' => ! is_null($profile?->volunteer_interest) ? 'filled' : null,
+                'Donor / Sponsor Interest' => $profile?->donor_sponsor_interest,
+                'Mentor Interest' => ! is_null($profile?->mentor_interest) ? 'filled' : null,
+                'Suggestions' => $profile?->suggestions,
+            ],
+            8 => [
+                'SSC Certificate / Testimonial / Admit Card' => $profile?->certificate_testimonial_upload,
+                'Supporting Document Upload' => $profile?->supporting_document_upload,
+            ],
+            9 => [
+                'Profile Visibility' => $profile?->profile_visibility,
+                'Contact Visibility' => $profile?->contact_visibility,
+            ],
+        ];
+
+        return collect($requiredByStep)
+            ->map(fn (array $fields) => collect($fields)->every(fn ($value) => filled($value)))
+            ->all();
     }
 
     private function academicGroupOptions(): array

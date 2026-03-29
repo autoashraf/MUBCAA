@@ -244,6 +244,72 @@ class MembershipSiteTest extends TestCase
         ]);
     }
 
+    public function test_member_can_save_incomplete_step_as_draft(): void
+    {
+        $member = User::factory()->create([
+            'role' => 'member',
+            'membership_status' => 'unverified',
+            'approval_step' => 1,
+            'phone' => '01700000011',
+        ]);
+
+        $member->profile()->create([
+            'mobile_number' => '01700000011',
+            'passing_year_batch' => '2012',
+            'country' => 'Bangladesh',
+            'completion_step' => 2,
+        ]);
+
+        $member->application()->create([
+            'status' => 'in_progress',
+            'current_step' => 2,
+            'total_steps' => 10,
+        ]);
+
+        $this->actingAs($member)
+            ->post(route('member.profile.complete.save'), [
+                'wizard_step' => 3,
+                'father_name' => 'Test Father',
+                'save_as_draft' => '1',
+            ])
+            ->assertRedirect(route('member.profile.complete', ['step' => 3]));
+
+        $this->assertDatabaseHas('member_profiles', [
+            'user_id' => $member->id,
+            'father_name' => 'Test Father',
+            'completion_step' => 3,
+        ]);
+    }
+
+    public function test_dashboard_resume_link_opens_last_saved_step(): void
+    {
+        $member = User::factory()->create([
+            'role' => 'member',
+            'membership_status' => 'in_progress',
+            'approval_step' => 1,
+            'phone' => '01700000012',
+        ]);
+
+        $member->profile()->create([
+            'mobile_number' => '01700000012',
+            'passing_year_batch' => '2012',
+            'country' => 'Bangladesh',
+            'completion_step' => 2,
+        ]);
+
+        $member->application()->create([
+            'status' => 'in_progress',
+            'current_step' => 2,
+            'total_steps' => 10,
+        ]);
+
+        $this->actingAs($member)
+            ->get(route('member.dashboard'))
+            ->assertOk()
+            ->assertSee(route('member.profile.complete', ['step' => 2]), false)
+            ->assertDontSee(route('member.profile.complete', ['step' => 3]), false);
+    }
+
     public function test_admin_can_approve_application(): void
     {
         $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();

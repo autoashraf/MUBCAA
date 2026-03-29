@@ -130,6 +130,7 @@
             </header>
 
             <main>
+                @include('partials.flash-messages')
                 @yield('content')
             </main>
 
@@ -223,6 +224,24 @@
                         if (stepLabel) {
                             stepLabel.textContent = 'Step ' + summary.step + ' of 10';
                         }
+                    }
+
+                    function updateDraftButtons(stepCompletion) {
+                        if (!stepCompletion) {
+                            return;
+                        }
+
+                        Object.entries(stepCompletion).forEach(function (entry) {
+                            var step = entry[0];
+                            var isComplete = entry[1];
+                            var button = document.querySelector('[data-draft-action-step="' + step + '"]');
+
+                            if (!button) {
+                                return;
+                            }
+
+                            button.hidden = Boolean(isComplete);
+                        });
                     }
 
                     function mountOtpGroups(root) {
@@ -515,6 +534,43 @@
                         form.insertAdjacentElement('afterbegin', alert);
                     }
 
+                    function showSiteFlash(message, type) {
+                        if (!message) {
+                            return;
+                        }
+
+                        var stack = document.querySelector('.site-flash-stack');
+
+                        if (!stack) {
+                            stack = document.createElement('div');
+                            stack.className = 'site-flash-stack';
+                            stack.setAttribute('aria-live', 'polite');
+                            stack.setAttribute('aria-atomic', 'true');
+                            document.body.appendChild(stack);
+                        }
+
+                        var flash = document.createElement('div');
+                        flash.className = 'site-flash site-flash-' + (type || 'success');
+
+                        var title = document.createElement('strong');
+                        title.textContent = (type || 'success') === 'error' ? 'Error' : 'Success';
+
+                        var body = document.createElement('span');
+                        body.textContent = message;
+
+                        flash.appendChild(title);
+                        flash.appendChild(body);
+                        stack.appendChild(flash);
+
+                        window.setTimeout(function () {
+                            flash.remove();
+
+                            if (!stack.children.length) {
+                                stack.remove();
+                            }
+                        }, 4000);
+                    }
+
                     document.addEventListener('submit', function (event) {
                         var form = event.target.closest('form[data-ajax-form]');
 
@@ -565,10 +621,11 @@
                                 if (! response.ok) {
                                     if (response.status === 422) {
                                         applyFormErrors(form, payload.errors || {});
-                                        showFormMessage(form, 'Please review the highlighted fields.', 'alert-success alert-warning-like');
+                                        showSiteFlash('Please review the highlighted fields.', 'error');
                                         return;
                                     }
 
+                                    showSiteFlash(payload.message || 'Something went wrong. Please try again.', 'error');
                                     showFormMessage(form, payload.message || 'Something went wrong. Please try again.', 'alert-success alert-warning-like');
                                     return;
                                 }
@@ -589,11 +646,12 @@
                                 if (mode === 'verification' && verificationModalRoot && payload.modal_html) {
                                     verificationModalRoot.innerHTML = payload.modal_html;
                                     mountOtpGroups(verificationModalRoot);
+                                    showSiteFlash(payload.message, 'success');
                                     return;
                                 }
 
                                 if (mode === 'wizard') {
-                                    showFormMessage(form, payload.message);
+                                    showSiteFlash(payload.message, 'success');
 
                                     if (payload.submitted && payload.redirect_url) {
                                         window.location.href = payload.redirect_url;
@@ -605,6 +663,7 @@
                                     }
 
                                     updateWizardSummary(payload.summary);
+                                    updateDraftButtons(payload.step_completion);
 
                                     if (payload.next_step && wizardRoot && wizardRoot.__showStep) {
                                         wizardRoot.__showStep(Number(payload.next_step));
@@ -612,6 +671,7 @@
                                 }
                             })
                             .catch(function () {
+                                showSiteFlash('Something went wrong. Please try again.', 'error');
                                 showFormMessage(form, 'Something went wrong. Please try again.', 'alert-success alert-warning-like');
                             })
                             .finally(function () {
@@ -748,6 +808,7 @@
                         var panels = wizardRoot.querySelectorAll('[data-wizard-panel]');
                         var triggers = wizardRoot.querySelectorAll('[data-step-target]');
                         var initialStep = Number(wizardRoot.dataset.initialStep || 2);
+                        var stepBaseUrl = wizardRoot.dataset.stepBaseUrl || '/membership/profile-completion';
 
                         function showWizardStep(step) {
                             stepInputs.forEach(function (input) {
@@ -782,7 +843,7 @@
                                 stepLabel.textContent = 'Step ' + step + ' of 10';
                             }
 
-                            window.history.replaceState({}, '', '/dashboard/profile/complete/' + step);
+                            window.history.replaceState({}, '', stepBaseUrl + '/' + step);
                         }
 
                         triggers.forEach(function (trigger) {

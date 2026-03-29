@@ -32,10 +32,6 @@
         </section>
 
         <section class="workspace-panel admin-queue-panel">
-            @if (session('success'))
-                <div class="alert-success">{{ session('success') }}</div>
-            @endif
-
             <div class="admin-simple-list">
                 @forelse ($applications as $application)
                     <article class="admin-simple-row">

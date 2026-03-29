@@ -20,7 +20,7 @@
                     </div>
                     <div class="hero-actions">
                         @if ($profileCompletion < 100)
-                            <a class="button button-primary" href="{{ route('member.profile.complete', ['step' => max(2, ($user->profile?->completion_step ?? 1) + 1 > 10 ? 10 : ($user->profile?->completion_step ?? 1) + 1)]) }}">
+                            <a class="button button-primary" href="{{ route('member.profile.complete', ['step' => max(2, min(10, $user->profile?->completion_step ?? 2))]) }}">
                                 Complete Alumni Profile
                             </a>
                         @endif

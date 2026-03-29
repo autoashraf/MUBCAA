@@ -50,10 +50,6 @@
             @csrf
             <input type="hidden" name="wizard_step" value="{{ $activeStep }}">
 
-            @if (session('success'))
-                <div class="alert-success">{{ session('success') }}</div>
-            @endif
-
             <div class="dashboard-form-head">
                 <div>
                     <p class="panel-card-label">Step {{ $activeStep }}: {{ $steps[$activeStep] }}</p>

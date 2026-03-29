@@ -40,6 +40,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const updateDraftButtons = (stepCompletion) => {
+        if (!stepCompletion) {
+            return;
+        }
+
+        Object.entries(stepCompletion).forEach(([step, isComplete]) => {
+            const button = document.querySelector(`[data-draft-action-step="${step}"]`);
+
+            if (!button) {
+                return;
+            }
+
+            button.hidden = Boolean(isComplete);
+        });
+    };
+
     const mountImagePreviews = (root = document) => {
         const placeholderText = (targetName) => targetName === 'cover_photo' ? 'Cover Preview' : 'Photo Preview';
 
@@ -305,6 +321,42 @@ document.addEventListener('DOMContentLoaded', () => {
         form.insertAdjacentElement('afterbegin', alert);
     };
 
+    const showSiteFlash = (message, type = 'success') => {
+        if (!message) {
+            return;
+        }
+
+        let stack = document.querySelector('.site-flash-stack');
+
+        if (!stack) {
+            stack = document.createElement('div');
+            stack.className = 'site-flash-stack';
+            stack.setAttribute('aria-live', 'polite');
+            stack.setAttribute('aria-atomic', 'true');
+            document.body.appendChild(stack);
+        }
+
+        const flash = document.createElement('div');
+        flash.className = `site-flash site-flash-${type}`;
+
+        const title = document.createElement('strong');
+        title.textContent = type === 'error' ? 'Error' : 'Success';
+
+        const body = document.createElement('span');
+        body.textContent = message;
+
+        flash.append(title, body);
+        stack.appendChild(flash);
+
+        window.setTimeout(() => {
+            flash.remove();
+
+            if (!stack.children.length) {
+                stack.remove();
+            }
+        }, 4000);
+    };
+
     document.addEventListener('submit', async (event) => {
         const form = event.target.closest('form[data-ajax-form]');
 
@@ -350,10 +402,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) {
                 if (response.status === 422) {
                     applyFormErrors(form, payload.errors || {});
-                    showFormMessage(form, 'Please review the highlighted fields.', 'alert-success alert-warning-like');
+                    showSiteFlash('Please review the highlighted fields.', 'error');
                     return;
                 }
 
+                showSiteFlash(payload.message || 'Something went wrong. Please try again.', 'error');
                 showFormMessage(form, payload.message || 'Something went wrong. Please try again.', 'alert-success alert-warning-like');
                 return;
             }
@@ -374,11 +427,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (mode === 'verification' && verificationModalRoot && payload.modal_html) {
                 verificationModalRoot.innerHTML = payload.modal_html;
                 mountOtpGroups(verificationModalRoot);
+                showSiteFlash(payload.message, 'success');
                 return;
             }
 
             if (mode === 'wizard') {
-                showFormMessage(form, payload.message);
+                showSiteFlash(payload.message, 'success');
 
                 if (payload.submitted && payload.redirect_url) {
                     window.location.href = payload.redirect_url;
@@ -390,12 +444,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 updateWizardSummary(payload.summary);
+                updateDraftButtons(payload.step_completion);
 
                 if (payload.next_step && wizardRoot?.__showStep) {
                     wizardRoot.__showStep(Number(payload.next_step));
                 }
             }
         } catch (error) {
+            showSiteFlash('Something went wrong. Please try again.', 'error');
             showFormMessage(form, 'Something went wrong. Please try again.', 'alert-success alert-warning-like');
         } finally {
             if (submitter) {
@@ -540,6 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const panels = wizardRoot.querySelectorAll('[data-wizard-panel]');
         const triggers = wizardRoot.querySelectorAll('[data-step-target]');
         const initialStep = Number(wizardRoot.dataset.initialStep || 2);
+        const stepBaseUrl = wizardRoot.dataset.stepBaseUrl || '/membership/profile-completion';
 
         const showStep = (step) => {
             stepInputs.forEach((input) => {
@@ -573,7 +630,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 stepLabel.textContent = `Step ${step} of 10`;
             }
 
-            window.history.replaceState({}, '', `/dashboard/profile/complete/${step}`);
+            window.history.replaceState({}, '', `${stepBaseUrl}/${step}`);
         };
 
         triggers.forEach((trigger) => {

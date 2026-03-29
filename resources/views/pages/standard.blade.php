@@ -78,10 +78,6 @@
                     <p class="dashboard-copy">Use this form for membership queries, event coordination, or general enquiries. A team member can follow up from the details you provide.</p>
                 </div>
                 <div class="form-card contact-form-card">
-                    @if (session('success'))
-                        <div class="alert-success">{{ session('success') }}</div>
-                    @endif
-
                     <form method="POST" action="{{ route('contact.store') }}">
                         @csrf
                         <div class="form-grid">

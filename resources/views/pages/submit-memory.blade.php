@@ -13,9 +13,6 @@
         <div class="wrap narrow">
             <form class="form-card" method="POST" action="{{ route('memories.store') }}">
                 @csrf
-                @if (session('success'))
-                    <div class="alert-success">{{ session('success') }}</div>
-                @endif
 
                 <div class="form-grid">
                     <label>

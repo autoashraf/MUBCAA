@@ -23,12 +23,9 @@
     </section>
 
     <section class="section">
-        <div class="wrap registration-shell" data-profile-wizard data-initial-step="{{ $activeStep }}">
+        <div class="wrap registration-shell" data-profile-wizard data-initial-step="{{ $activeStep }}" data-step-base-url="{{ url('/membership/profile-completion') }}">
             <form class="form-card registration-form-card" method="POST" action="{{ route('member.profile.complete.save') }}" enctype="multipart/form-data" data-ajax-form="wizard">
                 @csrf
-                @if (session('success'))
-                    <div class="alert-success">{{ session('success') }}</div>
-                @endif
                 @error('verification')
                     <div class="alert-success alert-warning-like">{{ $message }}</div>
                 @enderror
@@ -356,7 +353,7 @@
                                     <button class="button button-secondary" type="button" data-step-target="{{ $number - 1 }}">Previous</button>
                                 @endif
                                 @if ($number >= 2 && $number < 10)
-                                    <button class="button button-secondary" type="submit" name="save_as_draft" value="1">Save as Draft</button>
+                                    <button class="button button-secondary" type="submit" name="save_as_draft" value="1" data-draft-action-step="{{ $number }}" @if(!empty($stepCompletion[$number])) hidden @endif>Save as Draft</button>
                                     <button class="button button-primary" type="submit" name="next_step" value="{{ $number + 1 }}">Save &amp; Continue</button>
                                 @elseif ($number === 10)
                                     <button class="button button-primary" type="submit" name="submit_for_verification" value="1">Submit for Review</button>

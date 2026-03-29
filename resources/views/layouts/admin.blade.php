@@ -35,6 +35,7 @@
             </header>
 
             <main class="admin-layout-main">
+                @include('partials.flash-messages')
                 <div class="admin-layout-grid">
                     <aside class="admin-layout-sidebar">
                         <nav class="admin-nav">
