@@ -317,6 +317,93 @@
                         });
                     }
 
+                    function mountResendCountdowns(root) {
+                        (root || document).querySelectorAll('[data-resend-button]').forEach(function (button) {
+                            if (button.dataset.resendMounted === 'true') {
+                                return;
+                            }
+
+                            var baseLabel = button.dataset.resendLabel || button.textContent.trim() || 'Resend code';
+                            var remaining = Number(button.dataset.resendSeconds || 0);
+
+                            function render() {
+                                if (remaining > 0) {
+                                    button.disabled = true;
+                                    button.textContent = 'Resend in ' + remaining + 's';
+                                    button.classList.add('is-disabled');
+                                } else {
+                                    button.disabled = false;
+                                    button.textContent = baseLabel;
+                                    button.classList.remove('is-disabled');
+                                }
+                            }
+
+                            render();
+
+                            if (remaining > 0) {
+                                var timerId = window.setInterval(function () {
+                                    if (!document.body.contains(button)) {
+                                        window.clearInterval(timerId);
+                                        return;
+                                    }
+
+                                    remaining -= 1;
+                                    button.dataset.resendSeconds = String(Math.max(remaining, 0));
+                                    render();
+
+                                    if (remaining <= 0) {
+                                        window.clearInterval(timerId);
+                                    }
+                                }, 1000);
+                            }
+
+                            button.dataset.resendMounted = 'true';
+                        });
+                    }
+
+                    function mountExpiryCountdowns(root) {
+                        (root || document).querySelectorAll('[data-expiry-countdown]').forEach(function (node) {
+                            if (node.dataset.expiryMounted === 'true') {
+                                return;
+                            }
+
+                            var remaining = Number(node.dataset.expirySeconds || 0);
+
+                            function render() {
+                                if (remaining > 0) {
+                                    var minutes = String(Math.floor(remaining / 60)).padStart(2, '0');
+                                    var seconds = String(remaining % 60).padStart(2, '0');
+                                    node.textContent = 'Code expires in ' + minutes + ':' + seconds;
+                                    node.classList.remove('is-expired');
+                                } else {
+                                    node.textContent = 'Code expired. Request a new OTP.';
+                                    node.classList.add('is-expired');
+                                }
+                            }
+
+                            render();
+
+                            if (remaining > 0) {
+                                var timerId = window.setInterval(function () {
+                                    if (!document.body.contains(node)) {
+                                        window.clearInterval(timerId);
+                                        return;
+                                    }
+
+                                    remaining -= 1;
+                                    node.dataset.expirySeconds = String(Math.max(remaining, 0));
+                                    render();
+
+                                    if (remaining <= 0) {
+                                        window.clearInterval(timerId);
+                                    }
+                                }, 1000);
+                            }
+
+                            node.dataset.expiryMounted = 'true';
+                        });
+                    }
+
                     function mountImagePreviews(root) {
                         function placeholderText(targetName) {
                             return targetName === 'cover_photo' ? 'Cover Preview' : 'Photo Preview';
@@ -617,6 +704,152 @@
                         });
                     }
 
+                    function mountRegistrationFieldChecks(root) {
+                        (root || document).querySelectorAll('[data-registration-check-input]').forEach(function (input) {
+                            if (input.dataset.registrationCheckMounted === 'true') {
+                                return;
+                            }
+
+                            var status = input.parentElement ? input.parentElement.querySelector('[data-registration-check-status]') : null;
+                            var checkUrl = input.dataset.registrationCheckUrl;
+                            var field = input.dataset.registrationCheckField;
+                            var timeoutId = null;
+                            var requestId = 0;
+
+                            function renderStatus(message, type) {
+                                if (!status) {
+                                    return;
+                                }
+
+                                if (!message) {
+                                    status.hidden = true;
+                                    status.textContent = '';
+                                    status.classList.remove('is-success', 'is-error', 'is-loading');
+                                    return;
+                                }
+
+                                status.hidden = false;
+                                status.textContent = message;
+                                status.classList.remove('is-success', 'is-error', 'is-loading');
+                                status.classList.add('is-' + type);
+                            }
+
+                            function runCheck() {
+                                var value = input.value.trim();
+
+                                if ((input.matches('[data-referral-code-input]') && input.hidden) || !value || !checkUrl || !field) {
+                                    renderStatus('', 'success');
+                                    return;
+                                }
+
+                                if ((field === 'email' && value.length < 5) || (field === 'mobile_number' && value.length < 11) || (field === 'referral_code' && value.length < 4)) {
+                                    renderStatus('', 'success');
+                                    return;
+                                }
+
+                                var currentRequest = ++requestId;
+                                renderStatus('Checking...', 'loading');
+
+                                var formData = new FormData();
+                                formData.append('field', field);
+                                formData.append('value', value);
+                                formData.append('_token', (document.querySelector('meta[name="csrf-token"]') || {}).content || (document.querySelector('input[name="_token"]') || {}).value || '');
+
+                                fetch(checkUrl, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'X-Requested-With': 'XMLHttpRequest'
+                                    },
+                                    body: formData,
+                                    credentials: 'same-origin'
+                                })
+                                    .then(function (response) {
+                                        return response.json().catch(function () { return {}; });
+                                    })
+                                    .then(function (payload) {
+                                        if (currentRequest !== requestId) {
+                                            return;
+                                        }
+
+                                        renderStatus(payload.message || 'Unable to verify right now.', payload.type || (payload.valid ? 'success' : 'error'));
+                                    })
+                                    .catch(function () {
+                                        if (currentRequest !== requestId) {
+                                            return;
+                                        }
+
+                                        renderStatus('Unable to verify right now.', 'error');
+                                    });
+                            }
+
+                            input.addEventListener('input', function () {
+                                window.clearTimeout(timeoutId);
+                                timeoutId = window.setTimeout(runCheck, 350);
+                            });
+
+                            input.addEventListener('blur', runCheck);
+                            input.dataset.registrationCheckMounted = 'true';
+                        });
+                    }
+
+                    function mountDiscoverySourceToggle(root) {
+                        (root || document).querySelectorAll('[data-discovery-source-select]').forEach(function (select) {
+                            if (select.dataset.discoveryMounted === 'true') {
+                                return;
+                            }
+
+                            var wrapper = select.closest('[data-discovery-field-wrapper]');
+                            var input = wrapper ? wrapper.querySelector('[data-referral-code-input]') : null;
+                            var status = wrapper ? wrapper.querySelector('[data-registration-check-status]') : null;
+                            var label = wrapper ? wrapper.querySelector('[data-discovery-field-label]') : null;
+                            var reset = wrapper ? wrapper.querySelector('[data-referral-code-reset]') : null;
+
+                            function sync() {
+                                var isReferral = select.value === 'Referral Code';
+
+                                if (!wrapper || !input) {
+                                    return;
+                                }
+
+                                select.hidden = isReferral;
+                                input.hidden = !isReferral;
+                                if (reset) {
+                                    reset.hidden = !isReferral;
+                                }
+                                if (label) {
+                                    label.textContent = isReferral ? 'Referral Code' : 'How did you find us?';
+                                }
+
+                                if (!isReferral && status) {
+                                    status.hidden = true;
+                                    status.textContent = '';
+                                    status.classList.remove('is-success', 'is-error', 'is-loading');
+                                }
+
+                                if (!isReferral) {
+                                    input.value = '';
+                                } else {
+                                    window.setTimeout(function () {
+                                        input.focus();
+                                    }, 0);
+                                }
+                            }
+
+                            select.addEventListener('change', sync);
+                            if (reset) {
+                                reset.addEventListener('click', function () {
+                                    select.hidden = false;
+                                    select.value = '';
+                                    sync();
+                                    select.focus();
+                                });
+                            }
+                            sync();
+                            select.dataset.discoveryMounted = 'true';
+                        });
+                    }
+
                     function showSiteFlash(message, type) {
                         if (!message) {
                             return;
@@ -718,14 +951,18 @@
                                 if (mode === 'registration' && verificationModalRoot && payload.modal_html) {
                                     verificationModalRoot.innerHTML = payload.modal_html;
                                     mountOtpGroups(verificationModalRoot);
+                                    mountResendCountdowns(verificationModalRoot);
+                                    mountExpiryCountdowns(verificationModalRoot);
                                     return;
                                 }
 
                                 if (mode === 'verification' && verificationModalRoot && payload.modal_html) {
                                     verificationModalRoot.innerHTML = payload.modal_html;
                                     mountOtpGroups(verificationModalRoot);
+                                    mountResendCountdowns(verificationModalRoot);
+                                    mountExpiryCountdowns(verificationModalRoot);
                                     if (!payload.completed) {
-                                        showSiteFlash(payload.message, 'success');
+                                        showSiteFlash(payload.message, payload.flash_type || 'success');
                                     }
                                     return;
                                 }
@@ -810,8 +1047,12 @@
                     });
 
                     mountLoginIdentifierCheck();
+                    mountRegistrationFieldChecks();
+                    mountDiscoverySourceToggle();
 
                     mountOtpGroups(document);
+                    mountResendCountdowns(document);
+                    mountExpiryCountdowns(document);
                     mountImagePreviews(document);
                     mountWhatsappSync(document);
 

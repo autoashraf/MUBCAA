@@ -80,6 +80,16 @@
                         <input type="text" name="passing_year_batch" value="{{ old('passing_year_batch', $profile?->passing_year_batch) }}">
                         @error('passing_year_batch') <small>{{ $message }}</small> @enderror
                     </label>
+                    <label>
+                        <span>How did you find us?</span>
+                        <select name="how_did_you_find_us">
+                            <option value="">Select one</option>
+                            @foreach ($discoverySources as $option)
+                                <option value="{{ $option }}" @selected(old('how_did_you_find_us', $profile?->how_did_you_find_us) === $option)>{{ $option }}</option>
+                            @endforeach
+                        </select>
+                        @error('how_did_you_find_us') <small>{{ $message }}</small> @enderror
+                    </label>
                 </div>
             @elseif ((int) $activeStep === 2)
                 <div class="form-grid">

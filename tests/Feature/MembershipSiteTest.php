@@ -52,6 +52,7 @@ class MembershipSiteTest extends TestCase
             'mobile_number' => '01700000001',
             'email' => 'applicant@example.com',
             'passing_year_batch' => '2012',
+            'discovery_source' => 'Facebook',
             'captcha_left' => 4,
             'captcha_right' => 5,
             'captcha_answer' => 9,
@@ -66,7 +67,13 @@ class MembershipSiteTest extends TestCase
         $this->assertDatabaseHas('pending_registrations', [
             'email' => 'applicant@example.com',
             'mobile_number' => '01700000001',
+            'how_did_you_find_us' => 'Facebook',
         ]);
+
+        $registration = PendingRegistration::query()->where('email', 'applicant@example.com')->firstOrFail();
+
+        $this->assertNotNull($registration->email_code);
+        $this->assertNull($registration->mobile_code);
 
         Mail::assertSent(VerificationOtpMail::class, 1);
     }
@@ -106,6 +113,9 @@ class MembershipSiteTest extends TestCase
             ->post(route('member.verification.email'), ['code' => $registration->email_code])
             ->assertRedirect();
 
+        $registration = $registration->fresh();
+        $this->assertNotNull($registration->mobile_code);
+
         $this->withSession(['pending_registration_id' => $registration->id])
             ->post(route('member.verification.mobile'), ['code' => $registration->mobile_code])
             ->assertRedirect(route('member.profile.complete', ['step' => 2]));
@@ -114,6 +124,71 @@ class MembershipSiteTest extends TestCase
 
         $this->assertSame($referrer->id, $member->referred_by_user_id);
         $this->assertNotNull($member->affiliate_code);
+    }
+
+    public function test_manual_referral_code_is_captured_in_pending_registration(): void
+    {
+        Mail::fake();
+
+        $referrer = User::factory()->create([
+            'role' => 'member',
+            'membership_status' => 'verified',
+            'approval_step' => 1,
+            'affiliate_code' => 'AFF123456',
+        ]);
+
+        $this->withSession([
+            'registration_captcha_a' => 3,
+            'registration_captcha_b' => 4,
+        ])->post('/membership/apply-now', [
+            'full_name' => 'Manual Referral Applicant',
+            'mobile_number' => '01700000019',
+            'email' => 'manual-referral@example.com',
+            'passing_year_batch' => '2014',
+            'discovery_source' => 'Referral Code',
+            'referral_code' => 'AFF123456',
+            'captcha_left' => 3,
+            'captcha_right' => 4,
+            'captcha_answer' => 7,
+        ])->assertRedirect(route('member.verification.show'));
+
+        $registration = PendingRegistration::query()->where('email', 'manual-referral@example.com')->firstOrFail();
+
+        $this->assertSame($referrer->id, $registration->referred_by_user_id);
+    }
+
+    public function test_registration_check_reports_existing_values_and_valid_referral_code(): void
+    {
+        $member = User::factory()->create([
+            'role' => 'member',
+            'email' => 'taken@example.com',
+            'phone' => '01700000199',
+            'affiliate_code' => 'AFF654321',
+        ]);
+
+        $this->postJson(route('membership.apply.check'), [
+            'field' => 'email',
+            'value' => 'taken@example.com',
+        ])->assertOk()->assertJson([
+            'valid' => false,
+            'type' => 'error',
+        ]);
+
+        $this->postJson(route('membership.apply.check'), [
+            'field' => 'mobile_number',
+            'value' => '01700000199',
+        ])->assertOk()->assertJson([
+            'valid' => false,
+            'type' => 'error',
+        ]);
+
+        $this->postJson(route('membership.apply.check'), [
+            'field' => 'referral_code',
+            'value' => 'AFF654321',
+        ])->assertOk()->assertJson([
+            'valid' => true,
+            'type' => 'success',
+        ]);
     }
 
     public function test_member_can_login_and_access_dashboard(): void
@@ -196,8 +271,11 @@ class MembershipSiteTest extends TestCase
             ->post(route('member.verification.email'), ['code' => '123456'])
             ->assertRedirect();
 
+        $registration = $registration->fresh();
+        $this->assertNotNull($registration->mobile_code);
+
         $this->withSession(['pending_registration_id' => $registration->id])
-            ->post(route('member.verification.mobile'), ['code' => '654321'])
+            ->post(route('member.verification.mobile'), ['code' => $registration->mobile_code])
             ->assertRedirect(route('member.profile.complete', ['step' => 2]));
 
         $member = User::query()->where('email', 'pending@example.com')->first();

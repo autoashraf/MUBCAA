@@ -14,6 +14,7 @@ class PendingRegistration extends Model
         'mobile_number',
         'email',
         'passing_year_batch',
+        'how_did_you_find_us',
         'referred_by_user_id',
         'student_id_or_roll',
         'current_city',

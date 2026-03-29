@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Illuminate\Support\Carbon;
 
 class AuthController extends Controller
 {
@@ -41,6 +42,8 @@ class AuthController extends Controller
             'loginOtpPending' => session()->has('login_otp_user_id'),
             'loginOtpChannel' => session('login_otp_channel'),
             'loginOtpContact' => session('login_otp_contact'),
+            'loginOtpResendCooldown' => $this->loginOtpResendCooldown(request()),
+            'loginOtpExpiryCountdown' => $this->loginOtpExpiryCountdown(request()),
         ]);
     }
 
@@ -106,6 +109,30 @@ class AuthController extends Controller
             'exists' => true,
             'message' => 'Member account found. You can request an OTP.',
         ]);
+    }
+
+    public function checkRegistrationField(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'field' => ['required', Rule::in(['email', 'mobile_number', 'referral_code'])],
+            'value' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $value = trim((string) $validated['value']);
+
+        if ($value === '') {
+            return response()->json([
+                'valid' => false,
+                'message' => '',
+                'type' => 'loading',
+            ]);
+        }
+
+        return match ($validated['field']) {
+            'email' => $this->checkRegistrationEmail($value),
+            'mobile_number' => $this->checkRegistrationMobile($value),
+            'referral_code' => $this->checkRegistrationReferralCode($value),
+        };
     }
 
     public function adminLogin(Request $request): RedirectResponse
@@ -236,6 +263,7 @@ class AuthController extends Controller
             'captchaRight' => $captchaRight,
             'affiliateReferrer' => $affiliateReferrer,
             'passingYears' => $this->passingYearOptions(),
+            'discoverySources' => $this->howDidYouFindUsOptions(),
         ]);
     }
 
@@ -246,10 +274,49 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'mobile_number' => ['required', 'string', 'max:50', 'unique:users,phone'],
             'passing_year_batch' => ['required', Rule::in($this->passingYearOptions())],
+            'discovery_source' => ['nullable', Rule::in(array_merge($this->howDidYouFindUsOptions(), ['Referral Code']))],
+            'referral_code' => ['nullable', 'string', 'max:50'],
             'captcha_left' => ['required', 'integer', 'between:1,9'],
             'captcha_right' => ['required', 'integer', 'between:1,9'],
             'captcha_answer' => ['required', 'integer'],
         ]);
+
+        $resolvedReferrer = $this->resolveAffiliateReferrer(
+            $request,
+            ($validated['discovery_source'] ?? null) === 'Referral Code'
+                ? ($validated['referral_code'] ?? null)
+                : null,
+        );
+
+        if (($validated['discovery_source'] ?? null) === 'Referral Code' && blank($validated['referral_code'] ?? null)) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'ok' => false,
+                    'errors' => [
+                        'referral_code' => ['Enter a referral code.'],
+                    ],
+                ], 422);
+            }
+
+            return back()
+                ->withErrors(['referral_code' => 'Enter a referral code.'])
+                ->withInput();
+        }
+
+        if (($validated['discovery_source'] ?? null) === 'Referral Code' && ! $resolvedReferrer) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'ok' => false,
+                    'errors' => [
+                        'referral_code' => ['The referral code is invalid.'],
+                    ],
+                ], 422);
+            }
+
+            return back()
+                ->withErrors(['referral_code' => 'The referral code is invalid.'])
+                ->withInput();
+        }
 
         $captchaSum = (int) $validated['captcha_left'] + (int) $validated['captcha_right'];
 
@@ -271,28 +338,36 @@ class AuthController extends Controller
                 ->withInput($request->except('captcha_answer'));
         }
 
-        $registration = DB::transaction(function () use ($validated): PendingRegistration {
+        $registration = DB::transaction(function () use ($validated, $resolvedReferrer): PendingRegistration {
             PendingRegistration::query()
                 ->whereIn('email', [$validated['email']])
                 ->orWhere('mobile_number', $validated['mobile_number'])
                 ->delete();
-
-            $referrer = User::query()
-                ->whereKey(request()->session()->get('affiliate_referrer_id'))
-                ->where('role', 'member')
-                ->first();
 
             return PendingRegistration::query()->create([
                 'full_name' => $validated['full_name'],
                 'email' => $validated['email'],
                 'mobile_number' => $validated['mobile_number'],
                 'passing_year_batch' => $validated['passing_year_batch'],
-                'referred_by_user_id' => $referrer?->id,
+                'how_did_you_find_us' => ($validated['discovery_source'] ?? null) === 'Referral Code'
+                    ? null
+                    : ($validated['discovery_source'] ?? null),
+                'referred_by_user_id' => $resolvedReferrer?->id,
             ]);
         });
 
         $request->session()->put('pending_registration_id', $registration->id);
-        $this->verificationService->issueForPendingRegistration($registration);
+        $issuedChannel = $this->verificationService->issueForPendingRegistration($registration);
+        $registration = $registration->fresh();
+
+        if ($issuedChannel) {
+            $request->session()->put('pending_verification_sent_at', [
+                $issuedChannel => now()->toDateTimeString(),
+            ]);
+        } else {
+            $request->session()->forget('pending_verification_sent_at');
+        }
+
         $request->session()->forget(['registration_captcha_a', 'registration_captcha_b']);
         $request->session()->forget('affiliate_referrer_id');
 
@@ -307,6 +382,14 @@ class AuthController extends Controller
                     'verificationMobile' => $registration->mobile_number,
                     'emailVerified' => false,
                     'mobileVerified' => false,
+                    'emailResendCooldown' => $issuedChannel === 'email' ? 60 : 0,
+                    'mobileResendCooldown' => $issuedChannel === 'mobile' ? 60 : 0,
+                    'emailExpiryCountdown' => $registration->email_code_expires_at
+                        ? max(0, now()->diffInSeconds($registration->email_code_expires_at, false))
+                        : 0,
+                    'mobileExpiryCountdown' => $registration->mobile_code_expires_at
+                        ? max(0, now()->diffInSeconds($registration->mobile_code_expires_at, false))
+                        : 0,
                     'verificationContinueUrl' => route('member.profile.complete', ['step' => 2]),
                     'verificationSuccessMessage' => $message,
                 ])->render(),
@@ -334,6 +417,100 @@ class AuthController extends Controller
         return collect(range((int) now()->year, 1970))
             ->map(fn (int $year) => (string) $year)
             ->all();
+    }
+
+    private function howDidYouFindUsOptions(): array
+    {
+        return [
+            'Facebook',
+            'Google Search',
+            'Friend or Family',
+            'Alumni Member',
+            'School / College',
+            'Event or Program',
+            'Website',
+            'Other',
+        ];
+    }
+
+    private function resolveAffiliateReferrer(Request $request, ?string $referralCode = null): ?User
+    {
+        $normalizedCode = filled($referralCode) ? strtoupper(trim($referralCode)) : null;
+
+        if ($normalizedCode) {
+            return User::query()
+                ->where('role', 'member')
+                ->where('affiliate_code', $normalizedCode)
+                ->first();
+        }
+
+        return User::query()
+            ->whereKey($request->session()->get('affiliate_referrer_id'))
+            ->where('role', 'member')
+            ->first();
+    }
+
+    private function checkRegistrationEmail(string $value): JsonResponse
+    {
+        if (! filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'Enter a valid email address.',
+                'type' => 'error',
+            ]);
+        }
+
+        $exists = User::query()->where('email', $value)->exists();
+
+        return response()->json([
+            'valid' => ! $exists,
+            'message' => $exists
+                ? 'This email address is already registered.'
+                : 'Email address is available.',
+            'type' => $exists ? 'error' : 'success',
+        ]);
+    }
+
+    private function checkRegistrationMobile(string $value): JsonResponse
+    {
+        $normalized = preg_replace('/\D+/', '', $value) ?: $value;
+
+        if (strlen($normalized) < 11) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'Enter a valid mobile number.',
+                'type' => 'error',
+            ]);
+        }
+
+        $exists = User::query()
+            ->where('phone', $value)
+            ->orWhere('phone', $normalized)
+            ->exists();
+
+        return response()->json([
+            'valid' => ! $exists,
+            'message' => $exists
+                ? 'This mobile number is already registered.'
+                : 'Mobile number is available.',
+            'type' => $exists ? 'error' : 'success',
+        ]);
+    }
+
+    private function checkRegistrationReferralCode(string $value): JsonResponse
+    {
+        $referrer = User::query()
+            ->where('role', 'member')
+            ->where('affiliate_code', strtoupper($value))
+            ->first();
+
+        return response()->json([
+            'valid' => (bool) $referrer,
+            'message' => $referrer
+                ? 'Referral code found.'
+                : 'Referral code was not found.',
+            'type' => $referrer ? 'success' : 'error',
+        ]);
     }
 
     public function affiliateRedirect(Request $request, User $user): RedirectResponse
@@ -445,5 +622,29 @@ class AuthController extends Controller
             'login_otp_expires_at',
             'login_otp_sent_at',
         ]);
+    }
+
+    private function loginOtpResendCooldown(Request $request): int
+    {
+        $sentAt = $request->session()->get('login_otp_sent_at');
+
+        if (! filled($sentAt)) {
+            return 0;
+        }
+
+        $remaining = 60 - now()->diffInSeconds(Carbon::parse($sentAt));
+
+        return max(0, $remaining);
+    }
+
+    private function loginOtpExpiryCountdown(Request $request): int
+    {
+        $expiresAt = $request->session()->get('login_otp_expires_at');
+
+        if (! filled($expiresAt)) {
+            return 0;
+        }
+
+        return max(0, now()->diffInSeconds(Carbon::parse($expiresAt), false));
     }
 }

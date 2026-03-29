@@ -37,6 +37,7 @@
                         <div><dt>Email</dt><dd>{{ $user->email }}</dd></div>
                         <div><dt>Mobile</dt><dd>{{ $user->phone ?: ($profile?->primary_mobile ?? 'Not added') }}</dd></div>
                         <div><dt>Passing Year / Batch</dt><dd>{{ $profile?->passing_year_batch ?: 'Not added' }}</dd></div>
+                        <div><dt>How did you find us?</dt><dd>{{ $profile?->how_did_you_find_us ?: 'Not added' }}</dd></div>
                     </dl>
                 </article>
 

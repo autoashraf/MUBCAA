@@ -11,6 +11,7 @@ use App\Support\SiteNavigation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -18,6 +19,8 @@ use Illuminate\View\View;
 
 class VerificationController extends Controller
 {
+    private const RESEND_COOLDOWN_SECONDS = 60;
+
     public function __construct(
         private readonly ContactVerificationService $verificationService,
     ) {
@@ -34,6 +37,9 @@ class VerificationController extends Controller
             'registrationStatuses' => ['Draft', 'Unverified', 'In Progress', 'Pending Review', 'Verified'],
             'captchaLeft' => $captchaLeft,
             'captchaRight' => $captchaRight,
+            'affiliateReferrer' => null,
+            'passingYears' => $this->passingYearOptions(),
+            'discoverySources' => $this->howDidYouFindUsOptions(),
             'showVerificationModal' => true,
             'verificationMode' => $mode,
             'verificationTarget' => $target,
@@ -41,6 +47,10 @@ class VerificationController extends Controller
             'verificationMobile' => $mode === 'pending' ? $target->mobile_number : ($target->profile?->mobile_number ?: $target->phone),
             'emailVerified' => $target->hasVerifiedEmail(),
             'mobileVerified' => $target->hasVerifiedMobile(),
+            'emailResendCooldown' => $this->cooldownRemainingForChannel($request, $target, $mode, 'email'),
+            'mobileResendCooldown' => $this->cooldownRemainingForChannel($request, $target, $mode, 'mobile'),
+            'emailExpiryCountdown' => $this->expiryRemainingForChannel($target, $mode, 'email'),
+            'mobileExpiryCountdown' => $this->expiryRemainingForChannel($target, $mode, 'mobile'),
             'verificationContinueUrl' => $mode === 'pending'
                 ? route('member.profile.complete', ['step' => 2])
                 : route('member.profile.complete', ['step' => max(2, $target->profile?->completion_step ?? 2)]),
@@ -74,7 +84,19 @@ class VerificationController extends Controller
             return back()->withErrors(['email_code' => 'The email verification code is invalid or expired.']);
         }
 
-        return $this->verificationRedirect($request, 'Email verified successfully.');
+        $message = 'Email verified successfully.';
+
+        if ($mode === 'pending') {
+            $target = $target->fresh();
+            $issuedChannel = $this->verificationService->issueForPendingRegistration($target);
+
+            if ($issuedChannel === 'mobile') {
+                $this->storePendingResendTimestamp($request, 'mobile');
+                $message = 'Email verified successfully. A mobile OTP has been sent.';
+            }
+        }
+
+        return $this->verificationRedirect($request, $message);
     }
 
     public function verifyMobile(Request $request): JsonResponse|RedirectResponse
@@ -112,9 +134,27 @@ class VerificationController extends Controller
         abort_unless(in_array($channel, ['email', 'mobile'], true), 404);
 
         [$target, $mode] = $this->resolveVerificationTarget($request);
+        $remaining = $this->cooldownRemainingForChannel($request, $target, $mode, $channel);
+
+        if ($remaining > 0) {
+            $message = "Please wait {$remaining} seconds before requesting another OTP.";
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'ok' => true,
+                    'message' => $message,
+                    'flash_type' => 'error',
+                    'completed' => false,
+                    'modal_html' => $this->renderVerificationModal($request, $target, $mode, $message),
+                ]);
+            }
+
+            return back()->withErrors([$channel => $message]);
+        }
 
         if ($mode === 'pending') {
             $this->verificationService->resendPending($target, $channel);
+            $this->storePendingResendTimestamp($request, $channel);
         } else {
             $this->verificationService->resend($target, $channel);
         }
@@ -129,7 +169,8 @@ class VerificationController extends Controller
             return response()->json([
                 'ok' => true,
                 'message' => $message,
-                'modal_html' => $this->renderVerificationModal($freshTarget, $freshMode, $message),
+                'flash_type' => 'success',
+                'modal_html' => $this->renderVerificationModal($request, $freshTarget, $freshMode, $message),
             ]);
         }
 
@@ -150,7 +191,7 @@ class VerificationController extends Controller
                     'message' => $successMessage,
                     'completed' => true,
                     'continue_url' => route('member.profile.complete', ['step' => max(2, $user->profile?->completion_step ?? 2)]),
-                    'modal_html' => $this->renderVerificationModal($user, 'user', $successMessage),
+                    'modal_html' => $this->renderVerificationModal($request, $user, 'user', $successMessage),
                 ]);
             }
 
@@ -168,7 +209,7 @@ class VerificationController extends Controller
                     'message' => $successMessage,
                     'completed' => true,
                     'continue_url' => route('member.profile.complete', ['step' => max(2, $target->profile?->completion_step ?? 2)]),
-                    'modal_html' => $this->renderVerificationModal($target->fresh()->load('profile', 'verificationTokens'), 'user', $successMessage),
+                    'modal_html' => $this->renderVerificationModal($request, $target->fresh()->load('profile', 'verificationTokens'), 'user', $successMessage),
                 ]);
             }
 
@@ -184,14 +225,15 @@ class VerificationController extends Controller
                 'ok' => true,
                 'message' => $message,
                 'completed' => false,
-                'modal_html' => $this->renderVerificationModal($freshTarget, $freshMode, $message),
+                'flash_type' => 'success',
+                'modal_html' => $this->renderVerificationModal($request, $freshTarget, $freshMode, $message),
             ]);
         }
 
         return back()->with('success', $message);
     }
 
-    private function renderVerificationModal(object $target, string $mode, ?string $message = null): string
+    private function renderVerificationModal(Request $request, object $target, string $mode, ?string $message = null): string
     {
         $target = $mode === 'user' ? $target->fresh()->load('profile', 'verificationTokens') : $target->fresh();
 
@@ -200,6 +242,10 @@ class VerificationController extends Controller
             'verificationMobile' => $mode === 'pending' ? $target->mobile_number : ($target->profile?->mobile_number ?: $target->phone),
             'emailVerified' => $target->hasVerifiedEmail(),
             'mobileVerified' => $target->hasVerifiedMobile(),
+            'emailResendCooldown' => $this->cooldownRemainingForChannel($request, $target, $mode, 'email'),
+            'mobileResendCooldown' => $this->cooldownRemainingForChannel($request, $target, $mode, 'mobile'),
+            'emailExpiryCountdown' => $this->expiryRemainingForChannel($target, $mode, 'email'),
+            'mobileExpiryCountdown' => $this->expiryRemainingForChannel($target, $mode, 'mobile'),
             'verificationContinueUrl' => $mode === 'pending'
                 ? route('member.profile.complete', ['step' => 2])
                 : route('member.profile.complete', ['step' => max(2, $target->profile?->completion_step ?? 2)]),
@@ -242,6 +288,7 @@ class VerificationController extends Controller
                 'mobile_number' => $registration->mobile_number,
                 'mobile_verified' => ! is_null($registration->mobile_verified_at),
                 'passing_year_batch' => $registration->passing_year_batch,
+                'how_did_you_find_us' => $registration->how_did_you_find_us,
                 'country' => 'Bangladesh',
                 'completion_step' => 1,
             ]);
@@ -259,8 +306,82 @@ class VerificationController extends Controller
         });
 
         $request->session()->forget('pending_registration_id');
+        $request->session()->forget('pending_verification_sent_at');
         Auth::login($user);
 
         return $user;
+    }
+
+    private function cooldownRemainingForChannel(Request $request, object $target, string $mode, string $channel): int
+    {
+        $lastSentAt = $mode === 'pending'
+            ? $this->pendingResendTimestamp($request, $channel)
+            : $target->verificationTokens
+                ->where('channel', $channel)
+                ->whereNull('verified_at')
+                ->sortByDesc('sent_at')
+                ->first()?->sent_at;
+
+        if (! $lastSentAt instanceof Carbon) {
+            return 0;
+        }
+
+        $elapsed = now()->diffInSeconds($lastSentAt);
+
+        return $elapsed >= self::RESEND_COOLDOWN_SECONDS
+            ? 0
+            : self::RESEND_COOLDOWN_SECONDS - $elapsed;
+    }
+
+    private function expiryRemainingForChannel(object $target, string $mode, string $channel): int
+    {
+        $expiresAt = $mode === 'pending'
+            ? $target->{$channel.'_code_expires_at'}
+            : $target->verificationTokens
+                ->where('channel', $channel)
+                ->whereNull('verified_at')
+                ->sortByDesc('sent_at')
+                ->first()?->expires_at;
+
+        if (! $expiresAt instanceof Carbon) {
+            return 0;
+        }
+
+        $remaining = now()->diffInSeconds($expiresAt, false);
+
+        return max(0, $remaining);
+    }
+
+    private function pendingResendTimestamp(Request $request, string $channel): ?Carbon
+    {
+        $value = $request->session()->get("pending_verification_sent_at.{$channel}");
+
+        return filled($value) ? Carbon::parse($value) : null;
+    }
+
+    private function storePendingResendTimestamp(Request $request, string $channel): void
+    {
+        $request->session()->put("pending_verification_sent_at.{$channel}", now()->toDateTimeString());
+    }
+
+    private function passingYearOptions(): array
+    {
+        return collect(range((int) now()->year, 1970))
+            ->map(fn (int $year) => (string) $year)
+            ->all();
+    }
+
+    private function howDidYouFindUsOptions(): array
+    {
+        return [
+            'Facebook',
+            'Google Search',
+            'Friend or Family',
+            'Alumni Member',
+            'School / College',
+            'Event or Program',
+            'Website',
+            'Other',
+        ];
     }
 }

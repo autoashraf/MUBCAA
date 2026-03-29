@@ -286,6 +286,93 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const mountResendCountdowns = (root = document) => {
+        root.querySelectorAll('[data-resend-button]').forEach((button) => {
+            if (button.dataset.resendMounted === 'true') {
+                return;
+            }
+
+            const baseLabel = button.dataset.resendLabel || button.textContent.trim() || 'Resend code';
+            let remaining = Number(button.dataset.resendSeconds || 0);
+
+            const render = () => {
+                if (remaining > 0) {
+                    button.disabled = true;
+                    button.textContent = `Resend in ${remaining}s`;
+                    button.classList.add('is-disabled');
+                } else {
+                    button.disabled = false;
+                    button.textContent = baseLabel;
+                    button.classList.remove('is-disabled');
+                }
+            };
+
+            render();
+
+            if (remaining > 0) {
+                const timerId = window.setInterval(() => {
+                    if (!document.body.contains(button)) {
+                        window.clearInterval(timerId);
+                        return;
+                    }
+
+                    remaining -= 1;
+                    button.dataset.resendSeconds = String(Math.max(remaining, 0));
+                    render();
+
+                    if (remaining <= 0) {
+                        window.clearInterval(timerId);
+                    }
+                }, 1000);
+            }
+
+            button.dataset.resendMounted = 'true';
+        });
+    };
+
+    const mountExpiryCountdowns = (root = document) => {
+        root.querySelectorAll('[data-expiry-countdown]').forEach((node) => {
+            if (node.dataset.expiryMounted === 'true') {
+                return;
+            }
+
+            let remaining = Number(node.dataset.expirySeconds || 0);
+
+            const render = () => {
+                if (remaining > 0) {
+                    const minutes = String(Math.floor(remaining / 60)).padStart(2, '0');
+                    const seconds = String(remaining % 60).padStart(2, '0');
+                    node.textContent = `Code expires in ${minutes}:${seconds}`;
+                    node.classList.remove('is-expired');
+                } else {
+                    node.textContent = 'Code expired. Request a new OTP.';
+                    node.classList.add('is-expired');
+                }
+            };
+
+            render();
+
+            if (remaining > 0) {
+                const timerId = window.setInterval(() => {
+                    if (!document.body.contains(node)) {
+                        window.clearInterval(timerId);
+                        return;
+                    }
+
+                    remaining -= 1;
+                    node.dataset.expirySeconds = String(Math.max(remaining, 0));
+                    render();
+
+                    if (remaining <= 0) {
+                        window.clearInterval(timerId);
+                    }
+                }, 1000);
+            }
+
+            node.dataset.expiryMounted = 'true';
+        });
+    };
+
     const clearFormErrors = (form) => {
         form.querySelectorAll('.ajax-error').forEach((node) => node.remove());
         form.querySelectorAll('.is-invalid').forEach((node) => node.classList.remove('is-invalid'));
@@ -402,6 +489,145 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const mountRegistrationFieldChecks = (root = document) => {
+        root.querySelectorAll('[data-registration-check-input]').forEach((input) => {
+            if (input.dataset.registrationCheckMounted === 'true') {
+                return;
+            }
+
+            const status = input.parentElement?.querySelector('[data-registration-check-status]');
+            const checkUrl = input.dataset.registrationCheckUrl;
+            const field = input.dataset.registrationCheckField;
+            let timeoutId = null;
+            let requestId = 0;
+
+            const renderStatus = (message, type) => {
+                if (!status) {
+                    return;
+                }
+
+                if (!message) {
+                    status.hidden = true;
+                    status.textContent = '';
+                    status.classList.remove('is-success', 'is-error', 'is-loading');
+                    return;
+                }
+
+                status.hidden = false;
+                status.textContent = message;
+                status.classList.remove('is-success', 'is-error', 'is-loading');
+                status.classList.add(`is-${type}`);
+            };
+
+            const runCheck = async () => {
+                const value = input.value.trim();
+
+                if ((input.matches('[data-referral-code-input]') && input.hidden) || !value || !checkUrl || !field) {
+                    renderStatus('', 'success');
+                    return;
+                }
+
+                if ((field === 'email' && value.length < 5) || (field === 'mobile_number' && value.length < 11) || (field === 'referral_code' && value.length < 4)) {
+                    renderStatus('', 'success');
+                    return;
+                }
+
+                const currentRequest = ++requestId;
+                renderStatus('Checking...', 'loading');
+
+                try {
+                    const formData = new FormData();
+                    formData.append('field', field);
+                    formData.append('value', value);
+                    formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="_token"]')?.value || '');
+
+                    const response = await fetch(checkUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: formData,
+                        credentials: 'same-origin',
+                    });
+
+                    const payload = await response.json().catch(() => ({}));
+
+                    if (currentRequest !== requestId) {
+                        return;
+                    }
+
+                    renderStatus(payload.message || 'Unable to verify right now.', payload.type || (payload.valid ? 'success' : 'error'));
+                } catch (error) {
+                    if (currentRequest !== requestId) {
+                        return;
+                    }
+
+                    renderStatus('Unable to verify right now.', 'error');
+                }
+            };
+
+            input.addEventListener('input', () => {
+                window.clearTimeout(timeoutId);
+                timeoutId = window.setTimeout(runCheck, 350);
+            });
+
+            input.addEventListener('blur', runCheck);
+            input.dataset.registrationCheckMounted = 'true';
+        });
+    };
+
+    const mountDiscoverySourceToggle = (root = document) => {
+        root.querySelectorAll('[data-discovery-source-select]').forEach((select) => {
+            if (select.dataset.discoveryMounted === 'true') {
+                return;
+            }
+
+            const wrapper = select.closest('[data-discovery-field-wrapper]');
+            const input = wrapper?.querySelector('[data-referral-code-input]');
+            const status = wrapper?.querySelector('[data-registration-check-status]');
+            const label = wrapper?.querySelector('[data-discovery-field-label]');
+            const reset = wrapper?.querySelector('[data-referral-code-reset]');
+
+            const sync = () => {
+                const isReferral = select.value === 'Referral Code';
+
+                if (!wrapper || !input) {
+                    return;
+                }
+
+                select.hidden = isReferral;
+                input.hidden = !isReferral;
+                reset && (reset.hidden = !isReferral);
+                if (label) {
+                    label.textContent = isReferral ? 'Referral Code' : 'How did you find us?';
+                }
+
+                if (!isReferral) {
+                    if (status) {
+                        status.hidden = true;
+                        status.textContent = '';
+                        status.classList.remove('is-success', 'is-error', 'is-loading');
+                    }
+
+                    input.value = '';
+                } else {
+                    window.setTimeout(() => input.focus(), 0);
+                }
+            };
+
+            select.addEventListener('change', sync);
+            reset?.addEventListener('click', () => {
+                select.hidden = false;
+                select.value = '';
+                sync();
+                select.focus();
+            });
+            sync();
+            select.dataset.discoveryMounted = 'true';
+        });
+    };
+
     const showSiteFlash = (message, type = 'success') => {
         if (!message) {
             return;
@@ -497,14 +723,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (mode === 'registration' && verificationModalRoot && payload.modal_html) {
                 verificationModalRoot.innerHTML = payload.modal_html;
                 mountOtpGroups(verificationModalRoot);
+                mountResendCountdowns(verificationModalRoot);
+                mountExpiryCountdowns(verificationModalRoot);
                 return;
             }
 
             if (mode === 'verification' && verificationModalRoot && payload.modal_html) {
                 verificationModalRoot.innerHTML = payload.modal_html;
                 mountOtpGroups(verificationModalRoot);
+                mountResendCountdowns(verificationModalRoot);
+                mountExpiryCountdowns(verificationModalRoot);
                 if (!payload.completed) {
-                    showSiteFlash(payload.message, 'success');
+                    showSiteFlash(payload.message, payload.flash_type || 'success');
                 }
                 return;
             }
@@ -562,9 +792,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileNavGroups = document.querySelectorAll('[data-mobile-nav-group]');
 
     mountOtpGroups();
+    mountResendCountdowns();
+    mountExpiryCountdowns();
     mountImagePreviews();
     mountWhatsappSync();
     mountLoginIdentifierCheck();
+    mountRegistrationFieldChecks();
+    mountDiscoverySourceToggle();
 
     mobileNavGroups.forEach((group) => {
         const trigger = group.querySelector('[data-mobile-nav-trigger]');

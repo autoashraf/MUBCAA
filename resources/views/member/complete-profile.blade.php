@@ -61,6 +61,10 @@
                                         <span>Passing Year / Batch</span>
                                         <input type="text" value="{{ $profile?->passing_year_batch }}" readonly>
                                     </label>
+                                    <label>
+                                        <span>How did you find us?</span>
+                                        <input type="text" value="{{ $profile?->how_did_you_find_us ?: 'Not added' }}" readonly>
+                                    </label>
                                 </div>
                             @elseif ($number === 2)
                                 <div class="form-grid">

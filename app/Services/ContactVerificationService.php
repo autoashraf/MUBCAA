@@ -18,15 +18,19 @@ class ContactVerificationService
     ) {
     }
 
-    public function issueForPendingRegistration(PendingRegistration $registration): void
+    public function issueForPendingRegistration(PendingRegistration $registration): ?string
     {
         if (! $registration->hasVerifiedEmail()) {
             $this->issuePendingOtp($registration, 'email', $registration->email);
+            return 'email';
         }
 
-        if (! $registration->hasVerifiedMobile()) {
+        if ($registration->hasVerifiedEmail() && ! $registration->hasVerifiedMobile()) {
             $this->issuePendingOtp($registration, 'mobile', $registration->mobile_number);
+            return 'mobile';
         }
+
+        return null;
     }
 
     public function resendPending(PendingRegistration $registration, string $channel): void

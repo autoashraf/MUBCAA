@@ -15,6 +15,7 @@ class MemberProfile extends Model
         'mobile_number',
         'mobile_verified',
         'passing_year_batch',
+        'how_did_you_find_us',
         'student_id_or_roll',
         'ssc_passing_year',
         'hsc_passing_year',

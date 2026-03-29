@@ -20,7 +20,6 @@
                         <h3>Basic information and OTP verification</h3>
                         <p class="dashboard-copy">Please provide your basic information to begin your alumni registration. Your member account will be created only after both your mobile number and email address are verified with OTP codes.</p>
                     </div>
-                    <span class="dashboard-chip">Quick Registration</span>
                 </div>
 
                 @if (! empty($affiliateReferrer))
@@ -39,13 +38,15 @@
 
                     <label>
                         <span>Mobile Number</span>
-                        <input type="text" name="mobile_number" value="{{ old('mobile_number') }}" placeholder="Enter your mobile number" required>
+                        <input type="text" name="mobile_number" value="{{ old('mobile_number') }}" placeholder="Enter your mobile number" required data-registration-check-input data-registration-check-field="mobile_number" data-registration-check-url="{{ route('membership.apply.check') }}">
+                        <small class="field-live-status" data-registration-check-status hidden></small>
                         @error('mobile_number') <small>{{ $message }}</small> @enderror
                     </label>
 
                     <label>
                         <span>Email Address</span>
-                        <input type="email" name="email" value="{{ old('email') }}" placeholder="Enter your email address" required>
+                        <input type="email" name="email" value="{{ old('email') }}" placeholder="Enter your email address" required data-registration-check-input data-registration-check-field="email" data-registration-check-url="{{ route('membership.apply.check') }}">
+                        <small class="field-live-status" data-registration-check-status hidden></small>
                         @error('email') <small>{{ $message }}</small> @enderror
                     </label>
 
@@ -60,20 +61,34 @@
                         @error('passing_year_batch') <small>{{ $message }}</small> @enderror
                     </label>
 
+                    <label data-discovery-field-wrapper>
+                        <span class="registration-field-head">
+                            <span data-discovery-field-label>{{ old('discovery_source') === 'Referral Code' ? 'Referral Code' : 'How did you find us?' }}</span>
+                            <button class="text-link-button text-link-inline registration-field-reset" type="button" data-referral-code-reset @if (old('discovery_source') !== 'Referral Code') hidden @endif>Choose another source</button>
+                        </span>
+                        <select name="discovery_source" data-discovery-source-select @if (old('discovery_source') === 'Referral Code') hidden @endif>
+                            <option value="">Select one</option>
+                            @foreach ($discoverySources as $option)
+                                <option value="{{ $option }}" @selected(old('discovery_source') === $option)>{{ $option }}</option>
+                            @endforeach
+                            <option value="Referral Code" @selected(old('discovery_source') === 'Referral Code')>Referral Code</option>
+                        </select>
+                        <input type="text" name="referral_code" value="{{ old('referral_code') }}" placeholder="Enter referral code" data-referral-code-input data-registration-check-input data-registration-check-field="referral_code" data-registration-check-url="{{ route('membership.apply.check') }}" @if (old('discovery_source') !== 'Referral Code') hidden @endif>
+                        <small class="field-live-status" data-registration-check-status hidden></small>
+                        @error('discovery_source') <small>{{ $message }}</small> @enderror
+                        @error('referral_code') <small>{{ $message }}</small> @enderror
+                    </label>
+
                     <label>
                         <span>Security Check</span>
                         <div class="captcha-inline">
-                            <span class="captcha-chip">{{ $captchaLeft }} + {{ $captchaRight }} = ?</span>
                             <input type="hidden" name="captcha_left" value="{{ $captchaLeft }}">
                             <input type="hidden" name="captcha_right" value="{{ $captchaRight }}">
+                            <span class="captcha-chip">{{ $captchaLeft }} + {{ $captchaRight }} = ?</span>
                             <input type="text" name="captcha_answer" value="{{ old('captcha_answer') }}" placeholder="Enter answer" required>
                         </div>
                         @error('captcha_answer') <small>{{ $message }}</small> @enderror
                     </label>
-                </div>
-
-                <div class="registration-note">
-                    <strong>Note:</strong> First submit your basic information, then verify your mobile number and email address with OTP codes. After verification, you can continue with academic, personal, contact, professional, media, engagement, verification, privacy, and declaration steps.
                 </div>
 
                 <div class="action-row">

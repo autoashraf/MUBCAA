@@ -38,12 +38,11 @@
 
                     <div class="login-auth-meta">
                         <span>OTP-based login only</span>
-                        <a href="{{ route('admin.login') }}">Admin login</a>
                     </div>
 
                     <div class="login-auth-actions">
                         <button class="button button-primary login-auth-submit" type="submit">Send OTP</button>
-                        <a class="button button-secondary login-auth-secondary" href="{{ route('membership.apply') }}">Create account</a>
+                        <a class="button button-secondary login-auth-secondary" href="{{ route('membership.apply') }}">Join</a>
                     </div>
                 </div>
             </form>
@@ -78,12 +77,13 @@
                                     <input class="otp-digit" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="one-time-code">
                                 @endfor
                             </div>
+                            <small class="verification-expiry-note" data-expiry-countdown data-expiry-seconds="{{ $loginOtpExpiryCountdown ?? 0 }}">Code expires in 00:00</small>
                             @error('code') <small>{{ $message }}</small> @enderror
                         </label>
 
                         <div class="action-row verification-action-row verification-inline-actions">
                             <button class="button button-primary" type="submit">Verify and Login</button>
-                            <button class="text-link-button text-link-inline" type="submit" form="resend-login-form">Resend OTP</button>
+                            <button class="text-link-button text-link-inline" type="submit" form="resend-login-form" data-resend-button data-resend-seconds="{{ $loginOtpResendCooldown ?? 0 }}" data-resend-label="Resend OTP">Resend OTP</button>
                         </div>
                     </form>
 

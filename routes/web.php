@@ -38,6 +38,7 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/admin/login', [AuthController::class, 'showAdminLogin'])->name('admin.login');
     Route::post('/admin/login', [AuthController::class, 'adminLogin'])->name('admin.login.attempt');
     Route::get('/membership/apply-now', [AuthController::class, 'showRegistration'])->name('membership.apply');
+    Route::post('/membership/apply-now/check', [AuthController::class, 'checkRegistrationField'])->name('membership.apply.check');
     Route::post('/membership/apply-now', [AuthController::class, 'register'])->name('membership.apply.store');
 });
 

@@ -125,6 +125,7 @@ class AdminController extends Controller
             'academicShifts' => $this->shiftOptions(),
             'campusBranches' => $this->campusOptions(),
             'areasOfInterest' => $this->areasOfInterestOptions(),
+            'discoverySources' => $this->howDidYouFindUsOptions(),
         ]);
     }
 
@@ -339,6 +340,7 @@ class AdminController extends Controller
                 'mobile_number' => ['required', 'string', 'max:50'],
                 'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
                 'passing_year_batch' => ['required', 'string', 'max:50'],
+                'how_did_you_find_us' => ['nullable', Rule::in($this->howDidYouFindUsOptions())],
             ],
             2 => [
                 'ssc_passing_year' => ['required', 'string', 'max:50'],
@@ -426,6 +428,7 @@ class AdminController extends Controller
                 'primary_mobile' => $profile?->primary_mobile ?: $validated['mobile_number'],
                 'email_address' => $profile?->email_address ?: $validated['email'],
                 'passing_year_batch' => $validated['passing_year_batch'],
+                'how_did_you_find_us' => $validated['how_did_you_find_us'] ?? null,
             ],
             2 => $validated,
             3 => $validated,
@@ -587,6 +590,20 @@ class AdminController extends Controller
             'Cultural Programs',
             'Sports Activities',
             'Training & Workshops',
+        ];
+    }
+
+    private function howDidYouFindUsOptions(): array
+    {
+        return [
+            'Facebook',
+            'Google Search',
+            'Friend or Family',
+            'Alumni Member',
+            'School / College',
+            'Event or Program',
+            'Website',
+            'Other',
         ];
     }
 }
