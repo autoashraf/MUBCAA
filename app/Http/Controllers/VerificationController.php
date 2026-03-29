@@ -142,36 +142,39 @@ class VerificationController extends Controller
 
         if ($mode === 'pending' && $target->hasCompletedContactVerification()) {
             $user = $this->createUserFromPendingRegistration($target, $request);
+            $successMessage = 'Thank you for completing Step 1. Your preliminary registration has been successfully submitted. Please verify your email and mobile OTP to continue the remaining steps of your membership application. Once all required information has been submitted, the Alumni Association will review and verify your details carefully. Upon successful verification, you will be officially confirmed as a Verified Member.';
 
             if ($request->expectsJson()) {
                 return response()->json([
                     'ok' => true,
-                    'message' => $message.' Both contact methods are verified. Your member account has been created.',
+                    'message' => $successMessage,
                     'completed' => true,
                     'continue_url' => route('member.profile.complete', ['step' => max(2, $user->profile?->completion_step ?? 2)]),
-                    'modal_html' => $this->renderVerificationModal($user, 'user', $message.' Both contact methods are verified. Your member account has been created.'),
+                    'modal_html' => $this->renderVerificationModal($user, 'user', $successMessage),
                 ]);
             }
 
             return redirect()
                 ->route('member.profile.complete', ['step' => max(2, $user->profile?->completion_step ?? 2)])
-                ->with('success', $message.' Both contact methods are verified. Your member account has been created.');
+                ->with('success', $successMessage);
         }
 
         if ($mode === 'user' && $target->fresh()->hasCompletedContactVerification()) {
+            $successMessage = $message.' Both contact methods are now verified.';
+
             if ($request->expectsJson()) {
                 return response()->json([
                     'ok' => true,
-                    'message' => $message.' Both contact methods are now verified.',
+                    'message' => $successMessage,
                     'completed' => true,
                     'continue_url' => route('member.profile.complete', ['step' => max(2, $target->profile?->completion_step ?? 2)]),
-                    'modal_html' => $this->renderVerificationModal($target->fresh()->load('profile', 'verificationTokens'), 'user', $message.' Both contact methods are now verified.'),
+                    'modal_html' => $this->renderVerificationModal($target->fresh()->load('profile', 'verificationTokens'), 'user', $successMessage),
                 ]);
             }
 
             return redirect()
                 ->route('member.profile.complete', ['step' => max(2, $target->profile?->completion_step ?? 2)])
-                ->with('success', $message.' Both contact methods are now verified.');
+                ->with('success', $successMessage);
         }
 
         if ($request->expectsJson()) {

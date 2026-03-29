@@ -721,15 +721,17 @@
                                     return;
                                 }
 
-                                if (mode === 'verification' && payload.completed && payload.continue_url) {
-                                    window.location.href = payload.continue_url;
-                                    return;
-                                }
-
                                 if (mode === 'verification' && verificationModalRoot && payload.modal_html) {
                                     verificationModalRoot.innerHTML = payload.modal_html;
                                     mountOtpGroups(verificationModalRoot);
-                                    showSiteFlash(payload.message, 'success');
+                                    if (!payload.completed) {
+                                        showSiteFlash(payload.message, 'success');
+                                    }
+                                    return;
+                                }
+
+                                if (mode === 'verification' && payload.completed && payload.continue_url) {
+                                    window.location.href = payload.continue_url;
                                     return;
                                 }
 

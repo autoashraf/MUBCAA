@@ -1,66 +1,52 @@
 @extends('layouts.app')
 
 @section('content')
-    <section class="page-hero">
-        <div class="wrap login-shell">
-            <div class="login-aside">
-                <p class="eyebrow">Member Access</p>
-                <h1>Login with OTP</h1>
-                <p class="lead">Use your registered email address or mobile number. We will send a 6-digit OTP for secure sign-in.</p>
-                <div class="login-aside-points">
-                    <div class="login-aside-point">
-                        <span>01</span>
-                        <div>
-                            <strong>Request code</strong>
-                            <p>Enter your registered email or mobile number.</p>
-                        </div>
-                    </div>
-                    <div class="login-aside-point">
-                        <span>02</span>
-                        <div>
-                            <strong>Verify OTP</strong>
-                            <p>Enter the 6-digit code to access your account.</p>
-                        </div>
-                    </div>
-                    <div class="login-aside-point">
-                        <span>03</span>
-                        <div>
-                            <strong>Continue</strong>
-                            <p>Go to your dashboard, profile, or admin panel.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    @php
+        $logoPath = config('site.brand.logo_path');
+        $brandName = config('site.brand.name', 'MUBCAA');
+    @endphp
 
-            <div class="login-stack">
-                <form class="form-card login-card" method="POST" action="{{ route('login.attempt') }}">
+    <section class="section login-auth-section">
+        <div class="wrap login-auth-wrap">
+            <form class="login-auth-card" method="POST" action="{{ route('login.attempt') }}">
+                <div class="login-auth-brand">
+                    @if ($logoPath)
+                        <span class="login-auth-logo">
+                            <img src="{{ asset($logoPath) }}" alt="{{ $brandName }} logo">
+                        </span>
+                    @else
+                        <span class="login-auth-logo login-auth-logo-fallback">M</span>
+                    @endif
+                    <p class="login-auth-brand-name">{{ $brandName }}</p>
+                </div>
+
+                <div class="login-auth-copy">
+                    <h1>Member Sign In</h1>
+                    <p>Use your email or mobile to get an OTP.</p>
+                </div>
+
+                <div class="login-auth-form">
                     @csrf
                     <input type="hidden" name="login_type" value="member">
 
-                    <div class="dashboard-form-head login-card-head">
-                        <div>
-                            <p class="panel-card-label">Request OTP</p>
-                            <h2>Send sign-in code</h2>
-                        </div>
-                    </div>
-
-                    <label>
+                    <label class="login-auth-label">
                         <span>Email address or mobile number</span>
-                        <input type="text" name="identifier" value="{{ old('identifier') }}" placeholder="Enter your registered email or mobile" required data-login-identifier-input data-login-check-url="{{ route('login.check') }}">
+                        <input class="login-auth-input" type="text" name="identifier" value="{{ old('identifier') }}" placeholder="Enter your registered email or mobile" required data-login-identifier-input data-login-check-url="{{ route('login.check') }}">
                         <small class="login-identifier-status" data-login-identifier-status hidden></small>
                         @error('identifier') <small>{{ $message }}</small> @enderror
                     </label>
 
-                    <div class="action-row login-card-actions">
-                        <button class="button button-primary" type="submit">Send OTP</button>
-                        <a class="button button-secondary" href="{{ route('membership.apply') }}">Create account</a>
+                    <div class="login-auth-meta">
+                        <span>OTP-based login only</span>
+                        <a href="{{ route('admin.login') }}">Admin login</a>
                     </div>
-                    <div class="action-row login-card-actions">
-                        <a class="text-link-button text-link-inline" href="{{ route('admin.login') }}">Admin login</a>
-                    </div>
-                </form>
 
-            </div>
+                    <div class="login-auth-actions">
+                        <button class="button button-primary login-auth-submit" type="submit">Send OTP</button>
+                        <a class="button button-secondary login-auth-secondary" href="{{ route('membership.apply') }}">Create account</a>
+                    </div>
+                </div>
+            </form>
         </div>
     </section>
 
