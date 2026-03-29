@@ -350,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) {
                 if (response.status === 422) {
                     applyFormErrors(form, payload.errors || {});
-                    showFormMessage(form, payload.message || 'Please review the highlighted fields.', 'alert-success alert-warning-like');
+                    showFormMessage(form, 'Please review the highlighted fields.', 'alert-success alert-warning-like');
                     return;
                 }
 
