@@ -33,6 +33,25 @@
                         @endif
                     </div>
                 </div>
+                <div class="dashboard-hero-meta">
+                    <div class="dashboard-kpi-grid">
+                        <article class="dashboard-kpi-card">
+                            <span>Profile Completion</span>
+                            <strong>{{ $profileCompletion }}%</strong>
+                            <small>{{ $profileCompletion >= 100 ? 'All required profile steps completed' : 'Complete the remaining steps to unlock review' }}</small>
+                        </article>
+                        <article class="dashboard-kpi-card">
+                            <span>Application Status</span>
+                            <strong>{{ $documentsUnlocked ? 'Approved' : 'Under Review' }}</strong>
+                            <small>{{ $documentsUnlocked ? 'Your documents are now available' : 'Documents unlock after approval' }}</small>
+                        </article>
+                        <article class="dashboard-kpi-card">
+                            <span>Documents</span>
+                            <strong>{{ $documentsUnlocked ? ($certificateUnlocked ? '3' : '2') : '0' }}</strong>
+                            <small>{{ $documentsUnlocked ? 'Printable member files available' : 'Waiting for review completion' }}</small>
+                        </article>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -40,7 +59,10 @@
     <section class="section">
         <div class="wrap">
             <div class="dashboard-review-banner">
-                <span class="panel-card-label">Application Status</span>
+                <div class="dashboard-review-status-row">
+                    <span class="panel-card-label">Application Status</span>
+                    <span class="status-pill status-{{ $documentsUnlocked ? 'verified' : 'under_review' }}">{{ $documentsUnlocked ? 'Approved' : 'Under Review' }}</span>
+                </div>
                 <strong>{{ $documentsUnlocked ? 'Application Approved' : 'Application Under Review' }}</strong>
                 <p>{{ $documentsUnlocked ? 'Your review is complete. Your member documents are now available.' : 'Your alumni membership application is currently under review. Documents will unlock after approval.' }}</p>
                 <div class="dashboard-review-progress">
@@ -100,6 +122,36 @@
                         <p class="dashboard-copy">No referred members yet.</p>
                     @endif
                 </article>
+
+                <aside class="profile-summary-card dashboard-quick-links-card">
+                    <span class="panel-card-label">Quick Actions</span>
+                    <div class="dashboard-quick-links">
+                        <a class="dashboard-quick-link" href="{{ route('member.profile') }}">
+                            <strong>Open Profile Summary</strong>
+                            <span>Review your saved alumni information</span>
+                        </a>
+                        <a class="dashboard-quick-link" href="{{ route('member.profile.complete', ['step' => max(2, min(10, $user->profile?->completion_step ?? 2))]) }}">
+                            <strong>Profile Wizard</strong>
+                            <span>Continue editing your registration steps</span>
+                        </a>
+                        @if ($documentsUnlocked)
+                            <a class="dashboard-quick-link" href="{{ route('member.documents.profile') }}" target="_blank">
+                                <strong>Printable A4 Profile</strong>
+                                <span>Open the member profile document</span>
+                            </a>
+                            <a class="dashboard-quick-link" href="{{ route('member.documents.id-card') }}" target="_blank">
+                                <strong>Printable ID Card</strong>
+                                <span>Open your member ID card</span>
+                            </a>
+                        @endif
+                        @if ($certificateUnlocked)
+                            <a class="dashboard-quick-link" href="{{ route('member.documents.certificate') }}" target="_blank">
+                                <strong>Certificate</strong>
+                                <span>Download your membership certificate</span>
+                            </a>
+                        @endif
+                    </div>
+                </aside>
             </div>
         </div>
     </section>

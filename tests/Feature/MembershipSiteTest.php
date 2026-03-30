@@ -536,11 +536,25 @@ class MembershipSiteTest extends TestCase
         $this->actingAs($member)->get(route('member.documents.certificate'))->assertOk();
     }
 
-    public function test_memory_submission_form_validates_and_redirects_back(): void
+    public function test_memory_submission_requires_login(): void
     {
-        $response = $this->post('/memories/submit-your-memory', [
-            'name' => 'Memory Author',
-            'email' => 'memory@example.com',
+        $this->get(route('memories.submit'))
+            ->assertRedirect(route('login'));
+
+        $this->post(route('memories.store'), [
+            'title' => 'Our first event',
+            'memory' => 'It was a meaningful day for every member who attended.',
+        ])->assertRedirect(route('login'));
+    }
+
+    public function test_member_can_submit_memory(): void
+    {
+        $member = User::factory()->create([
+            'role' => 'member',
+            'phone' => '01700000999',
+        ]);
+
+        $response = $this->actingAs($member)->post('/memories/submit-your-memory', [
             'title' => 'Our first event',
             'memory' => 'It was a meaningful day for every member who attended.',
         ]);

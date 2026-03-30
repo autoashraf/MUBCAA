@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Support\SiteNavigation;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ class MemberDashboardController extends Controller
 {
     public function profile(Request $request): View
     {
-        $user = $request->user()->load('profile', 'application');
+        $user = $request->user()->load('profile', 'application', 'verificationTokens');
         $profile = $user->profile;
 
         return view('member.profile', [
@@ -25,12 +26,13 @@ class MemberDashboardController extends Controller
             'profile' => $profile,
             'application' => $user->application,
             'profileCompletion' => $this->profileCompletion($user, $profile),
+            ...$this->verificationModalData($request, $user, $profile),
         ]);
     }
 
     public function index(Request $request): View
     {
-        $user = $request->user()->load('profile', 'application');
+        $user = $request->user()->load('profile', 'application', 'verificationTokens');
         $profile = $user->profile;
 
         return view('member.dashboard', [
@@ -42,6 +44,7 @@ class MemberDashboardController extends Controller
             'stepLabels' => $this->completionSteps(),
             'missingSubmissionItems' => $this->missingSubmissionItems($user, $profile),
             'affiliateSummary' => $this->affiliateSummary($user),
+            ...$this->verificationModalData($request, $user, $profile),
         ]);
     }
 
@@ -250,6 +253,57 @@ class MemberDashboardController extends Controller
             9 => 'Privacy',
             10 => 'Declaration',
         ];
+    }
+
+    private function verificationModalData(Request $request, $user, $profile): array
+    {
+        $showVerificationModal = $request->boolean('verify_contacts') && ! $user->hasCompletedContactVerification();
+
+        return [
+            'showVerificationModal' => $showVerificationModal,
+            'verificationEmail' => $user->email,
+            'verificationMobile' => $profile?->mobile_number ?: $user->phone,
+            'emailVerified' => $user->hasVerifiedEmail(),
+            'mobileVerified' => $user->hasVerifiedMobile(),
+            'emailResendCooldown' => $this->verificationCooldownRemaining($user, 'email'),
+            'mobileResendCooldown' => $this->verificationCooldownRemaining($user, 'mobile'),
+            'emailExpiryCountdown' => $this->verificationExpiryRemaining($user, 'email'),
+            'mobileExpiryCountdown' => $this->verificationExpiryRemaining($user, 'mobile'),
+            'verificationContinueUrl' => route('member.profile.complete', ['step' => max(2, $profile?->completion_step ?? 2)]),
+            'verificationSuccessMessage' => session('success'),
+        ];
+    }
+
+    private function verificationCooldownRemaining($user, string $channel): int
+    {
+        $lastSentAt = $user->verificationTokens
+            ->where('channel', $channel)
+            ->whereNull('verified_at')
+            ->sortByDesc('sent_at')
+            ->first()?->sent_at;
+
+        if (! $lastSentAt instanceof Carbon) {
+            return 0;
+        }
+
+        $elapsed = now()->diffInSeconds($lastSentAt);
+
+        return $elapsed >= 60 ? 0 : 60 - $elapsed;
+    }
+
+    private function verificationExpiryRemaining($user, string $channel): int
+    {
+        $expiresAt = $user->verificationTokens
+            ->where('channel', $channel)
+            ->whereNull('verified_at')
+            ->sortByDesc('sent_at')
+            ->first()?->expires_at;
+
+        if (! $expiresAt instanceof Carbon) {
+            return 0;
+        }
+
+        return max(0, now()->diffInSeconds($expiresAt, false));
     }
 
     private function affiliateSummary($user): array

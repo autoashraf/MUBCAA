@@ -63,25 +63,26 @@ class SiteController extends Controller
         ]);
     }
 
-    public function submitMemory(): View
+    public function submitMemory(Request $request): View
     {
         return view('pages.submit-memory', [
             'menu' => SiteNavigation::menu(),
+            'memoryUser' => $request->user(),
         ]);
     }
 
     public function storeMemory(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255'],
             'title' => ['required', 'string', 'max:255'],
             'memory' => ['required', 'string', 'max:3000'],
         ]);
 
         return back()
             ->withInput()
-            ->with('success', 'Memory submitted by '.$validated['name'].'. Connect this form to moderation and storage when you are ready.');
+            ->with('success', 'Memory submitted by '.$user->name.'. Connect this form to moderation and storage when you are ready.');
     }
 
     public function storeContact(Request $request): RedirectResponse

@@ -68,8 +68,6 @@ Route::prefix('events')->group(function (): void {
 });
 
 Route::prefix('memories')->group(function (): void {
-    Route::get('/submit-your-memory', [SiteController::class, 'submitMemory'])->name('memories.submit');
-    Route::post('/submit-your-memory', [SiteController::class, 'storeMemory'])->name('memories.store');
     Route::get('/', [SiteController::class, 'page'])->defaults('key', 'memories-list')->name('memories.list');
 });
 
@@ -85,6 +83,8 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/documents/profile', [DocumentController::class, 'profile'])->name('member.documents.profile');
     Route::get('/documents/id-card', [DocumentController::class, 'idCard'])->name('member.documents.id-card');
     Route::get('/documents/certificate', [DocumentController::class, 'certificate'])->name('member.documents.certificate');
+    Route::get('/memories/submit-your-memory', [SiteController::class, 'submitMemory'])->name('memories.submit');
+    Route::post('/memories/submit-your-memory', [SiteController::class, 'storeMemory'])->name('memories.store');
 });
 
 Route::prefix('admin')->middleware(['auth', 'admin'])->group(function (): void {

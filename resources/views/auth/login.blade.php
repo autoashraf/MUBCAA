@@ -36,10 +36,6 @@
                         @error('identifier') <small>{{ $message }}</small> @enderror
                     </label>
 
-                    <div class="login-auth-meta">
-                        <span>OTP-based login only</span>
-                    </div>
-
                     <div class="login-auth-actions">
                         <button class="button button-primary login-auth-submit" type="submit">Send OTP</button>
                         <a class="button button-secondary login-auth-secondary" href="{{ route('membership.apply') }}">Join</a>

@@ -15,12 +15,11 @@
                 </header>
 
                 <div class="verification-layout verification-layout-single">
-                    <div class="verification-panels">
-                        <div class="form-card verification-panel verification-panel-complete">
-                            <div class="verification-complete-badge">Verified</div>
-                            @if (! empty($verificationSuccessMessage))
-                                <p class="dashboard-copy">{{ $verificationSuccessMessage }}</p>
-                            @endif
+                        <div class="verification-panels">
+                            <div class="form-card verification-panel verification-panel-complete">
+                                @if (! empty($verificationSuccessMessage))
+                                    <p class="dashboard-copy">{{ $verificationSuccessMessage }}</p>
+                                @endif
                             <div class="action-row verification-action-row">
                                 <a class="button button-primary" href="{{ $verificationContinueUrl }}">Continue Registration</a>
                                 <form method="POST" action="{{ route('logout') }}">
@@ -31,6 +30,10 @@
                         </div>
                     </div>
                 </div>
+                <footer class="verification-modal-footer">
+                    <span>Secure verification complete</span>
+                    <span>{{ config('site.brand.name', 'MUBCAA') }}</span>
+                </footer>
             </div>
         @else
             <div class="verification-modal">
@@ -129,6 +132,10 @@
                         @endif
                     </div>
                 </div>
+                <footer class="verification-modal-footer">
+                    <span>Secure OTP verification</span>
+                    <span>{{ config('site.brand.name', 'MUBCAA') }}</span>
+                </footer>
             </div>
         @endif
     </div>

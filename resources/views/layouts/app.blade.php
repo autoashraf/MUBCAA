@@ -133,6 +133,12 @@
             <main>
                 @include('partials.flash-messages')
                 @yield('content')
+
+                <div data-verification-modal-root>
+                    @if (! empty($showVerificationModal))
+                        @include('partials.verification-modal', ['verificationSuccessMessage' => $verificationSuccessMessage ?? session('success')])
+                    @endif
+                </div>
             </main>
 
             <footer class="site-footer">

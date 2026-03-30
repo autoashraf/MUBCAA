@@ -11,20 +11,18 @@
 
     <section class="section">
         <div class="wrap narrow">
-            <form class="form-card" method="POST" action="{{ route('memories.store') }}">
+            <form class="form-card memory-form" method="POST" action="{{ route('memories.store') }}">
                 @csrf
 
-                <div class="form-grid">
+                <div class="form-grid memory-form-top-grid">
                     <label>
                         <span>Your name</span>
-                        <input type="text" name="name" value="{{ old('name') }}" required>
-                        @error('name') <small>{{ $message }}</small> @enderror
+                        <input type="text" value="{{ $memoryUser->name }}" readonly>
                     </label>
 
                     <label>
                         <span>Email address</span>
-                        <input type="email" name="email" value="{{ old('email') }}" required>
-                        @error('email') <small>{{ $message }}</small> @enderror
+                        <input type="email" value="{{ $memoryUser->email }}" readonly>
                     </label>
                 </div>
 

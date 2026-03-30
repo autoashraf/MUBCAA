@@ -1,41 +1,50 @@
 @extends('layouts.app')
 
 @section('content')
-    <section class="page-hero">
-        <div class="wrap narrow">
-            <p class="eyebrow">Admin Access</p>
-            <h1>Admin Login</h1>
-            <p class="lead">Use your admin email address and password to access the MUBCAA admin panel.</p>
-        </div>
-    </section>
+    @php
+        $logoPath = config('site.brand.logo_path');
+        $brandName = config('site.brand.name', 'MUBCAA');
+    @endphp
 
-    <section class="section">
-        <div class="wrap narrow">
-            <form class="form-card login-card" method="POST" action="{{ route('admin.login.attempt') }}">
+    <section class="section login-auth-section">
+        <div class="wrap login-auth-wrap">
+            <form class="login-auth-card" method="POST" action="{{ route('admin.login.attempt') }}">
                 @csrf
 
-                <div class="dashboard-form-head login-card-head">
-                    <div>
-                        <p class="panel-card-label">Admin Login</p>
-                        <h2>Sign in as admin</h2>
-                    </div>
+                <div class="login-auth-brand">
+                    @if ($logoPath)
+                        <span class="login-auth-logo">
+                            <img src="{{ asset($logoPath) }}" alt="{{ $brandName }} logo">
+                        </span>
+                    @else
+                        <span class="login-auth-logo login-auth-logo-fallback">M</span>
+                    @endif
+                    <p class="login-auth-brand-name">{{ $brandName }}</p>
                 </div>
 
-                <label>
-                    <span>Email address</span>
-                    <input type="email" name="email" value="{{ old('email') }}" placeholder="Enter admin email" required>
-                    @error('email') <small>{{ $message }}</small> @enderror
-                </label>
+                <div class="login-auth-copy">
+                    <p class="panel-card-label">Admin Access</p>
+                    <h1>Admin Login</h1>
+                    <p>Use your admin email address and password to access the admin panel.</p>
+                </div>
 
-                <label>
-                    <span>Password</span>
-                    <input type="password" name="password" placeholder="Enter password" required>
-                    @error('password') <small>{{ $message }}</small> @enderror
-                </label>
+                <div class="login-auth-form">
+                    <label class="login-auth-label">
+                        <span>Email address</span>
+                        <input class="login-auth-input" type="email" name="email" value="{{ old('email') }}" placeholder="Enter admin email" required>
+                        @error('email') <small>{{ $message }}</small> @enderror
+                    </label>
 
-                <div class="action-row login-card-actions">
-                    <button class="button button-primary" type="submit">Admin Login</button>
-                    <a class="button button-secondary" href="{{ route('login') }}">Member OTP Login</a>
+                    <label class="login-auth-label">
+                        <span>Password</span>
+                        <input class="login-auth-input" type="password" name="password" placeholder="Enter password" required>
+                        @error('password') <small>{{ $message }}</small> @enderror
+                    </label>
+
+                    <div class="login-auth-actions">
+                        <button class="button button-primary login-auth-submit" type="submit">Admin Login</button>
+                        <a class="button button-secondary login-auth-secondary" href="{{ route('login') }}">Member OTP Login</a>
+                    </div>
                 </div>
             </form>
         </div>

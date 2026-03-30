@@ -26,9 +26,14 @@ class VerificationController extends Controller
     ) {
     }
 
-    public function show(Request $request): View
+    public function show(Request $request): View|RedirectResponse
     {
         [$target, $mode] = $this->resolveVerificationTarget($request);
+
+        if ($mode === 'user') {
+            return redirect()->route('member.dashboard', ['verify_contacts' => 1]);
+        }
+
         $captchaLeft = (int) $request->session()->get('registration_captcha_a', 1);
         $captchaRight = (int) $request->session()->get('registration_captcha_b', 1);
 
