@@ -1060,6 +1060,432 @@
         @apply bg-rose-100 text-rose-800;
     }
 
+    .site-flash-stack {
+        @apply mx-auto mb-4 grid w-full max-w-[96rem] gap-3 px-4 sm:px-6 lg:px-8;
+    }
+
+    .site-flash {
+        @apply flex flex-col gap-1 rounded-[1.35rem] border px-4 py-3 text-sm shadow-sm;
+    }
+
+    .site-flash strong {
+        @apply text-sm font-semibold;
+    }
+
+    .site-flash-success {
+        @apply border-emerald-200 bg-emerald-50 text-emerald-800;
+    }
+
+    .site-flash-error {
+        @apply border-rose-200 bg-rose-50 text-rose-800;
+    }
+
+    .eyebrow {
+        @apply text-xs font-bold uppercase tracking-[0.25em] text-orange-700;
+    }
+
+    .admin-layout-body {
+        @apply min-h-screen bg-slate-100 text-slate-900;
+    }
+
+    .admin-layout-shell {
+        background:
+            radial-gradient(circle at top left, rgba(103, 232, 249, 0.16), transparent 28%),
+            radial-gradient(circle at bottom right, rgba(251, 146, 60, 0.12), transparent 28%);
+        @apply min-h-screen;
+    }
+
+    .admin-layout-header {
+        @apply sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 shadow-sm shadow-slate-200/60 backdrop-blur;
+    }
+
+    .admin-layout-bar {
+        @apply flex items-center justify-between gap-4 py-4;
+    }
+
+    .admin-layout-brand {
+        @apply grid gap-1;
+    }
+
+    .admin-layout-brand strong {
+        @apply text-2xl font-bold tracking-tight text-slate-950;
+    }
+
+    .admin-layout-actions {
+        @apply flex flex-wrap items-center gap-3;
+    }
+
+    .admin-layout-main {
+        @apply px-4 py-6 sm:px-6 lg:px-8;
+    }
+
+    .admin-layout-grid {
+        @apply mx-auto grid w-full max-w-[96rem] gap-6 lg:grid-cols-[17.5rem_minmax(0,1fr)] xl:grid-cols-[18.5rem_minmax(0,1fr)];
+    }
+
+    .admin-layout-sidebar {
+        @apply self-start rounded-[2rem] border border-slate-200/90 bg-white/95 p-4 shadow-xl shadow-slate-200/60 backdrop-blur lg:sticky lg:top-24;
+    }
+
+    .admin-nav {
+        @apply grid gap-2;
+    }
+
+    .admin-nav-item {
+        @apply block rounded-[1.35rem] border border-transparent bg-slate-50 px-4 py-4 transition hover:border-cyan-100 hover:bg-cyan-50/70 hover:shadow-sm;
+    }
+
+    .admin-nav-item strong {
+        @apply block text-sm font-semibold text-slate-900;
+    }
+
+    .admin-nav-item span {
+        @apply mt-1 block text-sm leading-6 text-slate-500;
+    }
+
+    .admin-nav-item.is-active {
+        @apply border-cyan-200 bg-cyan-50 text-cyan-950 shadow-sm;
+    }
+
+    .admin-layout-content {
+        @apply min-w-0;
+    }
+
+    .admin-layout-content > .wrap {
+        @apply max-w-none px-0;
+    }
+
+    .admin-workspace,
+    .admin-detail-stack {
+        @apply grid gap-6;
+    }
+
+    .admin-detail-stack {
+        @apply pt-1;
+    }
+
+    .admin-page-hero,
+    .admin-detail-head,
+    .workspace-panel,
+    .list-card,
+    .panel-card {
+        @apply rounded-[2rem] border border-slate-200/90 bg-white/95 shadow-xl shadow-slate-200/50 backdrop-blur;
+    }
+
+    .admin-page-hero,
+    .admin-detail-head {
+        @apply flex flex-col gap-4 p-6 lg:flex-row lg:items-end lg:justify-between;
+    }
+
+    .admin-page-hero h1,
+    .admin-detail-head h1 {
+        @apply text-4xl font-bold tracking-tight text-slate-950;
+    }
+
+    .admin-card-grid {
+        @apply grid gap-4 sm:grid-cols-2 xl:grid-cols-4;
+    }
+
+    .admin-summary-card {
+        @apply rounded-[1.5rem] border border-cyan-100 bg-cyan-50/80 px-5 py-5 shadow-sm;
+    }
+
+    .admin-summary-card span {
+        @apply text-xs font-bold uppercase tracking-[0.2em] text-cyan-800;
+    }
+
+    .admin-summary-card strong {
+        @apply mt-3 block text-3xl font-bold tracking-tight text-slate-950;
+    }
+
+    .admin-filter-bar,
+    .workspace-panel,
+    .list-card,
+    .panel-card {
+        @apply p-5;
+    }
+
+    .admin-filter-bar {
+        @apply rounded-[2rem] border border-slate-200/90 bg-white/95 shadow-xl shadow-slate-200/40;
+    }
+
+    .admin-filter-form {
+        @apply grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(12rem,0.7fr)_auto];
+    }
+
+    .admin-filter-form label {
+        @apply grid gap-2;
+    }
+
+    .admin-filter-form label > span {
+        @apply text-sm font-semibold text-slate-800;
+    }
+
+    .admin-filter-form input,
+    .admin-filter-form select {
+        @apply min-h-[52px] w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100;
+    }
+
+    .admin-filter-actions {
+        @apply flex flex-wrap items-end gap-3 lg:justify-end;
+    }
+
+    .admin-simple-list {
+        @apply grid gap-4;
+    }
+
+    .admin-simple-row {
+        @apply grid gap-4 rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center;
+    }
+
+    .admin-simple-main {
+        @apply flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between;
+    }
+
+    .admin-simple-main h3 {
+        @apply text-lg font-semibold text-slate-950;
+    }
+
+    .admin-simple-meta {
+        @apply flex flex-wrap gap-2 text-sm font-medium text-slate-500 lg:justify-end;
+    }
+
+    .admin-simple-meta span {
+        @apply inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5;
+    }
+
+    .admin-simple-actions {
+        @apply lg:justify-self-end;
+    }
+
+    .admin-quick-actions {
+        @apply relative;
+    }
+
+    .admin-quick-actions summary {
+        list-style: none;
+    }
+
+    .admin-quick-actions summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .admin-quick-actions[open] .admin-quick-actions-menu {
+        @apply grid;
+    }
+
+    .admin-quick-actions-menu {
+        @apply absolute right-0 z-20 mt-3 hidden min-w-[14rem] gap-1 rounded-[1.25rem] border border-slate-200 bg-white p-2 shadow-2xl;
+    }
+
+    .admin-quick-actions-link,
+    .admin-quick-actions-link-button {
+        @apply flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900;
+    }
+
+    .admin-quick-actions-link-button {
+        @apply border-0 bg-transparent;
+    }
+
+    .admin-detail-actions {
+        @apply flex flex-wrap items-center gap-3;
+    }
+
+    .admin-review-hero {
+        @apply grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto];
+    }
+
+    .admin-review-hero-copy,
+    .admin-review-meta {
+        @apply flex flex-wrap gap-3;
+    }
+
+    .admin-review-meta span {
+        @apply inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700;
+    }
+
+    .admin-step-nav {
+        @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-5;
+    }
+
+    .admin-step-link {
+        @apply grid gap-1 rounded-[1.35rem] border border-slate-200 bg-white px-4 py-4 shadow-sm transition hover:border-cyan-200 hover:bg-cyan-50/70;
+    }
+
+    .admin-step-link span {
+        @apply text-xs font-bold uppercase tracking-[0.16em] text-slate-500;
+    }
+
+    .admin-step-link strong {
+        @apply text-sm font-semibold text-slate-900;
+    }
+
+    .admin-step-link.is-active {
+        @apply border-cyan-200 bg-cyan-50;
+    }
+
+    .admin-detail-grid {
+        @apply grid gap-6;
+    }
+
+    .admin-edit-card {
+        @apply rounded-[2rem] border border-slate-200/90 bg-white/95 shadow-xl shadow-slate-200/50;
+    }
+
+    .admin-edit-card .form-grid {
+        @apply grid gap-4 md:grid-cols-2;
+    }
+
+    .admin-edit-card .form-grid > label,
+    .admin-edit-card > label {
+        @apply grid gap-2;
+    }
+
+    .admin-edit-card .form-grid > label > span,
+    .admin-edit-card > label > span {
+        @apply block text-sm font-semibold text-slate-800;
+    }
+
+    .admin-edit-card input:not([type='checkbox']):not([type='hidden']):not([type='file']),
+    .admin-edit-card select,
+    .admin-edit-card textarea {
+        @apply min-h-[54px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100;
+    }
+
+    .admin-edit-card select {
+        @apply appearance-none bg-[linear-gradient(45deg,transparent_50%,rgba(15,23,42,0.7)_50%),linear-gradient(135deg,rgba(15,23,42,0.7)_50%,transparent_50%)] bg-[position:calc(100%-1.1rem)_50%,calc(100%-0.8rem)_50%] bg-[size:0.4rem_0.4rem,0.4rem_0.4rem] bg-no-repeat pr-12;
+    }
+
+    .admin-edit-card textarea {
+        @apply min-h-[140px] py-3;
+    }
+
+    .admin-edit-card input[readonly],
+    .admin-edit-card textarea[readonly] {
+        @apply border-slate-200 bg-slate-100 text-slate-500;
+    }
+
+    .admin-edit-card input[type='file'] {
+        @apply flex min-h-[54px] w-full items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 shadow-sm;
+    }
+
+    .admin-edit-card input[type='file']::file-selector-button {
+        @apply mr-3 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition;
+    }
+
+    .admin-edit-card input[type='file']:hover::file-selector-button {
+        @apply bg-slate-100;
+    }
+
+    .admin-edit-card .action-row {
+        @apply mt-2;
+    }
+
+    .admin-actions-grid {
+        @apply mt-4 grid gap-4 xl:grid-cols-2;
+    }
+
+    .admin-action-card {
+        @apply grid gap-4;
+    }
+
+    .admin-action-card label {
+        @apply text-sm font-semibold text-slate-800;
+    }
+
+    .admin-action-card textarea {
+        @apply min-h-[132px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100;
+    }
+
+    .danger-button {
+        @apply bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-200;
+    }
+
+    .admin-file-manager {
+        @apply grid gap-3 rounded-[1.35rem] border border-slate-200 bg-slate-50 px-4 py-4;
+    }
+
+    .admin-file-manager.is-empty {
+        @apply border-dashed;
+    }
+
+    .admin-file-summary {
+        @apply grid gap-1;
+    }
+
+    .admin-file-summary strong {
+        @apply text-sm font-semibold text-slate-900;
+    }
+
+    .admin-file-summary span {
+        @apply text-sm text-slate-500;
+    }
+
+    .admin-file-actions {
+        @apply flex flex-wrap gap-2;
+    }
+
+    .file-link-with-icon {
+        @apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900;
+    }
+
+    .admin-remove-file-button {
+        @apply text-rose-700 hover:bg-rose-50 hover:text-rose-800;
+    }
+
+    .admin-file-preview-modal[hidden] {
+        display: none !important;
+    }
+
+    .admin-file-preview-modal {
+        @apply fixed inset-0 z-50;
+    }
+
+    .admin-file-preview-backdrop {
+        @apply absolute inset-0 bg-slate-950/55 backdrop-blur-sm;
+    }
+
+    .admin-file-preview-dialog {
+        @apply relative z-10 mx-auto mt-10 grid w-[min(92vw,72rem)] gap-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-2xl;
+    }
+
+    .admin-file-preview-head {
+        @apply flex items-start justify-between gap-4 border-b border-slate-200 pb-4;
+    }
+
+    .admin-file-preview-head h2 {
+        @apply text-2xl font-semibold tracking-tight text-slate-950;
+    }
+
+    .admin-file-preview-close {
+        @apply inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-2xl text-slate-700 shadow-sm transition hover:bg-slate-50;
+    }
+
+    .admin-file-preview-body {
+        @apply flex min-h-[18rem] items-center justify-center overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4;
+    }
+
+    .admin-file-preview-image,
+    .admin-file-preview-frame {
+        @apply h-full max-h-[70vh] w-full rounded-[1rem] bg-white;
+    }
+
+    .admin-file-preview-image {
+        @apply object-contain;
+    }
+
+    .admin-file-preview-fallback {
+        @apply grid justify-items-center gap-3 text-center;
+    }
+
+    .admin-file-preview-fallback strong {
+        @apply text-lg font-semibold text-slate-900;
+    }
+
+    .admin-file-preview-fallback p {
+        @apply max-w-md text-sm leading-6 text-slate-500;
+    }
+
     [data-verification-modal-root] {
         @apply absolute inset-0 z-30 pointer-events-none;
     }
@@ -1361,6 +1787,29 @@
         .verification-layout {
             @apply grid-cols-1;
         }
+
+        .admin-layout-grid {
+            @apply grid-cols-1;
+        }
+
+        .admin-layout-sidebar {
+            @apply static;
+        }
+
+        .admin-filter-form,
+        .admin-card-grid,
+        .admin-step-nav,
+        .admin-actions-grid {
+            @apply grid-cols-1;
+        }
+
+        .admin-simple-row {
+            @apply grid-cols-1;
+        }
+
+        .admin-quick-actions-menu {
+            @apply static mt-2;
+        }
     }
 
     @media (max-width: 640px) {
@@ -1458,6 +1907,47 @@
 
         .footer-bottom-bar {
             @apply py-4 text-center;
+        }
+
+        .admin-layout-main {
+            @apply px-4 py-4;
+        }
+
+        .admin-page-hero,
+        .admin-detail-head,
+        .admin-filter-bar,
+        .workspace-panel,
+        .list-card,
+        .panel-card {
+            @apply rounded-[1.5rem] p-4;
+        }
+
+        .admin-page-hero h1,
+        .admin-detail-head h1 {
+            @apply text-3xl;
+        }
+
+        .admin-summary-card strong {
+            @apply text-2xl;
+        }
+
+        .admin-layout-actions {
+            @apply gap-2;
+        }
+
+        .admin-layout-actions .mini-link {
+            @apply px-4;
+        }
+
+        .admin-review-meta,
+        .admin-review-hero-copy,
+        .admin-simple-main,
+        .admin-simple-meta {
+            @apply gap-2;
+        }
+
+        .admin-file-preview-dialog {
+            @apply mt-4 w-[calc(100vw-1.5rem)] rounded-[1.5rem] p-4;
         }
 
         .wizard-auth-actions .button,
