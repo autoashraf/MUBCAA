@@ -219,6 +219,56 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const mountCopyButtons = (root = document) => {
+        root.querySelectorAll('[data-copy-button]').forEach((button) => {
+            if (button.dataset.copyMounted === 'true') {
+                return;
+            }
+
+            const baseLabel = button.dataset.copyLabel || button.textContent.trim() || 'Copy';
+
+            const resetLabelSoon = (label) => {
+                button.textContent = label;
+                window.clearTimeout(button._copyTimer);
+                button._copyTimer = window.setTimeout(() => {
+                    button.textContent = baseLabel;
+                }, 1500);
+            };
+
+            button.addEventListener('click', async () => {
+                const target = document.getElementById(button.dataset.copyTarget || '');
+                const value = target?.value || target?.textContent || '';
+
+                if (!value) {
+                    resetLabelSoon('No text');
+                    return;
+                }
+
+                try {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        await navigator.clipboard.writeText(value);
+                    } else {
+                        const helper = document.createElement('textarea');
+                        helper.value = value;
+                        helper.setAttribute('readonly', '');
+                        helper.style.position = 'absolute';
+                        helper.style.left = '-9999px';
+                        document.body.appendChild(helper);
+                        helper.select();
+                        document.execCommand('copy');
+                        helper.remove();
+                    }
+
+                    resetLabelSoon('Copied');
+                } catch (error) {
+                    resetLabelSoon('Copy failed');
+                }
+            });
+
+            button.dataset.copyMounted = 'true';
+        });
+    };
+
     const mountOtpGroups = (root = document) => {
         root.querySelectorAll('[data-otp-group]').forEach((group) => {
             const form = group.closest('form');
@@ -392,6 +442,17 @@ document.addEventListener('DOMContentLoaded', () => {
             error.className = 'ajax-error';
             error.textContent = Array.isArray(messages) ? messages[0] : messages;
             input.insertAdjacentElement('afterend', error);
+
+            if (input.matches('[data-registration-check-input]')) {
+                const status = input.parentElement?.querySelector('[data-registration-check-status]');
+
+                if (status) {
+                    status.hidden = false;
+                    status.textContent = error.textContent;
+                    status.classList.remove('is-success', 'is-loading');
+                    status.classList.add('is-error');
+                }
+            }
         });
     };
 
@@ -539,6 +600,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const formData = new FormData();
                     formData.append('field', field);
                     formData.append('value', value);
+                    formData.append('context_email', input.form?.querySelector('[name="email"]')?.value?.trim() || '');
+                    formData.append('context_mobile_number', input.form?.querySelector('[name="mobile_number"]')?.value?.trim() || '');
                     formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="_token"]')?.value || '');
 
                     const response = await fetch(checkUrl, {
@@ -645,6 +708,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const flash = document.createElement('div');
         flash.className = `site-flash site-flash-${type}`;
+        flash.dataset.siteFlash = 'true';
+
+        const copy = document.createElement('div');
+        copy.className = 'site-flash-copy';
 
         const title = document.createElement('strong');
         title.textContent = type === 'error' ? 'Error' : 'Success';
@@ -652,7 +719,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const body = document.createElement('span');
         body.textContent = message;
 
-        flash.append(title, body);
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'site-flash-close';
+        close.dataset.siteFlashClose = 'true';
+        close.setAttribute('aria-label', 'Close message');
+        close.textContent = '×';
+
+        copy.append(title, body);
+        flash.append(copy, close);
         stack.appendChild(flash);
 
         window.setTimeout(() => {
@@ -663,6 +738,23 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, 4000);
     };
+
+    document.addEventListener('click', (event) => {
+        const closeButton = event.target.closest('[data-site-flash-close]');
+
+        if (!closeButton) {
+            return;
+        }
+
+        const flash = closeButton.closest('[data-site-flash]');
+        const stack = flash?.closest('.site-flash-stack');
+
+        flash?.remove();
+
+        if (stack && !stack.children.length) {
+            stack.remove();
+        }
+    });
 
     document.addEventListener('submit', async (event) => {
         const form = event.target.closest('form[data-ajax-form]');
@@ -796,6 +888,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mountExpiryCountdowns();
     mountImagePreviews();
     mountWhatsappSync();
+    mountCopyButtons();
     mountLoginIdentifierCheck();
     mountRegistrationFieldChecks();
     mountDiscoverySourceToggle();

@@ -75,11 +75,19 @@
                     <p class="gallery-intro">View photos from reunions, committee gatherings, and alumni events.</p>
                     <a class="button button-secondary" href="{{ route('events.photos') }}">View Gallery</a>
                     <div class="gallery-thumb-grid compact-gallery-grid">
-                        @foreach ($galleryTiles as $tile)
-                            <div class="gallery-thumb">
-                                <img src="{{ asset($slides[($loop->index + 1) % max(count($slides), 1)]['image']) }}" alt="MUBCAA gallery preview {{ $loop->iteration }}">
-                            </div>
-                        @endforeach
+                        @if ($galleryPreviewPhotos->isNotEmpty())
+                            @foreach ($galleryPreviewPhotos as $photo)
+                                <div class="gallery-thumb">
+                                    <img src="{{ asset('storage/'.$photo->photo_path) }}" alt="{{ $photo->title ?: 'MUBCAA gallery preview '.$loop->iteration }}">
+                                </div>
+                            @endforeach
+                        @else
+                            @foreach (range(1, 4) as $tile)
+                                <div class="gallery-thumb">
+                                    <img src="{{ asset($slides[($loop->index + 1) % max(count($slides), 1)]['image']) }}" alt="MUBCAA gallery preview {{ $loop->iteration }}">
+                                </div>
+                            @endforeach
+                        @endif
                     </div>
                 </aside>
             </section>

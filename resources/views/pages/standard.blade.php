@@ -3,27 +3,31 @@
 @section('content')
     <section class="page-hero">
         <div class="wrap narrow">
-            <p class="eyebrow">{{ $page['eyebrow'] }}</p>
-            <h1>{{ $page['title'] }}</h1>
-            <p class="lead">{{ $page['intro'] }}</p>
-        </div>
-    </section>
-
-    <section class="section">
-        <div class="wrap narrative-layout">
-            <aside class="page-aside">
-                <p class="aside-label">Section Focus</p>
-                <p class="aside-text">{{ $page['eyebrow'] }}</p>
-                <div class="aside-divider"></div>
-                <p class="aside-note">This layout keeps the introductory narrative separate from the supporting cards, lists, or galleries below.</p>
-            </aside>
-            <div class="prose-block">
-            @foreach ($page['body'] as $paragraph)
-                <p>{{ $paragraph }}</p>
-            @endforeach
+            <div class="page-hero-card">
+                <p class="eyebrow">{{ $page['eyebrow'] }}</p>
+                <h1>{{ $page['title'] }}</h1>
+                <p class="lead">{{ $page['intro'] }}</p>
             </div>
         </div>
     </section>
+
+    @if (empty($page['hide_narrative']))
+        <section class="section">
+            <div class="wrap narrative-layout">
+                <aside class="page-aside">
+                    <p class="aside-label">Section Focus</p>
+                    <p class="aside-text">{{ $page['eyebrow'] }}</p>
+                    <div class="aside-divider"></div>
+                    <p class="aside-note">{{ $page['aside_note'] ?? 'This section highlights the main information and supporting details for this page.' }}</p>
+                </aside>
+                <div class="prose-block">
+                @foreach ($page['body'] as $paragraph)
+                    <p>{{ $paragraph }}</p>
+                @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
 
     @if (!empty($page['cards']))
         <section class="section">
@@ -82,36 +86,36 @@
                         @csrf
                         <div class="form-grid">
                             <label>
-                                Full name
-                                <input type="text" name="name" value="{{ old('name') }}" required>
+                                <span>Full name</span>
+                                <input type="text" name="name" value="{{ old('name') }}" placeholder="Enter your full name" autocomplete="name" required>
                                 @error('name')
                                     <small>{{ $message }}</small>
                                 @enderror
                             </label>
                             <label>
-                                Email address
-                                <input type="email" name="email" value="{{ old('email') }}" required>
+                                <span>Email address</span>
+                                <input type="email" name="email" value="{{ old('email') }}" placeholder="Enter your email address" autocomplete="email" required>
                                 @error('email')
                                     <small>{{ $message }}</small>
                                 @enderror
                             </label>
                             <label>
-                                Phone
-                                <input type="text" name="phone" value="{{ old('phone') }}">
+                                <span>Phone</span>
+                                <input type="text" name="phone" value="{{ old('phone') }}" placeholder="Enter your phone number" autocomplete="tel">
                                 @error('phone')
                                     <small>{{ $message }}</small>
                                 @enderror
                             </label>
                             <label>
-                                Subject
-                                <input type="text" name="subject" value="{{ old('subject') }}" required>
+                                <span>Subject</span>
+                                <input type="text" name="subject" value="{{ old('subject') }}" placeholder="What is this about?" required>
                                 @error('subject')
                                     <small>{{ $message }}</small>
                                 @enderror
                             </label>
                             <label class="form-span-2">
-                                Message
-                                <textarea name="message" rows="6" required>{{ old('message') }}</textarea>
+                                <span>Message</span>
+                                <textarea name="message" rows="6" placeholder="Write your message" required>{{ old('message') }}</textarea>
                                 @error('message')
                                     <small>{{ $message }}</small>
                                 @enderror

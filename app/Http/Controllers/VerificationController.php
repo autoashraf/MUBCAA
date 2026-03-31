@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -58,7 +59,8 @@ class VerificationController extends Controller
             'mobileExpiryCountdown' => $this->expiryRemainingForChannel($target, $mode, 'mobile'),
             'verificationContinueUrl' => $mode === 'pending'
                 ? route('member.profile.complete', ['step' => 2])
-                : route('member.profile.complete', ['step' => max(2, $target->profile?->completion_step ?? 2)]),
+                : route('member.profile.complete', ['step' => max(2, $target->application?->current_step ?? $target->profile?->completion_step ?? 2)]),
+            'localOtpCodes' => $this->localOtpCodes($target, $mode),
         ]);
     }
 
@@ -195,13 +197,13 @@ class VerificationController extends Controller
                     'ok' => true,
                     'message' => $successMessage,
                     'completed' => true,
-                    'continue_url' => route('member.profile.complete', ['step' => max(2, $user->profile?->completion_step ?? 2)]),
+                    'continue_url' => route('member.profile.complete', ['step' => max(2, $user->application?->current_step ?? $user->profile?->completion_step ?? 2)]),
                     'modal_html' => $this->renderVerificationModal($request, $user, 'user', $successMessage),
                 ]);
             }
 
             return redirect()
-                ->route('member.profile.complete', ['step' => max(2, $user->profile?->completion_step ?? 2)])
+                ->route('member.profile.complete', ['step' => max(2, $user->application?->current_step ?? $user->profile?->completion_step ?? 2)])
                 ->with('success', $successMessage);
         }
 
@@ -213,13 +215,13 @@ class VerificationController extends Controller
                     'ok' => true,
                     'message' => $successMessage,
                     'completed' => true,
-                    'continue_url' => route('member.profile.complete', ['step' => max(2, $target->profile?->completion_step ?? 2)]),
+                    'continue_url' => route('member.profile.complete', ['step' => max(2, $target->application?->current_step ?? $target->profile?->completion_step ?? 2)]),
                     'modal_html' => $this->renderVerificationModal($request, $target->fresh()->load('profile', 'verificationTokens'), 'user', $successMessage),
                 ]);
             }
 
             return redirect()
-                ->route('member.profile.complete', ['step' => max(2, $target->profile?->completion_step ?? 2)])
+                ->route('member.profile.complete', ['step' => max(2, $target->application?->current_step ?? $target->profile?->completion_step ?? 2)])
                 ->with('success', $successMessage);
         }
 
@@ -240,7 +242,7 @@ class VerificationController extends Controller
 
     private function renderVerificationModal(Request $request, object $target, string $mode, ?string $message = null): string
     {
-        $target = $mode === 'user' ? $target->fresh()->load('profile', 'verificationTokens') : $target->fresh();
+        $target = $mode === 'user' ? $target->fresh()->load('profile', 'application', 'verificationTokens') : $target->fresh();
 
         return view('partials.verification-modal', [
             'verificationEmail' => $target->email,
@@ -253,15 +255,16 @@ class VerificationController extends Controller
             'mobileExpiryCountdown' => $this->expiryRemainingForChannel($target, $mode, 'mobile'),
             'verificationContinueUrl' => $mode === 'pending'
                 ? route('member.profile.complete', ['step' => 2])
-                : route('member.profile.complete', ['step' => max(2, $target->profile?->completion_step ?? 2)]),
+                : route('member.profile.complete', ['step' => max(2, $target->application?->current_step ?? $target->profile?->completion_step ?? 2)]),
             'verificationSuccessMessage' => $message,
+            'localOtpCodes' => $this->localOtpCodes($target, $mode),
         ])->render();
     }
 
     private function resolveVerificationTarget(Request $request): array
     {
         if ($request->user()) {
-            return [$request->user()->load('profile', 'verificationTokens'), 'user'];
+            return [$request->user()->load('profile', 'application', 'verificationTokens'), 'user'];
         }
 
         $pendingId = $request->session()->get('pending_registration_id');
@@ -367,6 +370,35 @@ class VerificationController extends Controller
     private function storePendingResendTimestamp(Request $request, string $channel): void
     {
         $request->session()->put("pending_verification_sent_at.{$channel}", now()->toDateTimeString());
+    }
+
+    private function localOtpCodes(object $target, string $mode): ?array
+    {
+        if (! App::environment('local')) {
+            return null;
+        }
+
+        if ($mode === 'pending') {
+            return array_filter([
+                'email' => $target->email_code,
+                'mobile' => $target->mobile_code,
+            ]);
+        }
+
+        $target = $target->fresh()->load('verificationTokens');
+
+        return array_filter([
+            'email' => $target->verificationTokens
+                ->where('channel', 'email')
+                ->whereNull('verified_at')
+                ->sortByDesc('sent_at')
+                ->first()?->code,
+            'mobile' => $target->verificationTokens
+                ->where('channel', 'mobile')
+                ->whereNull('verified_at')
+                ->sortByDesc('sent_at')
+                ->first()?->code,
+        ]);
     }
 
     private function passingYearOptions(): array

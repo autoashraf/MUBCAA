@@ -65,6 +65,11 @@
                         </div>
 
                         <p class="dashboard-copy">OTP sent to <strong>{{ $loginOtpContact }}</strong></p>
+                        @if (! empty($localLoginOtpCode))
+                            <div class="alert-success alert-warning-like">
+                                Local OTP Debug: {{ $localLoginOtpCode }}
+                            </div>
+                        @endif
 
                         <label class="otp-field">
                             <input type="hidden" name="code">

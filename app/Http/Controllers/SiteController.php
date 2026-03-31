@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ContactSubmission;
+use App\Models\GalleryPhoto;
+use App\Models\GalleryVideo;
+use App\Models\MemorySubmission;
 use App\Support\SiteNavigation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,6 +18,10 @@ class SiteController extends Controller
         return view('pages.home', [
             'menu' => SiteNavigation::menu(),
             'slides' => config('site.homepage.slides', []),
+            'galleryPreviewPhotos' => GalleryPhoto::query()
+                ->latest()
+                ->take(4)
+                ->get(),
             'heroMetrics' => [
                 ['label' => 'Upcoming Events', 'text' => 'Find out about our latest events and reunions.', 'route' => route('events.upcoming'), 'action' => 'View Events'],
                 ['label' => 'Alumni Directory', 'text' => 'Search and connect with fellow alumni and members.', 'route' => route('membership.members'), 'action' => 'Search Directory'],
@@ -49,13 +57,47 @@ class SiteController extends Controller
                 ['name' => 'Farhana Kabir', 'meta' => 'Batch 2005 / Community Organiser'],
                 ['name' => 'Tanvir Ahmed', 'meta' => 'Batch 2010 / Technology Professional'],
             ],
-            'galleryTiles' => range(1, 4),
         ]);
     }
 
     public function page(string $key): View
     {
         abort_unless(array_key_exists($key, $this->pages()), 404);
+
+        if ($key === 'memories-list') {
+            return view('pages.memories', [
+                'menu' => SiteNavigation::menu(),
+                'page' => $this->pages()[$key],
+                'memories' => MemorySubmission::query()
+                    ->with('user')
+                    ->where('status', 'approved')
+                    ->latest('approved_at')
+                    ->latest()
+                    ->get(),
+            ]);
+        }
+
+        if ($key === 'events-photos') {
+            return view('pages.photo-gallery', [
+                'menu' => SiteNavigation::menu(),
+                'page' => $this->pages()[$key],
+                'photos' => GalleryPhoto::query()
+                    ->with('uploader')
+                    ->latest()
+                    ->get(),
+            ]);
+        }
+
+        if ($key === 'events-videos') {
+            return view('pages.video-gallery', [
+                'menu' => SiteNavigation::menu(),
+                'page' => $this->pages()[$key],
+                'videos' => GalleryVideo::query()
+                    ->with('uploader')
+                    ->latest()
+                    ->get(),
+            ]);
+        }
 
         return view('pages.standard', [
             'menu' => SiteNavigation::menu(),
@@ -78,11 +120,26 @@ class SiteController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'memory' => ['required', 'string', 'max:3000'],
+            'photos' => ['nullable', 'array', 'max:6'],
+            'photos.*' => ['image', 'max:6144'],
+        ]);
+
+        $photoPaths = [];
+
+        foreach ($request->file('photos', []) as $photo) {
+            $photoPaths[] = $photo->store('memory-submissions', 'public');
+        }
+
+        MemorySubmission::query()->create([
+            'user_id' => $user->id,
+            'title' => $validated['title'],
+            'memory' => $validated['memory'],
+            'photos' => $photoPaths,
+            'status' => 'pending_review',
         ]);
 
         return back()
-            ->withInput()
-            ->with('success', 'Memory submitted by '.$user->name.'. Connect this form to moderation and storage when you are ready.');
+            ->with('success', 'Thank you, '.$user->name.'. Your memory has been submitted and is now waiting for admin review.'.($photoPaths !== [] ? ' '.count($photoPaths).' photo'.(count($photoPaths) > 1 ? 's were' : ' was').' uploaded successfully.' : ''));
     }
 
     public function storeContact(Request $request): RedirectResponse
@@ -94,6 +151,8 @@ class SiteController extends Controller
             'subject' => ['required', 'string', 'max:255'],
             'message' => ['required', 'string', 'max:3000'],
         ]);
+
+        ContactSubmission::query()->create($validated);
 
         return back()
             ->withInput()
@@ -207,45 +266,34 @@ class SiteController extends Controller
             'events-photos' => [
                 'eyebrow' => 'Events',
                 'title' => 'Photo Gallery',
-                'intro' => 'Photo collections make the site feel alive even before you add a CMS.',
+                'intro' => 'Browse event photos uploaded and managed by the admin team.',
                 'body' => [
-                    'This version uses styled placeholders that can be replaced later with gallery images from storage or a media package.',
-                    'When you move to production, use proper image uploads, compression, and alt text for accessibility.',
+                    'This gallery highlights reunions, committee activities, volunteer programs, and other visual moments from the association.',
+                    'Admins can keep the page current by uploading new images directly from the admin panel.',
                 ],
-                'gallery' => ['Reunion Day', 'Member Meetup', 'Award Ceremony', 'Workshop Session', 'Volunteer Program', 'Cultural Evening'],
+                'aside_note' => 'The public gallery reflects photos uploaded from the admin panel.',
             ],
             'events-videos' => [
                 'eyebrow' => 'Events',
                 'title' => 'Video Gallery',
-                'intro' => 'Video highlights work well for speeches, testimonials, and recap reels.',
-                'body' => [
-                    'Right now these are placeholders for future embedded videos from YouTube, Vimeo, or self-hosted media.',
-                    'Keep the layout simple so it can later accept thumbnails, duration labels, and watch pages.',
-                ],
-                'gallery' => ['Chairperson Message', 'Annual Event Recap', 'Member Story', 'Committee Update'],
+                'intro' => 'Watch event highlights and uploaded video moments from the admin-managed archive.',
             ],
             'memories-list' => [
                 'eyebrow' => 'Memories',
                 'title' => 'Memories',
-                'intro' => 'A memory archive helps your community preserve personal stories and milestones.',
+                'intro' => 'Read the approved stories, milestones, and personal moments that give the association its living history.',
                 'body' => [
-                    'This starter version shows example memory excerpts. You can later connect this page to moderated submissions from members.',
-                    'Consider adding year filters, event tags, contributor names, and photo attachments in the next phase.',
+                    'Each memory in this archive has been reviewed before publication so the page stays meaningful, relevant, and easy to trust.',
+                    'Members can keep contributing new stories, photos, and moments while the admin team curates what becomes part of the public record.',
                 ],
-                'cards' => [
-                    ['title' => 'First Reunion', 'text' => 'A story about reconnecting after years apart and meeting old friends again.'],
-                    ['title' => 'Mentorship Journey', 'text' => 'A member reflects on guidance received from senior participants.'],
-                    ['title' => 'Volunteer Day', 'text' => 'Shared work turned into one of the association’s most memorable moments.'],
-                ],
+                'aside_note' => 'This archive brings together member stories that have already passed admin review.',
             ],
             'contact' => [
                 'eyebrow' => 'Contact',
                 'title' => 'Contact Us',
                 'intro' => 'Reach the MUBCAA team for enquiries, membership questions, event coordination, or general communication.',
-                'body' => [
-                    'Use the details below to contact the association directly, or send a message through the contact form for a response from the MUBCAA team.',
-                    'This form currently validates and confirms submissions on the site. It can be connected next to email delivery, CRM storage, or admin notifications.',
-                ],
+                'hide_narrative' => true,
+                'body' => [],
                 'cards' => [
                     ['title' => 'Office', 'text' => 'MUBCAA Office, Main Road, Dhaka, Bangladesh'],
                     ['title' => 'Email', 'text' => 'info@mubcaa.org'],

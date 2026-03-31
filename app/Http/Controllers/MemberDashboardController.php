@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Support\SiteNavigation;
-use Illuminate\Support\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -26,6 +27,9 @@ class MemberDashboardController extends Controller
             'profile' => $profile,
             'application' => $user->application,
             'profileCompletion' => $this->profileCompletion($user, $profile),
+            'workflowSteps' => $this->applicationWorkflowSteps($user->application),
+            'missingSubmissionItems' => $this->missingSubmissionItems($user, $profile),
+            'profileLocked' => $this->isProfileSubmissionLocked($user),
             ...$this->verificationModalData($request, $user, $profile),
         ]);
     }
@@ -52,8 +56,8 @@ class MemberDashboardController extends Controller
     {
         $user = $request->user()->load('profile', 'application');
         $profile = $user->profile;
-        $steps = $this->completionSteps();
-        $step = max(1, min($step, 10));
+        $steps = $this->completionFormSteps();
+        $step = max(2, min($step, 10));
 
         return view('member.complete-profile', [
             'menu' => SiteNavigation::menu(),
@@ -85,15 +89,32 @@ class MemberDashboardController extends Controller
             'designations' => $this->designationOptions(),
             'industries' => $this->industryOptions(),
             'stepCompletion' => $this->stepCompletionStates($user, $profile),
+            'profileLocked' => $this->isProfileSubmissionLocked($user),
         ]);
     }
 
     public function saveCompletion(Request $request): JsonResponse|RedirectResponse
     {
+        $user = $request->user()->load('profile', 'application');
+
+        if ($this->isProfileSubmissionLocked($user)) {
+            $message = 'Your alumni membership profile has already been submitted and cannot be resubmitted.';
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => $message,
+                ], 409);
+            }
+
+            return redirect()
+                ->route('member.dashboard')
+                ->with('error', $message);
+        }
+
         $step = (int) $request->input('wizard_step', 2);
         $step = max(2, min($step, 10));
         $validated = $request->validate($this->rulesForStep($request, $step));
-        $user = $request->user()->load('profile', 'application');
         $profile = $user->profile;
 
         if ($request->boolean('submit_for_verification') && ! $user->hasCompletedContactVerification()) {
@@ -103,17 +124,19 @@ class MemberDashboardController extends Controller
         }
 
         DB::transaction(function () use ($request, $validated, $user, $profile, $step): void {
+            $previousCompletionStep = (int) ($profile?->completion_step ?? 1);
             $profileData = $this->extractProfileData($request, $validated, $step, $profile);
 
             $profile = $user->profile()->updateOrCreate(
                 ['user_id' => $user->id],
                 array_merge($profileData, [
-                    'completion_step' => max((int) ($profile?->completion_step ?? 1), $step),
+                    'completion_step' => $previousCompletionStep,
                 ]),
             );
 
             $application = $user->application;
             $submitted = $request->boolean('submit_for_verification');
+            $isDraft = $request->boolean('save_as_draft');
             $status = $submitted ? 'pending_review' : ($step > 1 ? 'in_progress' : 'unverified');
             $approvalStep = 1;
 
@@ -126,7 +149,7 @@ class MemberDashboardController extends Controller
                 ['user_id' => $user->id],
                 [
                     'status' => $status,
-                    'current_step' => $application?->current_step ?? 1,
+                    'current_step' => max((int) ($application?->current_step ?? 1), $submitted ? 10 : $step),
                     'total_steps' => $application?->total_steps ?? 10,
                     'submitted_at' => $submitted ? now() : $application?->submitted_at,
                 ],
@@ -148,6 +171,14 @@ class MemberDashboardController extends Controller
                         ],
                     ]);
                 }
+
+                return;
+            }
+
+            if (! $isDraft || $this->stepIsComplete($user, $step)) {
+                $profile->update([
+                    'completion_step' => max($previousCompletionStep, $step),
+                ]);
             }
         });
 
@@ -255,6 +286,13 @@ class MemberDashboardController extends Controller
         ];
     }
 
+    private function completionFormSteps(): array
+    {
+        return collect($this->completionSteps())
+            ->except(1)
+            ->all();
+    }
+
     private function verificationModalData(Request $request, $user, $profile): array
     {
         $showVerificationModal = $request->boolean('verify_contacts') && ! $user->hasCompletedContactVerification();
@@ -269,9 +307,44 @@ class MemberDashboardController extends Controller
             'mobileResendCooldown' => $this->verificationCooldownRemaining($user, 'mobile'),
             'emailExpiryCountdown' => $this->verificationExpiryRemaining($user, 'email'),
             'mobileExpiryCountdown' => $this->verificationExpiryRemaining($user, 'mobile'),
-            'verificationContinueUrl' => route('member.profile.complete', ['step' => max(2, $profile?->completion_step ?? 2)]),
+            'verificationContinueUrl' => route('member.profile.complete', ['step' => $this->wizardResumeStep($user, $profile)]),
             'verificationSuccessMessage' => session('success'),
+            'localOtpCodes' => $this->localUserOtpCodes($user),
         ];
+    }
+
+    private function wizardResumeStep($user, $profile): int
+    {
+        return max(2, min(10, (int) ($user->application?->current_step ?? $profile?->completion_step ?? 2)));
+    }
+
+    private function stepIsComplete($user, int $step): bool
+    {
+        $freshUser = $user->fresh()->load('profile', 'application');
+
+        return (bool) ($this->stepCompletionStates($freshUser, $freshUser->profile)[$step] ?? false);
+    }
+
+    private function localUserOtpCodes($user): ?array
+    {
+        if (! App::environment('local')) {
+            return null;
+        }
+
+        $user->loadMissing('verificationTokens');
+
+        return array_filter([
+            'email' => $user->verificationTokens
+                ->where('channel', 'email')
+                ->whereNull('verified_at')
+                ->sortByDesc('sent_at')
+                ->first()?->code,
+            'mobile' => $user->verificationTokens
+                ->where('channel', 'mobile')
+                ->whereNull('verified_at')
+                ->sortByDesc('sent_at')
+                ->first()?->code,
+        ]);
     }
 
     private function verificationCooldownRemaining($user, string $channel): int
@@ -337,8 +410,7 @@ class MemberDashboardController extends Controller
 
     private function stepDescriptions(): array
     {
-        return collect($this->completionSteps())
-            ->except(1)
+        return collect($this->completionFormSteps())
             ->map(fn ($label, $step) => $this->stepDescription($step))
             ->all();
     }
@@ -429,11 +501,11 @@ class MemberDashboardController extends Controller
             2 => $validated,
             3 => $validated,
             4 => [
-                'primary_mobile' => $profile?->primary_mobile ?: $request->user()->phone,
-                'mobile_number' => $profile?->primary_mobile ?: $request->user()->phone,
+                'primary_mobile' => $validated['primary_mobile'] ?? ($profile?->primary_mobile ?: $request->user()->phone),
+                'mobile_number' => $validated['primary_mobile'] ?? ($profile?->primary_mobile ?: $request->user()->phone),
                 'secondary_mobile' => $validated['secondary_mobile'] ?? null,
                 'whatsapp_number' => $validated['whatsapp_number'] ?? null,
-                'email_address' => $profile?->email_address ?: $request->user()->email,
+                'email_address' => $validated['email_address'] ?? ($profile?->email_address ?: $request->user()->email),
                 'present_address' => $validated['present_address'] ?? null,
                 'permanent_address' => $validated['permanent_address'] ?? null,
                 'country' => $validated['country'] ?? null,
@@ -691,6 +763,15 @@ class MemberDashboardController extends Controller
         ];
     }
 
+    private function isProfileSubmissionLocked($user): bool
+    {
+        $status = $user->application?->status ?? $user->membership_status;
+
+        return in_array($status, ['pending_review', 'under_review', 'approved', 'verified'], true)
+            || ! is_null($user->application?->submitted_at)
+            || ! is_null($user->profile?->submitted_for_review_at);
+    }
+
     private function requiredFileRule(Request $request, string $field, bool $isDraft): string
     {
         if ($isDraft) {
@@ -858,7 +939,7 @@ class MemberDashboardController extends Controller
     {
         return [
             'Bagerhat', 'Bandarban', 'Barguna', 'Barishal', 'Bhola', 'Bogura', 'Brahmanbaria', 'Chandpur',
-            'Chattogram', "Chuadanga", 'Cox’s Bazar', 'Cumilla', 'Dhaka', 'Dinajpur', 'Faridpur',
+            'Chattogram', 'Chuadanga', 'Cox’s Bazar', 'Cumilla', 'Dhaka', 'Dinajpur', 'Faridpur',
             'Feni', 'Gaibandha', 'Gazipur', 'Gopalganj', 'Habiganj', 'Jamalpur', 'Jashore', 'Jhalokathi',
             'Jhenaidah', 'Joypurhat', 'Khagrachhari', 'Khulna', 'Kishoreganj', 'Kurigram', 'Kushtia',
             'Lakshmipur', 'Lalmonirhat', 'Madaripur', 'Magura', 'Manikganj', 'Meherpur', 'Moulvibazar',

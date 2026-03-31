@@ -28,6 +28,54 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
+        RateLimiter::for('login-check', function (Request $request) {
+            return Limit::perMinute(20)->by($request->ip());
+        });
+
+        RateLimiter::for('member-login', function (Request $request) {
+            $identifier = strtolower(trim((string) $request->input('identifier')));
+
+            return Limit::perMinute(5)->by($identifier.'|'.$request->ip());
+        });
+
+        RateLimiter::for('admin-login', function (Request $request) {
+            $email = strtolower(trim((string) $request->input('email')));
+
+            return Limit::perMinute(5)->by($email.'|'.$request->ip());
+        });
+
+        RateLimiter::for('login-otp-verify', function (Request $request) {
+            $scope = $request->session()->get('login_otp_user_id', 'guest');
+
+            return Limit::perMinute(10)->by($scope.'|'.$request->ip());
+        });
+
+        RateLimiter::for('login-otp-resend', function (Request $request) {
+            $scope = $request->session()->get('login_otp_user_id', 'guest');
+
+            return Limit::perMinute(5)->by($scope.'|'.$request->ip());
+        });
+
+        RateLimiter::for('registration-check', function (Request $request) {
+            return Limit::perMinute(30)->by($request->ip());
+        });
+
+        RateLimiter::for('registration-submit', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+
+        RateLimiter::for('contact-verification', function (Request $request) {
+            $scope = $request->user()?->id ?: 'pending:'.$request->session()->get('pending_registration_id', 'guest');
+
+            return Limit::perMinute(10)->by($scope.'|'.$request->ip());
+        });
+
+        RateLimiter::for('contact-verification-resend', function (Request $request) {
+            $scope = $request->user()?->id ?: 'pending:'.$request->session()->get('pending_registration_id', 'guest');
+
+            return Limit::perMinute(5)->by($scope.'|'.$request->ip());
+        });
+
         $this->routes(function () {
             Route::middleware('api')
                 ->prefix('api')

@@ -15,6 +15,10 @@
         @php
             $isDashboardView = request()->routeIs('admin.dashboard');
             $isApplicationView = request()->routeIs('admin.applications.*');
+            $isMemoryView = request()->routeIs('admin.memories.*');
+            $isGalleryView = request()->routeIs('admin.gallery.*');
+            $isVideoView = request()->routeIs('admin.videos.*');
+            $isContactView = request()->routeIs('admin.contacts.*');
             $isAffiliateView = request()->routeIs('admin.affiliates.*');
         @endphp
         <div class="admin-layout-shell min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(103,232,249,0.16),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(251,146,60,0.12),transparent_28%)]">
@@ -49,6 +53,30 @@
                                 <div>
                                     <strong class="block text-sm font-semibold text-slate-900">Applications</strong>
                                     <span class="mt-1 block text-sm leading-6 text-slate-500">Submitted profiles</span>
+                                </div>
+                            </a>
+                            <a class="admin-nav-item block rounded-[1.35rem] border px-4 py-4 transition hover:border-cyan-100 hover:bg-cyan-50/70 hover:shadow-sm @if ($isMemoryView) is-active border-cyan-200 bg-cyan-50 text-cyan-950 shadow-sm @else border-transparent bg-slate-50 @endif" href="{{ route('admin.memories.index') }}">
+                                <div>
+                                    <strong class="block text-sm font-semibold text-slate-900">Memories</strong>
+                                    <span class="mt-1 block text-sm leading-6 text-slate-500">Story review queue</span>
+                                </div>
+                            </a>
+                            <a class="admin-nav-item block rounded-[1.35rem] border px-4 py-4 transition hover:border-cyan-100 hover:bg-cyan-50/70 hover:shadow-sm @if ($isGalleryView) is-active border-cyan-200 bg-cyan-50 text-cyan-950 shadow-sm @else border-transparent bg-slate-50 @endif" href="{{ route('admin.gallery.index') }}">
+                                <div>
+                                    <strong class="block text-sm font-semibold text-slate-900">Photo Gallery</strong>
+                                    <span class="mt-1 block text-sm leading-6 text-slate-500">Upload gallery photos</span>
+                                </div>
+                            </a>
+                            <a class="admin-nav-item block rounded-[1.35rem] border px-4 py-4 transition hover:border-cyan-100 hover:bg-cyan-50/70 hover:shadow-sm @if ($isVideoView) is-active border-cyan-200 bg-cyan-50 text-cyan-950 shadow-sm @else border-transparent bg-slate-50 @endif" href="{{ route('admin.videos.index') }}">
+                                <div>
+                                    <strong class="block text-sm font-semibold text-slate-900">Video Gallery</strong>
+                                    <span class="mt-1 block text-sm leading-6 text-slate-500">Upload gallery videos</span>
+                                </div>
+                            </a>
+                            <a class="admin-nav-item block rounded-[1.35rem] border px-4 py-4 transition hover:border-cyan-100 hover:bg-cyan-50/70 hover:shadow-sm @if ($isContactView) is-active border-cyan-200 bg-cyan-50 text-cyan-950 shadow-sm @else border-transparent bg-slate-50 @endif" href="{{ route('admin.contacts.index') }}">
+                                <div>
+                                    <strong class="block text-sm font-semibold text-slate-900">Contact Inbox</strong>
+                                    <span class="mt-1 block text-sm leading-6 text-slate-500">Submitted contact forms</span>
                                 </div>
                             </a>
                             <a class="admin-nav-item block rounded-[1.35rem] border px-4 py-4 transition hover:border-cyan-100 hover:bg-cyan-50/70 hover:shadow-sm @if ($isAffiliateView) is-active border-cyan-200 bg-cyan-50 text-cyan-950 shadow-sm @else border-transparent bg-slate-50 @endif" href="{{ route('admin.affiliates.index') }}">

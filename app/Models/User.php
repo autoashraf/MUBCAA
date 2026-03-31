@@ -90,6 +90,21 @@ class User extends Authenticatable
         return $this->hasMany(User::class, 'referred_by_user_id');
     }
 
+    public function memorySubmissions(): HasMany
+    {
+        return $this->hasMany(MemorySubmission::class);
+    }
+
+    public function galleryPhotos(): HasMany
+    {
+        return $this->hasMany(GalleryPhoto::class, 'uploaded_by');
+    }
+
+    public function galleryVideos(): HasMany
+    {
+        return $this->hasMany(GalleryVideo::class, 'uploaded_by');
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';

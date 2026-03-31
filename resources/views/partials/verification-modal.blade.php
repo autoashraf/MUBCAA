@@ -20,6 +20,13 @@
                                 @if (! empty($verificationSuccessMessage))
                                     <p class="dashboard-copy">{{ $verificationSuccessMessage }}</p>
                                 @endif
+                            @if (! empty($localOtpCodes))
+                                <div class="alert-success alert-warning-like">
+                                    Local OTP Debug:
+                                    @if (! empty($localOtpCodes['email'])) Email {{ $localOtpCodes['email'] }} @endif
+                                    @if (! empty($localOtpCodes['mobile'])) Mobile {{ $localOtpCodes['mobile'] }} @endif
+                                </div>
+                            @endif
                             <div class="action-row verification-action-row">
                                 <a class="button button-primary" href="{{ $verificationContinueUrl }}">Continue Registration</a>
                                 <form method="POST" action="{{ route('logout') }}">
@@ -48,6 +55,13 @@
 
                 <div class="verification-layout verification-layout-single">
                     <div class="verification-panels">
+                        @if (! empty($localOtpCodes))
+                            <div class="alert-success alert-warning-like">
+                                Local OTP Debug:
+                                @if (! empty($localOtpCodes['email'])) Email {{ $localOtpCodes['email'] }} @endif
+                                @if (! empty($localOtpCodes['mobile'])) Mobile {{ $localOtpCodes['mobile'] }} @endif
+                            </div>
+                        @endif
                         <div class="verification-stepper" aria-label="Verification progress">
                             <div class="verification-step {{ $emailVerified ? 'is-complete' : 'is-active' }}">
                                 <span class="verification-step-index">1</span>

@@ -2,7 +2,7 @@
 
 @section('content')
     @php
-        $activeStep = old('wizard_step', $currentStep);
+        $activeStep = max(2, (int) old('wizard_step', $currentStep));
         $logoPath = config('site.brand.logo_path');
         $brandName = config('site.brand.name', 'MUBCAA');
     @endphp
@@ -27,43 +27,24 @@
                     <div class="alert-success alert-warning-like">{{ $message }}</div>
                 @enderror
 
+                @if (!empty($profileLocked))
+                    <div class="alert-success alert-warning-like">
+                        Your alumni membership profile has already been submitted for review. You can view your progress from the dashboard, but this form can no longer be resubmitted.
+                    </div>
+                @endif
+
                 @foreach ($steps as $number => $label)
-                    <section class="wizard-panel @if ((int) $activeStep === $number) is-active @endif" data-wizard-panel="{{ $number }}">
-                        @if ($number >= 2)
-                            <input type="hidden" name="wizard_step" value="{{ $number }}" @disabled((int) $activeStep !== $number)>
-                        @endif
+                    <section class="wizard-panel @if ((int) $activeStep === $number) is-active @endif @if ($number === 7) wizard-step-labels @endif" data-wizard-panel="{{ $number }}">
+                        <input type="hidden" name="wizard_step" value="{{ $number }}" @disabled((int) $activeStep !== $number)>
                             <div class="dashboard-form-head wizard-auth-copy">
                                 <div>
                                     <p class="panel-card-label">Step {{ $number }}: {{ $label }}</p>
                                     <h3>{{ $label }}</h3>
-                                    <p class="dashboard-copy">{{ $number === 1 ? 'Review the information you submitted during Step 1 before continuing to the academic section.' : $stepDescriptions[$number] }}</p>
+                                    <p class="dashboard-copy">{{ $stepDescriptions[$number] }}</p>
                                 </div>
                             </div>
 
-                            @if ($number === 1)
-                                <div class="wizard-form-stack">
-                                    <label>
-                                        <span>Full Name</span>
-                                        <input type="text" value="{{ $user->name }}" readonly>
-                                    </label>
-                                    <label>
-                                        <span>Mobile Number</span>
-                                        <input type="text" value="{{ $user->phone }}" readonly>
-                                    </label>
-                                    <label>
-                                        <span>Email Address</span>
-                                        <input type="text" value="{{ $user->email }}" readonly>
-                                    </label>
-                                    <label>
-                                        <span>Passing Year / Batch</span>
-                                        <input type="text" value="{{ $profile?->passing_year_batch }}" readonly>
-                                    </label>
-                                    <label>
-                                        <span>How did you find us?</span>
-                                        <input type="text" value="{{ $profile?->how_did_you_find_us ?: 'Not added' }}" readonly>
-                                    </label>
-                                </div>
-                            @elseif ($number === 2)
+                            @if ($number === 2)
                                 <div class="wizard-form-stack">
                                     <label>
                                         <span>Passing Year SSC</span>
@@ -323,18 +304,42 @@
                                     <label><span>Would you like to support alumni initiatives in the future as a donor or sponsor?</span><select name="donor_sponsor_interest"><option value="">Select one</option>@foreach (['Yes', 'No', 'Maybe Later'] as $option)<option value="{{ $option }}" @selected(old('donor_sponsor_interest', $profile?->donor_sponsor_interest) === $option)>{{ $option }}</option>@endforeach</select>@error('donor_sponsor_interest') <small>{{ $message }}</small> @enderror</label>
                                     <label><span>Would you be interested in mentoring current students?</span><select name="mentor_interest"><option value="">Select one</option><option value="1" @selected((string) old('mentor_interest', (int) $profile?->mentor_interest) === '1')>Yes</option><option value="0" @selected((string) old('mentor_interest', (int) $profile?->mentor_interest) === '0')>No</option></select>@error('mentor_interest') <small>{{ $message }}</small> @enderror</label>
                                 </div>
-                                <fieldset class="checkbox-fieldset">
-                                    <legend>Areas of Interest</legend>
-                                    <div class="checkbox-grid">
-                                        @foreach ($areasOfInterest as $interest)
-                                            <label class="checkbox-item checkbox-interest-card">
-                                                <input type="checkbox" name="areas_of_interest[]" value="{{ $interest }}" @checked(in_array($interest, old('areas_of_interest', $profile?->areas_of_interest ?? []), true))>
-                                                <span class="checkbox-indicator"></span>
-                                                <span class="checkbox-copy">{{ $interest }}</span>
-                                            </label>
-                                        @endforeach
+                                @php
+                                    $selectedInterests = old('areas_of_interest', $profile?->areas_of_interest ?? []);
+                                @endphp
+                                <div class="wizard-field label-wide">
+                                    <span>Areas of Interest</span>
+                                    <div class="multi-select-dropdown @if ($errors->has('areas_of_interest')) is-open @endif" data-multiselect-dropdown>
+                                        <button class="multi-select-trigger" type="button" data-multiselect-trigger aria-expanded="@if ($errors->has('areas_of_interest')) true @else false @endif" onclick="(function(btn){var dropdown=btn.closest('[data-multiselect-dropdown]');if(!dropdown)return;var isOpen=dropdown.classList.toggle('is-open');btn.setAttribute('aria-expanded',isOpen?'true':'false');})(this)">
+                                            <span class="multi-select-trigger-label" data-multiselect-label data-placeholder="Select areas of interest">
+                                                @if (count($selectedInterests) === 0)
+                                                    Select areas of interest
+                                                @elseif (count($selectedInterests) <= 2)
+                                                    {{ implode(', ', $selectedInterests) }}
+                                                @else
+                                                    {{ implode(', ', array_slice($selectedInterests, 0, 2)) }} +{{ count($selectedInterests) - 2 }}
+                                                @endif
+                                            </span>
+                                            <span class="multi-select-trigger-icon" aria-hidden="true"></span>
+                                        </button>
+                                        <div class="multi-select-panel" data-multiselect-panel>
+                                            <div class="multi-select-options">
+                                                @foreach ($areasOfInterest as $interest)
+                                                    <label class="multi-select-option">
+                                                        <input type="checkbox" name="areas_of_interest[]" value="{{ $interest }}" data-multiselect-option @checked(in_array($interest, $selectedInterests, true)) onchange="(function(input){var dropdown=input.closest('[data-multiselect-dropdown]');if(!dropdown)return;var label=dropdown.querySelector('[data-multiselect-label]');if(!label)return;var placeholder=label.dataset.placeholder||'Select options';var selected=Array.from(dropdown.querySelectorAll('[data-multiselect-option]:checked')).map(function(option){return option.value;});if(selected.length===0){label.textContent=placeholder;}else if(selected.length<=2){label.textContent=selected.join(', ');}else{label.textContent=selected.slice(0,2).join(', ')+' +'+(selected.length-2);}})(this)">
+                                                        <span class="multi-select-check" aria-hidden="true"></span>
+                                                        <span class="multi-select-option-copy">{{ $interest }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                            <div class="multi-select-actions">
+                                                <button class="multi-select-done" type="button" data-multiselect-done onclick="(function(btn){var dropdown=btn.closest('[data-multiselect-dropdown]');if(!dropdown)return;dropdown.classList.remove('is-open');var trigger=dropdown.querySelector('[data-multiselect-trigger]');if(trigger){trigger.setAttribute('aria-expanded','false');trigger.focus();}})(this)">Done</button>
+                                            </div>
+                                        </div>
                                     </div>
-                                </fieldset>
+                                    <small>Select one or more areas from the dropdown.</small>
+                                    @error('areas_of_interest') <small>{{ $message }}</small> @enderror
+                                </div>
                                 <label><span>Suggestions for the Alumni Association</span><textarea name="suggestions" rows="5" placeholder="Share your ideas or suggestions">{{ old('suggestions', $profile?->suggestions) }}</textarea>@error('suggestions') <small>{{ $message }}</small> @enderror</label>
                             @elseif ($number === 8)
                                 <div class="wizard-form-stack wizard-form-stack-with-labels">
@@ -358,12 +363,12 @@
                             @endif
 
                             <div class="action-row wizard-nav-actions wizard-auth-actions">
-                                @if ($number === 1)
-                                    <button class="button button-primary wizard-auth-submit" type="button" data-step-target="2">Continue to Step 2</button>
-                                @elseif ($number > 1)
+                                @if ($number > 2)
                                     <button class="button button-secondary wizard-auth-secondary" type="button" data-step-target="{{ $number - 1 }}">Previous</button>
                                 @endif
-                                @if ($number >= 2 && $number < 10)
+                                @if (!empty($profileLocked))
+                                    <a class="button button-secondary wizard-auth-secondary" href="{{ route('member.dashboard') }}">Back to Dashboard</a>
+                                @elseif ($number >= 2 && $number < 10)
                                     <button class="button button-secondary wizard-auth-secondary" type="submit" name="save_as_draft" value="1" data-draft-action-step="{{ $number }}" @if(!empty($stepCompletion[$number])) hidden @endif>Save as Draft</button>
                                     <button class="button button-primary wizard-auth-submit" type="submit" name="next_step" value="{{ $number + 1 }}">Continue</button>
                                 @elseif ($number === 10)

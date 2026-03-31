@@ -101,9 +101,9 @@
                             <div class="form-card verification-panel verification-panel-complete">
                                 <p class="panel-card-label">Ready</p>
                                 <h3>Both contact methods are verified</h3>
-                                <p class="dashboard-copy">You can continue to the remaining alumni registration steps now.</p>
+                                <p class="dashboard-copy">You can now resume the remaining alumni registration steps from your current draft step.</p>
                                 <div class="action-row">
-                                    <a class="button button-primary" href="{{ route('member.profile.complete', ['step' => max(2, $user->profile?->completion_step ?? 2)]) }}">Continue Registration</a>
+                                    <a class="button button-primary" href="{{ route('member.profile.complete', ['step' => max(2, $user->application?->current_step ?? $user->profile?->completion_step ?? 2)]) }}">Continue Registration</a>
                                 </div>
                             </div>
                         @endif

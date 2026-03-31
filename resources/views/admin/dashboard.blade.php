@@ -43,6 +43,30 @@
                 <span class="text-xs font-bold uppercase tracking-[0.2em] text-cyan-800">Under Review Referrals</span>
                 <strong class="mt-3 block text-3xl font-bold tracking-tight text-slate-950">{{ $affiliateOverview['under_review_referrals'] }}</strong>
             </article>
+            <article class="admin-summary-card rounded-[1.5rem] border border-cyan-100 bg-cyan-50/80 px-5 py-5 shadow-sm">
+                <span class="text-xs font-bold uppercase tracking-[0.2em] text-cyan-800">Pending Memories</span>
+                <strong class="mt-3 block text-3xl font-bold tracking-tight text-slate-950">{{ $memorySummary['pending_review'] }}</strong>
+            </article>
+            <article class="admin-summary-card rounded-[1.5rem] border border-cyan-100 bg-cyan-50/80 px-5 py-5 shadow-sm">
+                <span class="text-xs font-bold uppercase tracking-[0.2em] text-cyan-800">Approved Memories</span>
+                <strong class="mt-3 block text-3xl font-bold tracking-tight text-slate-950">{{ $memorySummary['approved'] }}</strong>
+            </article>
+            <article class="admin-summary-card rounded-[1.5rem] border border-cyan-100 bg-cyan-50/80 px-5 py-5 shadow-sm">
+                <span class="text-xs font-bold uppercase tracking-[0.2em] text-cyan-800">Rejected Memories</span>
+                <strong class="mt-3 block text-3xl font-bold tracking-tight text-slate-950">{{ $memorySummary['rejected'] }}</strong>
+            </article>
+            <article class="admin-summary-card rounded-[1.5rem] border border-cyan-100 bg-cyan-50/80 px-5 py-5 shadow-sm">
+                <span class="text-xs font-bold uppercase tracking-[0.2em] text-cyan-800">Gallery Photos</span>
+                <strong class="mt-3 block text-3xl font-bold tracking-tight text-slate-950">{{ $gallerySummary['photos'] }}</strong>
+            </article>
+            <article class="admin-summary-card rounded-[1.5rem] border border-cyan-100 bg-cyan-50/80 px-5 py-5 shadow-sm">
+                <span class="text-xs font-bold uppercase tracking-[0.2em] text-cyan-800">Gallery Videos</span>
+                <strong class="mt-3 block text-3xl font-bold tracking-tight text-slate-950">{{ $videoSummary['videos'] }}</strong>
+            </article>
+            <article class="admin-summary-card rounded-[1.5rem] border border-cyan-100 bg-cyan-50/80 px-5 py-5 shadow-sm">
+                <span class="text-xs font-bold uppercase tracking-[0.2em] text-cyan-800">Contact Messages</span>
+                <strong class="mt-3 block text-3xl font-bold tracking-tight text-slate-950">{{ $contactSummary['submissions'] }}</strong>
+            </article>
         </section>
     </div>
 @endsection

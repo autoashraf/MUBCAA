@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ContactSubmission;
+use App\Models\GalleryPhoto;
+use App\Models\GalleryVideo;
+use App\Models\MemorySubmission;
 use App\Models\MembershipApplication;
 use App\Models\User;
 use App\Support\SiteNavigation;
@@ -19,6 +23,10 @@ class AdminController extends Controller
             'menu' => SiteNavigation::menu(),
             'summary' => $this->summary(),
             'affiliateOverview' => $this->affiliateOverview(),
+            'memorySummary' => $this->memorySummary(),
+            'gallerySummary' => $this->gallerySummary(),
+            'videoSummary' => $this->videoSummary(),
+            'contactSummary' => $this->contactSummary(),
         ]);
     }
 
@@ -97,6 +105,97 @@ class AdminController extends Controller
                 'rejected' => 'Rejected',
             ],
             'summary' => $this->summary(),
+        ]);
+    }
+
+    public function memories(Request $request): View
+    {
+        $search = trim((string) $request->input('search'));
+        $status = (string) $request->input('status', 'all');
+
+        $memorySubmissions = MemorySubmission::query()
+            ->with(['user', 'reviewer'])
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($memoryQuery) use ($search): void {
+                    $memoryQuery->where('title', 'like', "%{$search}%")
+                        ->orWhere('memory', 'like', "%{$search}%")
+                        ->orWhereHas('user', function ($userQuery) use ($search): void {
+                            $userQuery->where('name', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->when($status !== 'all', function ($query) use ($status): void {
+                $query->where('status', $status);
+            })
+            ->latest()
+            ->get();
+
+        return view('admin.memories', [
+            'menu' => SiteNavigation::menu(),
+            'memorySubmissions' => $memorySubmissions,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+            ],
+            'statusOptions' => [
+                'all' => 'All statuses',
+                'pending_review' => 'Pending Review',
+                'approved' => 'Approved',
+                'rejected' => 'Rejected',
+            ],
+            'memorySummary' => $this->memorySummary(),
+        ]);
+    }
+
+    public function gallery(Request $request): View
+    {
+        return view('admin.gallery', [
+            'menu' => SiteNavigation::menu(),
+            'galleryPhotos' => GalleryPhoto::query()
+                ->with('uploader')
+                ->latest()
+                ->get(),
+            'gallerySummary' => $this->gallerySummary(),
+        ]);
+    }
+
+    public function videos(Request $request): View
+    {
+        return view('admin.videos', [
+            'menu' => SiteNavigation::menu(),
+            'galleryVideos' => GalleryVideo::query()
+                ->with('uploader')
+                ->latest()
+                ->get(),
+            'videoSummary' => $this->videoSummary(),
+        ]);
+    }
+
+    public function contacts(Request $request): View
+    {
+        $search = trim((string) $request->input('search'));
+
+        $contactSubmissions = ContactSubmission::query()
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($contactQuery) use ($search): void {
+                    $contactQuery->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('subject', 'like', "%{$search}%")
+                        ->orWhere('message', 'like', "%{$search}%");
+                });
+            })
+            ->latest()
+            ->get();
+
+        return view('admin.contacts', [
+            'menu' => SiteNavigation::menu(),
+            'contactSubmissions' => $contactSubmissions,
+            'filters' => [
+                'search' => $search,
+            ],
+            'contactSummary' => $this->contactSummary(),
         ]);
     }
 
@@ -215,6 +314,102 @@ class AdminController extends Controller
         return back()->with('success', 'Application rejected.');
     }
 
+    public function approveMemory(Request $request, MemorySubmission $memorySubmission): RedirectResponse
+    {
+        $request->validate([
+            'admin_notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $memorySubmission->update([
+            'status' => 'approved',
+            'admin_notes' => $request->input('admin_notes'),
+            'reviewed_by' => $request->user()->id,
+            'reviewed_at' => now(),
+            'approved_at' => now(),
+        ]);
+
+        return back()->with('success', 'Memory submission approved successfully.');
+    }
+
+    public function rejectMemory(Request $request, MemorySubmission $memorySubmission): RedirectResponse
+    {
+        $validated = $request->validate([
+            'admin_notes' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $memorySubmission->update([
+            'status' => 'rejected',
+            'admin_notes' => $validated['admin_notes'],
+            'reviewed_by' => $request->user()->id,
+            'reviewed_at' => now(),
+            'approved_at' => null,
+        ]);
+
+        return back()->with('success', 'Memory submission rejected.');
+    }
+
+    public function storeGalleryPhoto(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
+            'caption' => ['nullable', 'string', 'max:2000'],
+            'photo' => ['required', 'image', 'max:8192'],
+        ]);
+
+        $path = $request->file('photo')->store('gallery-photos', 'public');
+
+        GalleryPhoto::query()->create([
+            'uploaded_by' => $request->user()->id,
+            'title' => $validated['title'] ?? null,
+            'caption' => $validated['caption'] ?? null,
+            'photo_path' => $path,
+        ]);
+
+        return back()->with('success', 'Gallery photo uploaded successfully.');
+    }
+
+    public function destroyGalleryPhoto(GalleryPhoto $galleryPhoto): RedirectResponse
+    {
+        if (filled($galleryPhoto->photo_path)) {
+            Storage::disk('public')->delete($galleryPhoto->photo_path);
+        }
+
+        $galleryPhoto->delete();
+
+        return back()->with('success', 'Gallery photo removed successfully.');
+    }
+
+    public function storeGalleryVideo(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
+            'caption' => ['nullable', 'string', 'max:2000'],
+            'video' => ['required', 'file', 'mimetypes:video/mp4,video/webm,video/ogg,video/quicktime', 'max:51200'],
+        ]);
+
+        $path = $request->file('video')->store('gallery-videos', 'public');
+
+        GalleryVideo::query()->create([
+            'uploaded_by' => $request->user()->id,
+            'title' => $validated['title'] ?? null,
+            'caption' => $validated['caption'] ?? null,
+            'video_path' => $path,
+        ]);
+
+        return back()->with('success', 'Gallery video uploaded successfully.');
+    }
+
+    public function destroyGalleryVideo(GalleryVideo $galleryVideo): RedirectResponse
+    {
+        if (filled($galleryVideo->video_path)) {
+            Storage::disk('public')->delete($galleryVideo->video_path);
+        }
+
+        $galleryVideo->delete();
+
+        return back()->with('success', 'Gallery video removed successfully.');
+    }
+
     private function summary(): array
     {
         $allApplications = MembershipApplication::query()->get();
@@ -234,6 +429,38 @@ class AdminController extends Controller
             'referrals' => User::query()->whereNotNull('referred_by_user_id')->count(),
             'verified_referrals' => User::query()->whereNotNull('referred_by_user_id')->where('membership_status', 'verified')->count(),
             'under_review_referrals' => User::query()->whereNotNull('referred_by_user_id')->whereIn('membership_status', ['pending_review', 'under_review'])->count(),
+        ];
+    }
+
+    private function memorySummary(): array
+    {
+        $memorySubmissions = MemorySubmission::query()->get();
+
+        return [
+            'pending_review' => $memorySubmissions->where('status', 'pending_review')->count(),
+            'approved' => $memorySubmissions->where('status', 'approved')->count(),
+            'rejected' => $memorySubmissions->where('status', 'rejected')->count(),
+        ];
+    }
+
+    private function gallerySummary(): array
+    {
+        return [
+            'photos' => GalleryPhoto::query()->count(),
+        ];
+    }
+
+    private function videoSummary(): array
+    {
+        return [
+            'videos' => GalleryVideo::query()->count(),
+        ];
+    }
+
+    private function contactSummary(): array
+    {
+        return [
+            'submissions' => ContactSubmission::query()->count(),
         ];
     }
 

@@ -3,11 +3,17 @@
 namespace Tests\Feature;
 
 use App\Mail\VerificationOtpMail;
+use App\Models\ContactSubmission;
+use App\Models\GalleryPhoto;
+use App\Models\GalleryVideo;
+use App\Models\MemorySubmission;
 use App\Models\MembershipApplication;
 use App\Models\PendingRegistration;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class MembershipSiteTest extends TestCase
@@ -191,6 +197,68 @@ class MembershipSiteTest extends TestCase
         ]);
     }
 
+    public function test_registration_check_reuses_exact_pending_registration_context(): void
+    {
+        PendingRegistration::query()->create([
+            'full_name' => 'Existing Applicant',
+            'email' => 'pending-check@example.com',
+            'mobile_number' => '01700000999',
+            'passing_year_batch' => '2010',
+            'completed_at' => now()->subDay(),
+        ]);
+
+        $this->postJson(route('membership.apply.check'), [
+            'field' => 'email',
+            'value' => 'pending-check@example.com',
+            'context_mobile_number' => '01700000999',
+        ])->assertOk()->assertJson([
+            'valid' => true,
+            'type' => 'success',
+            'message' => 'An existing registration was found for this email and mobile number.',
+        ]);
+
+        $this->postJson(route('membership.apply.check'), [
+            'field' => 'mobile_number',
+            'value' => '01700000999',
+            'context_email' => 'pending-check@example.com',
+        ])->assertOk()->assertJson([
+            'valid' => true,
+            'type' => 'success',
+            'message' => 'An existing registration was found for this email and mobile number.',
+        ]);
+    }
+
+    public function test_registration_check_rejects_pending_registration_conflicts(): void
+    {
+        PendingRegistration::query()->create([
+            'full_name' => 'Existing Applicant',
+            'email' => 'pending-conflict@example.com',
+            'mobile_number' => '01700000888',
+            'passing_year_batch' => '2010',
+            'completed_at' => now()->subDay(),
+        ]);
+
+        $this->postJson(route('membership.apply.check'), [
+            'field' => 'email',
+            'value' => 'pending-conflict@example.com',
+            'context_mobile_number' => '01700000777',
+        ])->assertOk()->assertJson([
+            'valid' => false,
+            'type' => 'error',
+            'message' => 'This email address is already linked to another registration.',
+        ]);
+
+        $this->postJson(route('membership.apply.check'), [
+            'field' => 'mobile_number',
+            'value' => '01700000888',
+            'context_email' => 'different@example.com',
+        ])->assertOk()->assertJson([
+            'valid' => false,
+            'type' => 'error',
+            'message' => 'This mobile number is already linked to another registration.',
+        ]);
+    }
+
     public function test_member_can_login_and_access_dashboard(): void
     {
         Mail::fake();
@@ -235,8 +303,19 @@ class MembershipSiteTest extends TestCase
         ])->assertOk()
             ->assertJson([
                 'exists' => true,
-                'message' => 'Member account found. You can request an OTP.',
+                'message' => 'If this is a registered member account, you can request an OTP.',
             ]);
+    }
+
+    public function test_member_login_does_not_disclose_when_account_is_missing(): void
+    {
+        $response = $this->post(route('login.attempt'), [
+            'identifier' => 'missing@example.com',
+        ]);
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('success', 'If a member account matches that email or mobile number, a 6-digit OTP has been sent.');
+        $response->assertSessionMissing('login_otp_user_id');
     }
 
     public function test_admin_can_login_with_email_and_password(): void
@@ -288,6 +367,155 @@ class MembershipSiteTest extends TestCase
             'status' => 'unverified',
         ]);
         $this->assertNotNull($registration->fresh()->completed_at);
+    }
+
+    public function test_registration_cannot_replace_another_pending_registration(): void
+    {
+        PendingRegistration::query()->create([
+            'full_name' => 'Existing Applicant',
+            'email' => 'pending-existing@example.com',
+            'mobile_number' => '01712345678',
+            'passing_year_batch' => '2010',
+        ]);
+
+        $response = $this->withSession([
+            'registration_captcha_a' => 1,
+            'registration_captcha_b' => 2,
+        ])->post(route('membership.apply.store'), [
+            'full_name' => 'Second Applicant',
+            'email' => 'pending-existing@example.com',
+            'mobile_number' => '01700000077',
+            'passing_year_batch' => '2012',
+            'discovery_source' => 'Facebook',
+            'captcha_left' => 1,
+            'captcha_right' => 2,
+            'captcha_answer' => 3,
+        ]);
+
+        $response->assertSessionHasErrors(['email']);
+
+        $this->assertDatabaseHas('pending_registrations', [
+            'email' => 'pending-existing@example.com',
+            'mobile_number' => '01712345678',
+            'full_name' => 'Existing Applicant',
+        ]);
+
+        $this->assertSame(1, PendingRegistration::query()->where('email', 'pending-existing@example.com')->count());
+    }
+
+    public function test_registration_reuses_matching_pending_registration_when_session_is_missing(): void
+    {
+        $registration = PendingRegistration::query()->create([
+            'full_name' => 'Existing Applicant',
+            'email' => 'existing@example.com',
+            'mobile_number' => '01712345678',
+            'passing_year_batch' => '2010',
+            'how_did_you_find_us' => 'Facebook',
+        ]);
+
+        $response = $this->withSession([
+            'registration_captcha_a' => 1,
+            'registration_captcha_b' => 2,
+        ])->post(route('membership.apply.store'), [
+            'full_name' => 'Existing Applicant Updated',
+            'email' => 'existing@example.com',
+            'mobile_number' => '01712345678',
+            'passing_year_batch' => '2012',
+            'discovery_source' => 'Google Search',
+            'captcha_left' => 1,
+            'captcha_right' => 2,
+            'captcha_answer' => 3,
+        ]);
+
+        $response->assertRedirect(route('member.verification.show'));
+
+        $this->assertSame(1, PendingRegistration::query()->where('email', 'existing@example.com')->count());
+
+        $this->assertDatabaseHas('pending_registrations', [
+            'id' => $registration->id,
+            'full_name' => 'Existing Applicant Updated',
+            'email' => 'existing@example.com',
+            'mobile_number' => '01712345678',
+            'passing_year_batch' => '2012',
+            'how_did_you_find_us' => 'Google Search',
+        ]);
+    }
+
+    public function test_registration_reuses_matching_completed_pending_registration_when_user_is_missing(): void
+    {
+        $registration = PendingRegistration::query()->create([
+            'full_name' => 'Existing Applicant',
+            'email' => 'existing-completed@example.com',
+            'mobile_number' => '01712345679',
+            'passing_year_batch' => '2010',
+            'how_did_you_find_us' => 'Facebook',
+            'completed_at' => now()->subDay(),
+            'email_verified_at' => now()->subDay(),
+            'mobile_verified_at' => now()->subDay(),
+            'email_code' => '123456',
+            'mobile_code' => '654321',
+            'email_code_expires_at' => now()->subMinutes(5),
+            'mobile_code_expires_at' => now()->subMinutes(5),
+        ]);
+
+        $response = $this->withSession([
+            'registration_captcha_a' => 1,
+            'registration_captcha_b' => 2,
+        ])->post(route('membership.apply.store'), [
+            'full_name' => 'Existing Applicant Updated',
+            'email' => 'existing-completed@example.com',
+            'mobile_number' => '01712345679',
+            'passing_year_batch' => '2016',
+            'discovery_source' => 'Website',
+            'captcha_left' => 1,
+            'captcha_right' => 2,
+            'captcha_answer' => 3,
+        ]);
+
+        $response->assertRedirect(route('member.verification.show'));
+
+        $this->assertSame(1, PendingRegistration::query()->where('email', 'existing-completed@example.com')->count());
+
+        $this->assertDatabaseHas('pending_registrations', [
+            'id' => $registration->id,
+            'full_name' => 'Existing Applicant Updated',
+            'email' => 'existing-completed@example.com',
+            'mobile_number' => '01712345679',
+            'passing_year_batch' => '2016',
+            'how_did_you_find_us' => 'Website',
+            'completed_at' => null,
+            'email_verified_at' => null,
+            'mobile_verified_at' => null,
+        ]);
+    }
+
+    public function test_registration_rejects_completed_pending_registration_conflicts_before_insert(): void
+    {
+        PendingRegistration::query()->create([
+            'full_name' => 'Existing Applicant',
+            'email' => 'completed-conflict@example.com',
+            'mobile_number' => '01712345680',
+            'passing_year_batch' => '2010',
+            'completed_at' => now()->subDay(),
+        ]);
+
+        $response = $this->withSession([
+            'registration_captcha_a' => 1,
+            'registration_captcha_b' => 2,
+        ])->post(route('membership.apply.store'), [
+            'full_name' => 'Different Applicant',
+            'email' => 'completed-conflict@example.com',
+            'mobile_number' => '01700000088',
+            'passing_year_batch' => '2012',
+            'discovery_source' => 'Facebook',
+            'captcha_left' => 1,
+            'captcha_right' => 2,
+            'captcha_answer' => 3,
+        ]);
+
+        $response->assertSessionHasErrors(['email']);
+
+        $this->assertSame(1, PendingRegistration::query()->where('email', 'completed-conflict@example.com')->count());
     }
 
     public function test_member_can_open_and_save_profile_completion_step(): void
@@ -372,7 +600,64 @@ class MembershipSiteTest extends TestCase
         $this->assertDatabaseHas('member_profiles', [
             'user_id' => $member->id,
             'father_name' => 'Test Father',
+            'completion_step' => 2,
+        ]);
+
+        $this->assertDatabaseHas('membership_applications', [
+            'user_id' => $member->id,
+            'current_step' => 3,
+        ]);
+
+        $this->actingAs($member)
+            ->get(route('member.dashboard'))
+            ->assertOk()
+            ->assertSee(route('member.profile.complete', ['step' => 3]), false);
+    }
+
+    public function test_member_contact_step_persists_primary_mobile_and_email(): void
+    {
+        $member = User::factory()->create([
+            'role' => 'member',
+            'membership_status' => 'in_progress',
+            'approval_step' => 1,
+            'phone' => '01700000021',
+            'email' => 'member@example.com',
+        ]);
+
+        $member->profile()->create([
+            'mobile_number' => '01700000021',
+            'passing_year_batch' => '2012',
+            'country' => 'Bangladesh',
             'completion_step' => 3,
+        ]);
+
+        $member->application()->create([
+            'status' => 'in_progress',
+            'current_step' => 3,
+            'total_steps' => 10,
+        ]);
+
+        $this->actingAs($member)
+            ->post(route('member.profile.complete.save'), [
+                'wizard_step' => 4,
+                'primary_mobile' => '01799999999',
+                'secondary_mobile' => '01811111111',
+                'whatsapp_number' => '01799999999',
+                'email_address' => 'updated-contact@example.com',
+                'present_address' => 'Present address',
+                'permanent_address' => 'Permanent address',
+                'country' => 'Bangladesh',
+                'city_district' => 'Dhaka',
+                'postal_code' => '1207',
+                'next_step' => 5,
+            ])
+            ->assertRedirect(route('member.profile.complete', ['step' => 5]));
+
+        $this->assertDatabaseHas('member_profiles', [
+            'user_id' => $member->id,
+            'primary_mobile' => '01799999999',
+            'mobile_number' => '01799999999',
+            'email_address' => 'updated-contact@example.com',
         ]);
     }
 
@@ -405,6 +690,83 @@ class MembershipSiteTest extends TestCase
             ->assertDontSee(route('member.profile.complete', ['step' => 3]), false);
     }
 
+    public function test_member_profile_completion_advances_application_current_step(): void
+    {
+        $member = User::factory()->create([
+            'role' => 'member',
+            'membership_status' => 'in_progress',
+            'approval_step' => 1,
+            'phone' => '01700000031',
+        ]);
+
+        $member->profile()->create([
+            'mobile_number' => '01700000031',
+            'passing_year_batch' => '2012',
+            'country' => 'Bangladesh',
+            'completion_step' => 2,
+        ]);
+
+        $member->application()->create([
+            'status' => 'in_progress',
+            'current_step' => 2,
+            'total_steps' => 10,
+        ]);
+
+        $this->actingAs($member)
+            ->post(route('member.profile.complete.save'), [
+                'wizard_step' => 3,
+                'father_name' => 'Test Father',
+                'mother_name' => 'Test Mother',
+                'date_of_birth' => '1990-01-01',
+                'gender' => 'Male',
+                'blood_group' => 'A+',
+                'marital_status' => 'Single',
+                'next_step' => 4,
+            ])
+            ->assertRedirect(route('member.profile.complete', ['step' => 4]));
+
+        $this->assertDatabaseHas('membership_applications', [
+            'user_id' => $member->id,
+            'current_step' => 3,
+        ]);
+    }
+
+    public function test_member_cannot_resubmit_profile_after_submission(): void
+    {
+        $member = User::factory()->create([
+            'role' => 'member',
+            'membership_status' => 'pending_review',
+            'approval_step' => 1,
+            'email_verified_at' => now(),
+        ]);
+
+        $member->profile()->create([
+            'mobile_number' => '01712345678',
+            'mobile_verified' => true,
+            'passing_year_batch' => '2012',
+            'completion_step' => 10,
+            'submitted_for_review_at' => now(),
+        ]);
+
+        $member->application()->create([
+            'status' => 'pending_review',
+            'current_step' => 10,
+            'total_steps' => 10,
+            'submitted_at' => now(),
+        ]);
+
+        $this->actingAs($member)
+            ->post(route('member.profile.complete.save'), [
+                'wizard_step' => 10,
+                'information_accuracy_confirmation' => '1',
+                'terms_privacy_agreement' => '1',
+                'admin_verification_agreement' => '1',
+                'submit_for_verification' => '1',
+            ])
+            ->assertRedirect(route('member.dashboard'))
+            ->assertSessionHas('error', 'Your alumni membership profile has already been submitted and cannot be resubmitted.');
+    }
+
     public function test_admin_can_approve_application(): void
     {
         $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
@@ -433,6 +795,19 @@ class MembershipSiteTest extends TestCase
             'current_step' => 10,
             'status' => 'approved',
         ]);
+    }
+
+    public function test_login_identifier_check_is_rate_limited(): void
+    {
+        for ($attempt = 0; $attempt < 20; $attempt++) {
+            $this->postJson(route('login.check'), [
+                'identifier' => 'member@example.com',
+            ])->assertOk();
+        }
+
+        $this->postJson(route('login.check'), [
+            'identifier' => 'member@example.com',
+        ])->assertStatus(429);
     }
 
     public function test_admin_dashboard_shows_application_queue_actions(): void
@@ -562,6 +937,277 @@ class MembershipSiteTest extends TestCase
         $response
             ->assertRedirect()
             ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('memory_submissions', [
+            'user_id' => $member->id,
+            'title' => 'Our first event',
+            'status' => 'pending_review',
+        ]);
+    }
+
+    public function test_member_can_submit_memory_with_photos(): void
+    {
+        Storage::fake('public');
+
+        $member = User::factory()->create([
+            'role' => 'member',
+            'phone' => '01700001000',
+        ]);
+
+        $response = $this->actingAs($member)->post('/memories/submit-your-memory', [
+            'title' => 'Reunion day',
+            'memory' => 'We reconnected, shared stories, and took new photos together.',
+            'photos' => [
+                UploadedFile::fake()->image('memory-one.jpg'),
+                UploadedFile::fake()->image('memory-two.jpg'),
+            ],
+        ]);
+
+        $response
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertCount(2, Storage::disk('public')->files('memory-submissions'));
+
+        $submission = MemorySubmission::query()->where('user_id', $member->id)->firstOrFail();
+
+        $this->assertSame('pending_review', $submission->status);
+        $this->assertCount(2, $submission->photos ?? []);
+    }
+
+    public function test_admin_can_approve_memory_submission(): void
+    {
+        $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
+        $member = User::factory()->create([
+            'role' => 'member',
+            'phone' => '01700001001',
+        ]);
+
+        $submission = MemorySubmission::query()->create([
+            'user_id' => $member->id,
+            'title' => 'Batch reunion',
+            'memory' => 'A strong evening of reconnecting with old classmates.',
+            'status' => 'pending_review',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.memories.index'))
+            ->assertOk()
+            ->assertSee('Batch reunion');
+
+        $this->actingAs($admin)
+            ->post(route('admin.memories.approve', $submission), [
+                'admin_notes' => 'Suitable for the archive.',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('memory_submissions', [
+            'id' => $submission->id,
+            'status' => 'approved',
+            'reviewed_by' => $admin->id,
+            'admin_notes' => 'Suitable for the archive.',
+        ]);
+    }
+
+    public function test_admin_can_reject_memory_submission_with_note(): void
+    {
+        $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
+        $member = User::factory()->create([
+            'role' => 'member',
+            'phone' => '01700001002',
+        ]);
+
+        $submission = MemorySubmission::query()->create([
+            'user_id' => $member->id,
+            'title' => 'Incomplete story',
+            'memory' => 'This needs more context before publication.',
+            'status' => 'pending_review',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.memories.reject', $submission), [
+                'admin_notes' => 'Please add more detail and clearer context.',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('memory_submissions', [
+            'id' => $submission->id,
+            'status' => 'rejected',
+            'reviewed_by' => $admin->id,
+            'admin_notes' => 'Please add more detail and clearer context.',
+        ]);
+    }
+
+    public function test_public_memories_page_only_shows_approved_submissions(): void
+    {
+        $approvedMember = User::factory()->create([
+            'role' => 'member',
+            'phone' => '01700001003',
+        ]);
+
+        $pendingMember = User::factory()->create([
+            'role' => 'member',
+            'phone' => '01700001004',
+        ]);
+
+        MemorySubmission::query()->create([
+            'user_id' => $approvedMember->id,
+            'title' => 'Approved memory',
+            'memory' => 'This approved memory should be visible on the public archive page.',
+            'status' => 'approved',
+            'approved_at' => now(),
+        ]);
+
+        MemorySubmission::query()->create([
+            'user_id' => $pendingMember->id,
+            'title' => 'Pending memory',
+            'memory' => 'This pending memory should stay hidden from the public archive page.',
+            'status' => 'pending_review',
+        ]);
+
+        $this->get(route('memories.list'))
+            ->assertOk()
+            ->assertSee('Approved memory')
+            ->assertSee($approvedMember->name)
+            ->assertDontSee('Pending memory')
+            ->assertDontSee($pendingMember->name);
+    }
+
+    public function test_admin_can_upload_gallery_photo(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->post(route('admin.gallery.store'), [
+                'title' => 'Reunion Day',
+                'caption' => 'A packed hall during the annual reunion.',
+                'photo' => UploadedFile::fake()->image('reunion-day.jpg'),
+            ])
+            ->assertRedirect();
+
+        $photo = GalleryPhoto::query()->firstOrFail();
+
+        $this->assertSame('Reunion Day', $photo->title);
+        Storage::disk('public')->assertExists($photo->photo_path);
+    }
+
+    public function test_public_photo_gallery_shows_uploaded_admin_photos(): void
+    {
+        $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
+
+        GalleryPhoto::query()->create([
+            'uploaded_by' => $admin->id,
+            'title' => 'Committee Gathering',
+            'caption' => 'Members during a planning session.',
+            'photo_path' => 'gallery-photos/example.jpg',
+        ]);
+
+        $this->get(route('events.photos'))
+            ->assertOk()
+            ->assertSee('Committee Gathering')
+            ->assertSee('Members during a planning session.')
+            ->assertSee($admin->name);
+    }
+
+    public function test_home_page_uses_uploaded_gallery_photos_for_preview(): void
+    {
+        $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
+
+        GalleryPhoto::query()->create([
+            'uploaded_by' => $admin->id,
+            'title' => 'Homepage Preview',
+            'photo_path' => 'gallery-photos/home-preview.jpg',
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee(asset('storage/gallery-photos/home-preview.jpg'), false);
+    }
+
+    public function test_admin_can_remove_gallery_photo(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
+        Storage::disk('public')->put('gallery-photos/remove-me.jpg', 'image-bytes');
+
+        $photo = GalleryPhoto::query()->create([
+            'uploaded_by' => $admin->id,
+            'title' => 'Remove Me',
+            'photo_path' => 'gallery-photos/remove-me.jpg',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.gallery.destroy', $photo))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('gallery_photos', [
+            'id' => $photo->id,
+        ]);
+        Storage::disk('public')->assertMissing('gallery-photos/remove-me.jpg');
+    }
+
+    public function test_admin_can_upload_gallery_video(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->post(route('admin.videos.store'), [
+                'title' => 'Annual Recap',
+                'caption' => 'A short recap from the annual event.',
+                'video' => UploadedFile::fake()->create('annual-recap.mp4', 1024, 'video/mp4'),
+            ])
+            ->assertRedirect();
+
+        $video = GalleryVideo::query()->firstOrFail();
+
+        $this->assertSame('Annual Recap', $video->title);
+        Storage::disk('public')->assertExists($video->video_path);
+    }
+
+    public function test_public_video_gallery_shows_uploaded_admin_videos(): void
+    {
+        $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
+
+        GalleryVideo::query()->create([
+            'uploaded_by' => $admin->id,
+            'title' => 'Leadership Message',
+            'caption' => 'Opening remarks from the event.',
+            'video_path' => 'gallery-videos/leadership-message.mp4',
+        ]);
+
+        $this->get(route('events.videos'))
+            ->assertOk()
+            ->assertSee('Leadership Message')
+            ->assertSee('Opening remarks from the event.')
+            ->assertSee($admin->name);
+    }
+
+    public function test_admin_can_remove_gallery_video(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
+        Storage::disk('public')->put('gallery-videos/remove-me.mp4', 'video-bytes');
+
+        $video = GalleryVideo::query()->create([
+            'uploaded_by' => $admin->id,
+            'title' => 'Remove Video',
+            'video_path' => 'gallery-videos/remove-me.mp4',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.videos.destroy', $video))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('gallery_videos', [
+            'id' => $video->id,
+        ]);
+        Storage::disk('public')->assertMissing('gallery-videos/remove-me.mp4');
     }
 
     public function test_contact_form_validates_and_redirects_back(): void
@@ -577,5 +1223,32 @@ class MembershipSiteTest extends TestCase
         $response
             ->assertRedirect()
             ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('contact_submissions', [
+            'name' => 'Contact User',
+            'email' => 'contact@example.com',
+            'subject' => 'Membership enquiry',
+        ]);
+    }
+
+    public function test_admin_can_view_contact_submissions(): void
+    {
+        $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
+
+        ContactSubmission::query()->create([
+            'name' => 'Inbox Sender',
+            'email' => 'sender@example.com',
+            'phone' => '01712345678',
+            'subject' => 'Need membership help',
+            'message' => 'Please share the next steps for becoming a member.',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.contacts.index'))
+            ->assertOk()
+            ->assertSee('Need membership help')
+            ->assertSee('Inbox Sender')
+            ->assertSee('sender@example.com')
+            ->assertSee('Please share the next steps for becoming a member.');
     }
 }

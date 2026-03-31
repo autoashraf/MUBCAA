@@ -6,24 +6,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\MemberDashboardController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\VerificationController;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
-
-Route::get('/__mubcaa_check', function () {
-    Log::info('MUBCAA debug route hit.', [
-        'path' => request()->path(),
-        'full_url' => request()->fullUrl(),
-        'host' => request()->getHost(),
-        'time' => now()->toDateTimeString(),
-    ]);
-
-    return response()->json([
-        'app' => 'MUBCAA',
-        'status' => 'local-route-ok',
-        'time' => now()->toDateTimeString(),
-        'routes_file_mtime' => date('Y-m-d H:i:s', filemtime(base_path('routes/web.php'))),
-    ]);
-});
 
 Route::get('/', [SiteController::class, 'home'])->name('home');
 Route::redirect('/home', '/')->name('home.redirect');
@@ -31,21 +14,21 @@ Route::get('/r/{user}', [AuthController::class, 'affiliateRedirect'])->name('aff
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
-    Route::post('/login/check', [AuthController::class, 'checkLoginIdentifier'])->name('login.check');
-    Route::post('/login/verify', [AuthController::class, 'verifyLoginOtp'])->name('login.verify');
-    Route::post('/login/resend', [AuthController::class, 'resendLoginOtp'])->name('login.resend');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:member-login')->name('login.attempt');
+    Route::post('/login/check', [AuthController::class, 'checkLoginIdentifier'])->middleware('throttle:login-check')->name('login.check');
+    Route::post('/login/verify', [AuthController::class, 'verifyLoginOtp'])->middleware('throttle:login-otp-verify')->name('login.verify');
+    Route::post('/login/resend', [AuthController::class, 'resendLoginOtp'])->middleware('throttle:login-otp-resend')->name('login.resend');
     Route::get('/admin/login', [AuthController::class, 'showAdminLogin'])->name('admin.login');
-    Route::post('/admin/login', [AuthController::class, 'adminLogin'])->name('admin.login.attempt');
+    Route::post('/admin/login', [AuthController::class, 'adminLogin'])->middleware('throttle:admin-login')->name('admin.login.attempt');
     Route::get('/membership/apply-now', [AuthController::class, 'showRegistration'])->name('membership.apply');
-    Route::post('/membership/apply-now/check', [AuthController::class, 'checkRegistrationField'])->name('membership.apply.check');
-    Route::post('/membership/apply-now', [AuthController::class, 'register'])->name('membership.apply.store');
+    Route::post('/membership/apply-now/check', [AuthController::class, 'checkRegistrationField'])->middleware('throttle:registration-check')->name('membership.apply.check');
+    Route::post('/membership/apply-now', [AuthController::class, 'register'])->middleware('throttle:registration-submit')->name('membership.apply.store');
 });
 
 Route::get('/membership/verify-contacts', [VerificationController::class, 'show'])->name('member.verification.show');
-Route::post('/membership/verify-contacts/email', [VerificationController::class, 'verifyEmail'])->name('member.verification.email');
-Route::post('/membership/verify-contacts/mobile', [VerificationController::class, 'verifyMobile'])->name('member.verification.mobile');
-Route::post('/membership/verify-contacts/{channel}/resend', [VerificationController::class, 'resend'])->name('member.verification.resend');
+Route::post('/membership/verify-contacts/email', [VerificationController::class, 'verifyEmail'])->middleware('throttle:contact-verification')->name('member.verification.email');
+Route::post('/membership/verify-contacts/mobile', [VerificationController::class, 'verifyMobile'])->middleware('throttle:contact-verification')->name('member.verification.mobile');
+Route::post('/membership/verify-contacts/{channel}/resend', [VerificationController::class, 'resend'])->middleware('throttle:contact-verification-resend')->name('member.verification.resend');
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
@@ -90,9 +73,19 @@ Route::middleware('auth')->group(function (): void {
 Route::prefix('admin')->middleware(['auth', 'admin'])->group(function (): void {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/applications', [AdminController::class, 'applications'])->name('admin.applications.index');
+    Route::get('/memories', [AdminController::class, 'memories'])->name('admin.memories.index');
+    Route::get('/gallery', [AdminController::class, 'gallery'])->name('admin.gallery.index');
+    Route::get('/videos', [AdminController::class, 'videos'])->name('admin.videos.index');
+    Route::get('/contacts', [AdminController::class, 'contacts'])->name('admin.contacts.index');
     Route::get('/affiliates', [AdminController::class, 'affiliates'])->name('admin.affiliates.index');
     Route::get('/applications/{application}', [AdminController::class, 'show'])->name('admin.applications.show');
     Route::post('/applications/{application}/edit', [AdminController::class, 'update'])->name('admin.applications.update');
     Route::post('/applications/{application}/approve', [AdminController::class, 'approve'])->name('admin.applications.approve');
     Route::post('/applications/{application}/reject', [AdminController::class, 'reject'])->name('admin.applications.reject');
+    Route::post('/memories/{memorySubmission}/approve', [AdminController::class, 'approveMemory'])->name('admin.memories.approve');
+    Route::post('/memories/{memorySubmission}/reject', [AdminController::class, 'rejectMemory'])->name('admin.memories.reject');
+    Route::post('/gallery', [AdminController::class, 'storeGalleryPhoto'])->name('admin.gallery.store');
+    Route::post('/gallery/{galleryPhoto}/delete', [AdminController::class, 'destroyGalleryPhoto'])->name('admin.gallery.destroy');
+    Route::post('/videos', [AdminController::class, 'storeGalleryVideo'])->name('admin.videos.store');
+    Route::post('/videos/{galleryVideo}/delete', [AdminController::class, 'destroyGalleryVideo'])->name('admin.videos.destroy');
 });
