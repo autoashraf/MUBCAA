@@ -6,11 +6,19 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\MemberDashboardController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\VerificationController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [SiteController::class, 'home'])->name('home');
 Route::redirect('/home', '/')->name('home.redirect');
 Route::get('/r/{user}', [AuthController::class, 'affiliateRedirect'])->name('affiliate.redirect');
+Route::get('/language/{locale}', function (Request $request, string $locale) {
+    abort_unless(in_array($locale, config('app.supported_locales', ['en', 'bn']), true), 404);
+
+    $request->session()->put('locale', $locale);
+
+    return redirect()->back();
+})->name('locale.switch');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -56,6 +64,10 @@ Route::prefix('memories')->group(function (): void {
 
 Route::get('/contact', [SiteController::class, 'page'])->defaults('key', 'contact')->name('contact');
 Route::post('/contact', [SiteController::class, 'storeContact'])->name('contact.store');
+Route::get('/privacy-policy', [SiteController::class, 'page'])->defaults('key', 'privacy-policy')->name('privacy.policy');
+Route::get('/terms-and-conditions', [SiteController::class, 'page'])->defaults('key', 'terms-conditions')->name('terms.conditions');
+Route::get('/cookie-policy', [SiteController::class, 'page'])->defaults('key', 'cookie-policy')->name('cookie.policy');
+Route::get('/disclaimer', [SiteController::class, 'page'])->defaults('key', 'disclaimer')->name('disclaimer');
 
 Route::middleware('auth')->group(function (): void {
     Route::get('/dashboard', [MemberDashboardController::class, 'index'])->name('member.dashboard');

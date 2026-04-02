@@ -9,9 +9,9 @@
                 <p class="lead">{{ $page['intro'] }}</p>
                 <div class="mt-6">
                     @auth
-                        <a class="button button-primary" href="{{ route('memories.submit') }}">Submit Your Memory</a>
+                        <a class="button button-primary" href="{{ route('memories.submit') }}">{{ __('Submit Your Memory') }}</a>
                     @else
-                        <a class="button button-primary" href="{{ route('login') }}">Login to Submit a Memory</a>
+                        <a class="button button-primary" href="{{ route('login') }}">{{ __('Login to Submit a Memory') }}</a>
                     @endauth
                 </div>
             </div>
@@ -44,6 +44,7 @@
                                 @if (! empty($memory->photos))
                                     <div class="memory-archive-count">
                                         {{ count($memory->photos) }} photo{{ count($memory->photos) === 1 ? '' : 's' }}
+                                        
                                     </div>
                                 @endif
                             </div>
@@ -52,12 +53,12 @@
                 </div>
             @else
                 <div class="list-card memory-empty-state">
-                    <p class="aside-label">Archive Status</p>
-                    <h3>No approved memories yet</h3>
-                    <p class="dashboard-copy">Once admins approve member submissions, they will appear here as part of the public memory archive.</p>
+                    <p class="aside-label">{{ __('Archive Status') }}</p>
+                    <h3>{{ __('No approved memories yet') }}</h3>
+                    <p class="dashboard-copy">{{ __('Once admins approve member submissions, they will appear here as part of the public memory archive.') }}</p>
                     @auth
                         <div>
-                            <a class="button button-primary" href="{{ route('memories.submit') }}">Be the First to Submit</a>
+                            <a class="button button-primary" href="{{ route('memories.submit') }}">{{ __('Be the First to Submit') }}</a>
                         </div>
                     @endauth
                 </div>

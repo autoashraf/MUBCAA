@@ -5,15 +5,17 @@
         <div class="wrap">
             <section class="alumni-hero">
                 <div class="alumni-hero-copy">
-                    <h1>Stay connected. Build our shared legacy.</h1>
-                    <p class="lead">MUBCAA connects alumni, celebrates achievement, and keeps the association active through membership, events, updates, and shared memories.</p>
+                    <h1>{{ __('Stay connected. Build our shared legacy.') }}</h1>
+                    <p class="lead">{{ __('MUBCAA connects alumni, celebrates achievement, and keeps the association active through membership, events, updates, and shared memories.') }}</p>
                     <div class="hero-actions">
-                        <a class="button button-primary" href="{{ route('membership.apply') }}">Join the Alumni Network</a>
-                        <a class="button button-secondary" href="{{ route('about.mission') }}">Learn More</a>
+                        @guest
+                            <a class="button button-primary" href="{{ route('membership.apply') }}">{{ __('Join the Alumni Network') }}</a>
+                        @endguest
+                        <a class="button button-secondary" href="{{ route('about.mission') }}">{{ __('Learn More') }}</a>
                     </div>
                 </div>
                 <div class="alumni-hero-media">
-                    <img src="{{ asset($slides[0]['image']) }}" alt="{{ $slides[0]['title'] ?? 'MUBCAA feature image' }}">
+                    <img src="{{ asset($slides[0]['image']) }}" alt="{{ __($slides[0]['title'] ?? 'MUBCAA feature image') }}">
                 </div>
             </section>
 
@@ -29,12 +31,12 @@
 
             <section class="alumni-about-band">
                 <div class="alumni-about-copy">
-                    <h2>About Our Association</h2>
-                    <p>Learn more about MUBCAA’s mission, values, and how the association supports alumni through community-building, professional ties, and shared service.</p>
-                    <a class="button button-secondary" href="{{ route('about.mission') }}">Read More</a>
+                    <h2>{{ __('About Our Association') }}</h2>
+                    <p>{{ __('Learn more about MUBCAA’s mission, values, and how the association supports alumni through community-building, professional ties, and shared service.') }}</p>
+                    <a class="button button-secondary" href="{{ route('about.mission') }}">{{ __('Read More') }}</a>
                 </div>
                 <div class="alumni-about-media">
-                    <img src="{{ asset($slides[1]['image']) }}" alt="{{ $slides[1]['title'] ?? 'About MUBCAA' }}">
+                    <img src="{{ asset($slides[1]['image']) }}" alt="{{ __($slides[1]['title'] ?? 'About MUBCAA') }}">
                 </div>
             </section>
 
@@ -49,9 +51,9 @@
 
             <section class="alumni-news-gallery">
                 <div class="home-panel-block alumni-news-block">
-                    <div class="home-panel-head">
-                        <h2>News &amp; Updates</h2>
-                    </div>
+                        <div class="home-panel-head">
+                            <h2>{{ __('News & Updates') }}</h2>
+                        </div>
                     <div class="news-story-list">
                         @foreach ($newsItems as $item)
                             <article class="news-story">
@@ -59,32 +61,32 @@
                                     <strong>{{ $item['title'] }}</strong>
                                     <p>{{ $item['text'] }}</p>
                                 </div>
-                                <a href="{{ route('contact') }}">Read More</a>
+                                <a href="{{ route('contact') }}">{{ __('Read More') }}</a>
                             </article>
                         @endforeach
                     </div>
                     <div class="alumni-panel-footer">
-                        <a class="button button-secondary" href="{{ route('contact') }}">View All News</a>
+                        <a class="button button-secondary" href="{{ route('contact') }}">{{ __('View All News') }}</a>
                     </div>
                 </div>
 
                 <aside class="home-panel-block alumni-gallery-block">
                     <div class="home-panel-head">
-                        <h2>Photo Gallery</h2>
+                        <h2>{{ __('Photo Gallery') }}</h2>
                     </div>
-                    <p class="gallery-intro">View photos from reunions, committee gatherings, and alumni events.</p>
-                    <a class="button button-secondary" href="{{ route('events.photos') }}">View Gallery</a>
+                    <p class="gallery-intro">{{ __('View photos from reunions, committee gatherings, and alumni events.') }}</p>
+                    <a class="button button-secondary" href="{{ route('events.photos') }}">{{ __('View Gallery') }}</a>
                     <div class="gallery-thumb-grid compact-gallery-grid">
                         @if ($galleryPreviewPhotos->isNotEmpty())
                             @foreach ($galleryPreviewPhotos as $photo)
                                 <div class="gallery-thumb">
-                                    <img src="{{ asset('storage/'.$photo->photo_path) }}" alt="{{ $photo->title ?: 'MUBCAA gallery preview '.$loop->iteration }}">
+                                    <img src="{{ asset('storage/'.$photo->photo_path) }}" alt="{{ $photo->title ?: __('MUBCAA gallery preview :number', ['number' => $loop->iteration]) }}">
                                 </div>
                             @endforeach
                         @else
                             @foreach (range(1, 4) as $tile)
                                 <div class="gallery-thumb">
-                                    <img src="{{ asset($slides[($loop->index + 1) % max(count($slides), 1)]['image']) }}" alt="MUBCAA gallery preview {{ $loop->iteration }}">
+                                    <img src="{{ asset($slides[($loop->index + 1) % max(count($slides), 1)]['image']) }}" alt="{{ __('MUBCAA gallery preview :number', ['number' => $loop->iteration]) }}">
                                 </div>
                             @endforeach
                         @endif
@@ -94,38 +96,38 @@
 
             <section class="alumni-directory-search home-panel-block">
                 <div class="home-panel-head">
-                    <h2>Find Alumni</h2>
+                    <h2>{{ __('Find Alumni') }}</h2>
                 </div>
                 <form class="directory-search-form" action="{{ route('membership.members') }}" method="get">
-                    <input type="text" name="q" placeholder="Search Alumni Directory">
+                    <input type="text" name="q" placeholder="{{ __('Search Alumni Directory') }}">
                     <select name="name">
-                        <option value="">Name</option>
+                        <option value="">{{ __('Name') }}</option>
                         @foreach ($alumni as $person)
                             <option>{{ $person['name'] }}</option>
                         @endforeach
                     </select>
                     <select name="batch">
-                        <option value="">Batch</option>
+                        <option value="">{{ __('Batch') }}</option>
                         <option>1998</option>
                         <option>2002</option>
                         <option>2005</option>
                         <option>2010</option>
                     </select>
                     <select name="profession">
-                        <option value="">Profession</option>
-                        <option>Academic</option>
-                        <option>Business</option>
-                        <option>Technology</option>
-                        <option>Community Service</option>
+                        <option value="">{{ __('Profession') }}</option>
+                        <option>{{ __('Academic') }}</option>
+                        <option>{{ __('Business') }}</option>
+                        <option>{{ __('Technology') }}</option>
+                        <option>{{ __('Community Service') }}</option>
                     </select>
                     <select name="location">
-                        <option value="">Location</option>
-                        <option>Dhaka</option>
-                        <option>Rangpur</option>
-                        <option>Chattogram</option>
-                        <option>Online</option>
+                        <option value="">{{ __('Location') }}</option>
+                        <option>{{ __('Dhaka') }}</option>
+                        <option>{{ __('Rangpur') }}</option>
+                        <option>{{ __('Chattogram') }}</option>
+                        <option>{{ __('Online') }}</option>
                     </select>
-                    <button class="button button-primary" type="submit">Search</button>
+                    <button class="button button-primary" type="submit">{{ __('Search') }}</button>
                 </form>
             </section>
 

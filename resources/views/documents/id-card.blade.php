@@ -2,7 +2,7 @@
 
 @section('content')
     <div class="print-toolbar">
-        <button onclick="window.print()">Print / Save PDF</button>
+        <button onclick="window.print()">{{ __('Print / Save PDF') }}</button>
     </div>
 
     <section class="id-sheet">
@@ -15,49 +15,49 @@
                             <img src="{{ asset(config('site.brand.logo_path')) }}" alt="{{ config('site.brand.name') }} logo">
                         </span>
                         <div class="id-brand-copy">
-                            <p class="document-kicker">Official Member ID Card</p>
+                            <p class="document-kicker">{{ __('Official Member ID Card') }}</p>
                             <h1>{{ config('site.brand.name') }}</h1>
                         </div>
                     </div>
-                    <span class="id-badge">Alumni Member</span>
+                    <span class="id-badge">{{ __('Alumni Member') }}</span>
                 </header>
 
                 <section class="id-card-identity">
                     <div class="avatar-block">{{ strtoupper(substr($user->name, 0, 1)) }}</div>
                     <div class="id-card-details">
                         <h2>{{ $user->name }}</h2>
-                        <p>{{ $profile?->occupation ?: 'Community Member' }}</p>
+                        <p>{{ $profile?->occupation ?: __('Community Member') }}</p>
                         <strong class="id-member-number">{{ $user->memberNumber() }}</strong>
                     </div>
                 </section>
 
                 <section class="id-meta-grid">
                     <div class="id-meta">
-                        <span>Status</span>
-                        <strong>{{ $user->membership_status === 'pending_review' ? 'Under Review' : str($user->membership_status)->replace('_', ' ')->title() }}</strong>
+                        <span>{{ __('Status') }}</span>
+                        <strong>{{ $user->membership_status === 'pending_review' ? __('Under Review') : str($user->membership_status)->replace('_', ' ')->title() }}</strong>
                     </div>
                     <div class="id-meta">
-                        <span>Phone</span>
-                        <strong>{{ $user->phone ?: 'N/A' }}</strong>
+                        <span>{{ __('Phone') }}</span>
+                        <strong>{{ $user->phone ?: __('N/A') }}</strong>
                     </div>
                     <div class="id-meta">
-                        <span>City</span>
-                        <strong>{{ $profile?->city_district ?: $profile?->current_city ?: 'N/A' }}</strong>
+                        <span>{{ __('City') }}</span>
+                        <strong>{{ $profile?->city_district ?: $profile?->current_city ?: __('N/A') }}</strong>
                     </div>
                     <div class="id-meta">
-                        <span>Valid From</span>
+                        <span>{{ __('Valid From') }}</span>
                         <strong>{{ $user->created_at?->format('d M Y') }}</strong>
                     </div>
                 </section>
 
                 <footer class="id-card-footer">
                     <div class="id-footer-block">
-                        <span>Office Contact</span>
+                        <span>{{ __('Office Contact') }}</span>
                         <strong>info@mubcaa.org</strong>
                     </div>
                     <div class="id-footer-block id-footer-block-right">
-                        <span>Card Type</span>
-                        <strong>Alumni Member</strong>
+                        <span>{{ __('Card Type') }}</span>
+                        <strong>{{ __('Alumni Member') }}</strong>
                     </div>
                 </footer>
             </div>

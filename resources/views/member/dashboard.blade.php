@@ -11,10 +11,10 @@
         $nextMissingBlock = $missingSubmissionItems[0] ?? null;
         $documentCount = $documentsUnlocked ? ($certificateUnlocked ? 3 : 2) : 0;
         $statusLabel = match ($documentStatus) {
-            'approved', 'verified' => 'Approved',
-            'pending_review', 'under_review' => 'Under Review',
-            'in_progress' => 'In Progress',
-            default => 'Profile Started',
+            'approved', 'verified' => __('Approved'),
+            'pending_review', 'under_review' => __('Under Review'),
+            'in_progress' => __('In Progress'),
+            default => __('Profile Started'),
         };
         $statusTone = match ($documentStatus) {
             'approved', 'verified' => 'verified',
@@ -30,24 +30,24 @@
         $documents = [
             [
                 'title' => 'A4 Profile',
-                'description' => 'Printable full profile for your records.',
+                'description' => __('Printable full profile for your records.'),
                 'available' => $documentsUnlocked,
                 'route' => route('member.documents.profile'),
-                'action' => 'Open PDF',
+                'action' => __('Open PDF'),
             ],
             [
-                'title' => 'Member ID Card',
-                'description' => 'Compact member card for quick reference.',
+                'title' => __('Member ID Card'),
+                'description' => __('Compact member card for quick reference.'),
                 'available' => $documentsUnlocked,
                 'route' => route('member.documents.id-card'),
-                'action' => 'Open ID',
+                'action' => __('Open ID'),
             ],
             [
-                'title' => 'Certificate',
-                'description' => 'Membership certificate after final verification.',
+                'title' => __('Certificate'),
+                'description' => __('Membership certificate after final verification.'),
                 'available' => $certificateUnlocked,
                 'route' => route('member.documents.certificate'),
-                'action' => 'Open Certificate',
+                'action' => __('Open Certificate'),
             ],
         ];
     @endphp
@@ -56,47 +56,52 @@
         <div class="wrap">
             <div class="dashboard-hero dashboard-hero-member dashboard-member-workspace">
                 <div class="dashboard-hero-copy">
-                    <div class="dashboard-member-meta">
-                        <span class="panel-card-label">Member Workspace</span>
+                    <div class="dashboard-hero-kicker">
+                        <span class="panel-card-label">{{ __('Member Dashboard') }}</span>
                         <span class="status-pill status-{{ $statusTone }}">{{ $statusLabel }}</span>
-                        <span class="dashboard-chip">Resume Step {{ $resumeWizardStep }} of 10</span>
-                        <span class="dashboard-chip">
-                            {{ $completedWizardStep > 1 ? 'Completed Through Step '.$completedWizardStep : 'Basic Info Completed' }}
-                        </span>
                     </div>
                     <div class="dashboard-profile-band">
                         <div>
                             <h1>{{ $user->name }}</h1>
-                            <p class="lead">Track what is finished, resume the current draft step, and manage your alumni profile, referrals, and member documents.</p>
+                            <p class="lead">{{ __('Track what is finished, resume the current draft step, and manage your alumni profile, referrals, and member documents.') }}</p>
                         </div>
                     </div>
                     <div class="hero-actions">
                         @if ($profileCompletion < 100)
                             <a class="button button-primary" href="{{ route('member.profile.complete', ['step' => $resumeWizardStep]) }}">
-                                Resume Profile Wizard
+                                {{ __('Resume Profile Wizard') }}
                             </a>
                         @endif
-                        <a class="button button-secondary" href="{{ route('member.profile') }}">Open Profile Summary</a>
+                        <a class="button button-secondary" href="{{ route('member.profile') }}">{{ __('Open Profile Summary') }}</a>
                         @if ($documentsUnlocked)
-                            <a class="button button-secondary" href="{{ route('member.documents.profile') }}" target="_blank">Open Documents</a>
+                            <a class="button button-secondary" href="{{ route('member.documents.profile') }}" target="_blank">{{ __('Open Documents') }}</a>
                         @endif
                     </div>
                 </div>
                 <div class="dashboard-hero-meta">
-                    <div class="dashboard-kpi-grid dashboard-kpi-grid-member">
-                        <article class="dashboard-kpi-card">
-                            <span>Profile Completion</span>
+                    <article class="dashboard-progress-card">
+                        <span class="panel-card-label">{{ __('Completion Snapshot') }}</span>
+                        <div class="dashboard-progress-score">
                             <strong>{{ $profileCompletion }}%</strong>
-                            <small>{{ $profileCompletion >= 100 ? 'Required sections completed' : 'Required fields completed so far' }}</small>
-                        </article>
-                        <article class="dashboard-kpi-card">
-                            <span>Resume Step</span>
-                            <strong>{{ $resumeWizardStep }}</strong>
-                            <small>
-                                {{ $completedWizardStep >= $resumeWizardStep ? 'Current step is complete' : 'Current draft still needs required fields' }}
-                            </small>
-                        </article>
-                    </div>
+                            <span>{{ $profileCompletion >= 100 ? __('Ready for review') : __('Profile in progress') }}</span>
+                        </div>
+                        <div class="dashboard-progress-bar" aria-hidden="true">
+                            <span style="width: {{ max(8, $profileCompletion) }}%"></span>
+                        </div>
+                        <p class="dashboard-progress-copy">
+                            {{ $profileCompletion >= 100 ? __('All required sections are complete.') : __('Complete the remaining required fields to move the application forward.') }}
+                        </p>
+                        <div class="dashboard-progress-meta">
+                            <div class="dashboard-progress-meta-card">
+                                <small>{{ __('Next Step') }}</small>
+                                <strong>{{ $resumeWizardStep }}</strong>
+                            </div>
+                            <div class="dashboard-progress-meta-card">
+                                <small>{{ __('Missing Items') }}</small>
+                                <strong>{{ $missingFieldCount }}</strong>
+                            </div>
+                        </div>
+                    </article>
                 </div>
             </div>
         </div>
@@ -108,10 +113,10 @@
                 <article class="profile-summary-card dashboard-roadmap-card">
                     <div class="dashboard-card-head">
                         <div>
-                            <span class="panel-card-label">Progress Roadmap</span>
-                            <h3>Membership Journey</h3>
+                            <span class="panel-card-label">{{ __('Progress Roadmap') }}</span>
+                            <h3>{{ __('Membership Journey') }}</h3>
                         </div>
-                        <span class="dashboard-chip">Stage {{ $workflowCurrentStep }} of {{ count($workflowSteps) }}</span>
+                        <span class="dashboard-chip">{{ __('Stage :current of :total', ['current' => $workflowCurrentStep, 'total' => count($workflowSteps)]) }}</span>
                     </div>
                     <div class="dashboard-roadmap-list">
                         @foreach ($workflowSteps as $step)
@@ -127,11 +132,11 @@
                                 </div>
                                 <span class="dashboard-roadmap-status">
                                     @if ($isComplete)
-                                        Complete
+                                        {{ __('Complete') }}
                                     @elseif ($isCurrent)
-                                        Active
+                                        {{ __('Active') }}
                                     @else
-                                        Upcoming
+                                        {{ __('Upcoming') }}
                                     @endif
                                 </span>
                             </article>
@@ -143,29 +148,29 @@
                     <aside class="profile-summary-card dashboard-action-card">
                         <div class="dashboard-card-head">
                             <div>
-                                <span class="panel-card-label">Action Center</span>
-                                <h3>Next Focus: {{ $nextMissingBlock['title'] }}</h3>
+                                <span class="panel-card-label">{{ __('Action Center') }}</span>
+                                <h3>{{ __('Next Focus: :title', ['title' => __($nextMissingBlock['title'])]) }}</h3>
                             </div>
                         </div>
-                        <p class="dashboard-copy">Finish the next required step to move your application closer to review. These are the fields still missing in your current priority block.</p>
+                        <p class="dashboard-copy">{{ __('Finish the next required step to move your application closer to review. These are the fields still missing in your current priority block.') }}</p>
                         <div class="dashboard-missing-grid">
                             @foreach (array_slice($nextMissingBlock['missing'], 0, 6) as $field)
-                                <span class="dashboard-missing-pill">{{ $field }}</span>
+                                <span class="dashboard-missing-pill">{{ __($field) }}</span>
                             @endforeach
                         </div>
                         <div class="dashboard-action-buttons">
-                            <a class="button button-primary" href="{{ route('member.profile.complete', ['step' => $nextMissingBlock['step']]) }}">Open Step {{ $nextMissingBlock['step'] }}</a>
-                            <a class="button button-secondary" href="{{ route('member.profile.complete', ['step' => $resumeWizardStep]) }}">Resume Step {{ $resumeWizardStep }}</a>
+                            <a class="button button-primary" href="{{ route('member.profile.complete', ['step' => $nextMissingBlock['step']]) }}">{{ __('Open Step :step', ['step' => $nextMissingBlock['step']]) }}</a>
+                            <a class="button button-secondary" href="{{ route('member.profile.complete', ['step' => $resumeWizardStep]) }}">{{ __('Resume Step :step', ['step' => $resumeWizardStep]) }}</a>
                         </div>
                     </aside>
                 @else
                     <article class="profile-summary-card dashboard-document-card">
                         <div class="dashboard-card-head">
                             <div>
-                                <span class="panel-card-label">Document Desk</span>
-                                <h3>Member Files</h3>
+                                <span class="panel-card-label">{{ __('Document Desk') }}</span>
+                                <h3>{{ __('Member Files') }}</h3>
                             </div>
-                            <span class="dashboard-chip">{{ $documentCount }} available</span>
+                            <span class="dashboard-chip">{{ __(':count available', ['count' => $documentCount]) }}</span>
                         </div>
                         <div class="dashboard-document-list">
                             @foreach ($documents as $document)
@@ -177,7 +182,7 @@
                                     @if ($document['available'])
                                         <a class="mini-link" href="{{ $document['route'] }}" target="_blank">{{ $document['action'] }}</a>
                                     @else
-                                        <span class="dashboard-document-badge">Locked</span>
+                                        <span class="dashboard-document-badge">{{ __('Locked') }}</span>
                                     @endif
                                 </article>
                             @endforeach
@@ -191,10 +196,10 @@
                     <article class="profile-summary-card dashboard-document-card dashboard-secondary-card dashboard-secondary-card-document">
                         <div class="dashboard-card-head">
                             <div>
-                                <span class="panel-card-label">Document Desk</span>
-                                <h3>Member Files</h3>
+                                <span class="panel-card-label">{{ __('Document Desk') }}</span>
+                                <h3>{{ __('Member Files') }}</h3>
                             </div>
-                            <span class="dashboard-chip">{{ $documentCount }} available</span>
+                            <span class="dashboard-chip">{{ __(':count available', ['count' => $documentCount]) }}</span>
                         </div>
                         <div class="dashboard-document-list">
                             @foreach ($documents as $document)
@@ -206,7 +211,7 @@
                                     @if ($document['available'])
                                         <a class="mini-link" href="{{ $document['route'] }}" target="_blank">{{ $document['action'] }}</a>
                                     @else
-                                        <span class="dashboard-document-badge">Locked</span>
+                                        <span class="dashboard-document-badge">{{ __('Locked') }}</span>
                                     @endif
                                 </article>
                             @endforeach
@@ -217,33 +222,24 @@
                 <article class="profile-summary-card dashboard-affiliate-card dashboard-secondary-card @if ($nextMissingBlock) dashboard-secondary-card-affiliate @else dashboard-secondary-card-full @endif">
                     <div class="dashboard-card-head">
                         <div>
-                            <span class="panel-card-label">Affiliate</span>
-                            <h3>Invite Alumni</h3>
+                            <span class="panel-card-label">{{ __('Affiliate') }}</span>
+                            <h3>{{ __('Invite Alumni') }}</h3>
                         </div>
                         <div class="dashboard-affiliate-metrics">
-                            <span class="dashboard-chip">{{ $affiliateSummary['total'] }} referrals</span>
-                            <span class="dashboard-chip">{{ $affiliateSummary['verified'] }} verified</span>
-                            <span class="dashboard-chip">{{ $affiliateSummary['under_review'] }} under review</span>
+                            <span class="dashboard-chip">{{ __(':count referrals', ['count' => $affiliateSummary['total']]) }}</span>
+                            <span class="dashboard-chip">{{ __(':count verified', ['count' => $affiliateSummary['verified']]) }}</span>
+                            <span class="dashboard-chip">{{ __(':count under review', ['count' => $affiliateSummary['under_review']]) }}</span>
                         </div>
                     </div>
-                    <p class="dashboard-copy">Share your referral link to bring other alumni into the network and keep your invitation tools in one place.</p>
+                    <p class="dashboard-copy">{{ __('Share your referral link to bring other alumni into the network and keep your invitation tools in one place.') }}</p>
 
                     <div class="dashboard-affiliate-grid">
-                        <label>
-                            <span>Your Affiliate Code</span>
-                            <div class="dashboard-affiliate-copy-row">
-                                <input id="affiliate-code" type="text" value="{{ $affiliateSummary['code'] }}" readonly>
-                                <button class="button button-secondary dashboard-copy-button" type="button" data-copy-button data-copy-target="affiliate-code" data-copy-label="Copy">
-                                    Copy
-                                </button>
-                            </div>
-                        </label>
                         <label class="label-wide">
-                            <span>Your Referral Link</span>
+                            <span>{{ __('Your Referral Link') }}</span>
                             <div class="dashboard-affiliate-copy-row">
                                 <input id="affiliate-link" type="text" value="{{ $affiliateSummary['link'] }}" readonly>
-                                <button class="button button-secondary dashboard-copy-button" type="button" data-copy-button data-copy-target="affiliate-link" data-copy-label="Copy Link">
-                                    Copy Link
+                                <button class="button button-secondary dashboard-copy-button" type="button" data-copy-button data-copy-target="affiliate-link" data-copy-label="{{ __('Copy Link') }}">
+                                    {{ __('Copy Link') }}
                                 </button>
                             </div>
                         </label>
@@ -257,12 +253,12 @@
                                         <strong>{{ $referral->name }}</strong>
                                         <span>{{ $referral->email }}</span>
                                     </div>
-                                    <span class="status-pill status-{{ $referral->membership_status }}">{{ str($referral->membership_status)->replace('_', ' ')->title() }}</span>
+                                    <span class="status-pill status-{{ $referral->membership_status }}">{{ __(str($referral->membership_status)->replace('_', ' ')->title()) }}</span>
                                 </div>
                             @endforeach
                         </div>
                     @else
-                        <p class="dashboard-copy">No referred members yet.</p>
+                        <p class="dashboard-copy">{{ __('No referred members yet.') }}</p>
                     @endif
                 </article>
 

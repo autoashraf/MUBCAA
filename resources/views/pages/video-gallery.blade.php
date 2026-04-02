@@ -27,7 +27,7 @@
                                     <span>{{ $video->uploader->name }}</span>
                                     <span>{{ $video->created_at?->format('d M Y') }}</span>
                                 </div>
-                                <h3>{{ $video->title ?: 'Gallery Video' }}</h3>
+                                <h3>{{ $video->title ?: __('Gallery Video') }}</h3>
                                 @if (filled($video->caption))
                                     <p>{{ $video->caption }}</p>
                                 @endif
@@ -37,9 +37,9 @@
                 </div>
             @else
                 <div class="list-card memory-empty-state">
-                    <p class="aside-label">Gallery Status</p>
-                    <h3>No videos yet</h3>
-                    <p class="dashboard-copy">Gallery videos uploaded by admin will appear here.</p>
+                    <p class="aside-label">{{ __('Gallery Status') }}</p>
+                    <h3>{{ __('No videos yet') }}</h3>
+                    <p class="dashboard-copy">{{ __('Gallery videos uploaded by admin will appear here.') }}</p>
                 </div>
             @endif
         </div>

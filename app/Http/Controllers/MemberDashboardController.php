@@ -102,7 +102,7 @@ class MemberDashboardController extends Controller
         $user = $request->user()->load('profile', 'application');
 
         if ($this->isProfileSubmissionLocked($user)) {
-            $message = 'Your alumni membership profile has already been submitted and cannot be resubmitted.';
+            $message = __('Your alumni membership profile has already been submitted and cannot be resubmitted.');
 
             if ($request->expectsJson()) {
                 return response()->json([
@@ -123,7 +123,7 @@ class MemberDashboardController extends Controller
 
         if ($request->boolean('submit_for_verification') && ! $user->hasCompletedContactVerification()) {
             return back()->withErrors([
-                'verification' => 'Verify your mobile number and email address before submitting your profile for admin review.',
+                'verification' => __('Verify your mobile number and email address before submitting your profile for admin review.'),
             ]);
         }
 
@@ -171,7 +171,9 @@ class MemberDashboardController extends Controller
                 if ($missingFields !== []) {
                     throw ValidationException::withMessages([
                         'submit_for_verification' => [
-                            'Complete all required fields before submission. Missing: '.implode(', ', array_slice($missingFields, 0, 6)).(count($missingFields) > 6 ? '...' : ''),
+                            __('Complete all required fields before submission. Missing: :fields', [
+                                'fields' => implode(', ', array_slice($missingFields, 0, 6)).(count($missingFields) > 6 ? '...' : ''),
+                            ]),
                         ],
                     ]);
                 }
@@ -190,7 +192,7 @@ class MemberDashboardController extends Controller
             if ($request->expectsJson()) {
                 return response()->json([
                     'ok' => true,
-                    'message' => 'Thank you for completing your alumni membership profile. Your profile has been submitted successfully and is now under review.',
+                    'message' => __('Thank you for completing your alumni membership profile. Your profile has been submitted successfully and is now under review.'),
                     'redirect_url' => route('member.dashboard'),
                     'submitted' => true,
                 ]);
@@ -198,14 +200,14 @@ class MemberDashboardController extends Controller
 
             return redirect()
                 ->route('member.dashboard')
-                ->with('success', 'Thank you for completing your alumni membership profile. Your profile has been submitted successfully and is now under review.');
+                ->with('success', __('Thank you for completing your alumni membership profile. Your profile has been submitted successfully and is now under review.'));
         }
 
         if ($request->boolean('save_as_draft')) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'ok' => true,
-                    'message' => "Draft saved for step {$step}. You can continue later.",
+                    'message' => __('Draft saved for step :step. You can continue later.', ['step' => $step]),
                     'next_step' => $step,
                     'step_url' => route('member.profile.complete', ['step' => $step]),
                     'summary' => $this->wizardSummary($request->user()->fresh()->load('profile', 'application'), $step),
@@ -216,7 +218,7 @@ class MemberDashboardController extends Controller
 
             return redirect()
                 ->route('member.profile.complete', ['step' => $step])
-                ->with('success', "Draft saved for step {$step}. You can continue later.");
+                ->with('success', __('Draft saved for step :step. You can continue later.', ['step' => $step]));
         }
 
         $nextStep = (int) $request->input('next_step', min($step + 1, 10));
@@ -224,7 +226,7 @@ class MemberDashboardController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'ok' => true,
-                'message' => "Step {$step} saved. Continue your alumni profile.",
+                'message' => __('Step :step saved. Continue your alumni profile.', ['step' => $step]),
                 'next_step' => $nextStep,
                 'step_url' => route('member.profile.complete', ['step' => $nextStep]),
                 'summary' => $this->wizardSummary($request->user()->fresh()->load('profile', 'application'), $nextStep),
@@ -235,7 +237,7 @@ class MemberDashboardController extends Controller
 
         return redirect()
             ->route('member.profile.complete', ['step' => $nextStep])
-            ->with('success', "Step {$step} saved. Continue your alumni profile.");
+            ->with('success', __('Step :step saved. Continue your alumni profile.', ['step' => $step]));
     }
 
     public function updateProfile(Request $request): RedirectResponse
@@ -273,22 +275,22 @@ class MemberDashboardController extends Controller
             ],
         );
 
-        return back()->with('success', 'Profile updated successfully.');
+        return back()->with('success', __('Profile updated successfully.'));
     }
 
     private function completionSteps(): array
     {
         return [
-            1 => 'Basic Info',
-            2 => 'Academic Info',
-            3 => 'Personal Info',
-            4 => 'Contact Info',
-            5 => 'Professional Info',
-            6 => 'Media & Links',
-            7 => 'Engagement',
-            8 => 'Verification',
-            9 => 'Privacy',
-            10 => 'Declaration',
+            1 => __('Basic Info'),
+            2 => __('Academic Info'),
+            3 => __('Personal Info'),
+            4 => __('Contact Info'),
+            5 => __('Professional Info'),
+            6 => __('Media & Links'),
+            7 => __('Engagement'),
+            8 => __('Verification'),
+            9 => __('Privacy'),
+            10 => __('Declaration'),
         ];
     }
 
@@ -402,15 +404,15 @@ class MemberDashboardController extends Controller
     private function stepDescription(int $step): string
     {
         return [
-            2 => 'Please provide your academic details for alumni record and verification.',
-            3 => 'Please provide your personal details.',
-            4 => 'Please provide your contact details.',
-            5 => 'Please share your professional background to help us build a stronger alumni network.',
-            6 => 'Please upload your profile photo, business card, and online profile links if available.',
-            7 => 'Please let us know how you would like to stay involved with the alumni association.',
-            8 => 'Please provide any supporting information to help us verify your alumni profile.',
-            9 => 'Please choose how your information will be displayed in the alumni directory.',
-            10 => 'Please review your information before submitting your profile for verification.',
+            2 => __('Please provide your academic details for alumni record and verification.'),
+            3 => __('Please provide your personal details.'),
+            4 => __('Please provide your contact details.'),
+            5 => __('Please share your professional background to help us build a stronger alumni network.'),
+            6 => __('Please upload your profile photo, business card, and online profile links if available.'),
+            7 => __('Please let us know how you would like to stay involved with the alumni association.'),
+            8 => __('Please provide any supporting information to help us verify your alumni profile.'),
+            9 => __('Please choose how your information will be displayed in the alumni directory.'),
+            10 => __('Please review your information before submitting your profile for verification.'),
         ][$step];
     }
 
@@ -562,14 +564,14 @@ class MemberDashboardController extends Controller
                 $normalized = $this->normalizeContactNumber($value, $countryCode);
 
                 if ($normalized === null) {
-                    $fail('Enter a valid mobile number.');
+                    $fail(__('Enter a valid mobile number.'));
                     return;
                 }
 
                 $nationalNumber = PhoneNumber::split((string) $value, $countryCode)['national_number'] ?? '';
 
                 if ($countryCode === '+880' && ! in_array(strlen($nationalNumber), [10, 11], true)) {
-                    $fail('For Bangladesh numbers, enter 10 or 11 digits.');
+                    $fail(__('For Bangladesh numbers, enter 10 or 11 digits.'));
                 }
             },
         ];
@@ -708,10 +710,10 @@ class MemberDashboardController extends Controller
     private function applicationWorkflowSteps($application): array
     {
         $steps = [
-            ['step_number' => 1, 'title' => 'Profile Created', 'description' => 'Basic registration completed and profile created.'],
-            ['step_number' => 2, 'title' => 'Profile In Progress', 'description' => 'Member continues profile completion and contact verification.'],
-            ['step_number' => 3, 'title' => 'Under Review', 'description' => 'Final profile submitted for admin review.'],
-            ['step_number' => 4, 'title' => 'Verified Member', 'description' => 'Admin approves the alumni membership profile.'],
+            ['step_number' => 1, 'title' => __('Profile Created'), 'description' => __('Basic registration completed and profile created.')],
+            ['step_number' => 2, 'title' => __('Profile In Progress'), 'description' => __('Member continues profile completion and contact verification.')],
+            ['step_number' => 3, 'title' => __('Under Review'), 'description' => __('Final profile submitted for admin review.')],
+            ['step_number' => 4, 'title' => __('Verified Member'), 'description' => __('Admin approves the alumni membership profile.')],
         ];
 
         return collect($steps)

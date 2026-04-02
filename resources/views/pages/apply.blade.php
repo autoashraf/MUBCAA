@@ -23,20 +23,19 @@
                 </div>
 
                 <div class="join-auth-copy">
-                    <p class="panel-card-label">Step 1: Basic Info</p>
-                    <h1>Join MUBCAA</h1>
+                    <p class="panel-card-label">{{ __('Step 1: Basic Info') }}</p>
+                    <h1>{{ __('Join MUBCAA') }}</h1>
                 </div>
 
                 @if (! empty($affiliateReferrer))
                     <div class="registration-referral-banner join-auth-referral-banner">
-                        <strong>Referred by {{ $affiliateReferrer->name }}</strong>
-                        <span>Referral code: {{ $affiliateReferrer->affiliate_code }}</span>
+                        <strong>{{ __('Referred by :name', ['name' => $affiliateReferrer->name]) }}</strong>
                     </div>
                 @endif
 
                 <div class="form-grid join-auth-form-grid grid grid-cols-1 gap-3">
                     <div class="join-auth-label">
-                        <input type="text" name="full_name" value="{{ old('full_name') }}" placeholder="Enter your full name" aria-label="Full name" required>
+                        <input type="text" name="full_name" value="{{ old('full_name') }}" placeholder="{{ __('Enter your full name') }}" aria-label="{{ __('Full name') }}" required>
                         @error('full_name') <small>{{ $message }}</small> @enderror
                     </div>
 
@@ -66,21 +65,21 @@
                                     @endforeach
                                 </div>
                             </div>
-                            <input type="text" name="mobile_number" value="{{ old('mobile_number') }}" placeholder="Enter your mobile number" aria-label="Mobile number" required data-registration-check-input data-registration-check-field="mobile_number" data-registration-check-url="{{ route('membership.apply.check') }}">
+                            <input type="text" name="mobile_number" value="{{ old('mobile_number') }}" placeholder="{{ __('Enter your mobile number') }}" aria-label="{{ __('Mobile number') }}" required data-registration-check-input data-registration-check-field="mobile_number" data-registration-check-url="{{ route('membership.apply.check') }}">
                         </div>
                         <small class="field-live-status" data-registration-check-status hidden></small>
                         @error('mobile_number') <small>{{ $message }}</small> @enderror
                     </div>
 
                     <div class="join-auth-label">
-                        <input type="email" name="email" value="{{ old('email') }}" placeholder="Enter your email address" aria-label="Email address" required data-registration-check-input data-registration-check-field="email" data-registration-check-url="{{ route('membership.apply.check') }}">
+                        <input type="email" name="email" value="{{ old('email') }}" placeholder="{{ __('Enter your email address') }}" aria-label="{{ __('Email address') }}" required data-registration-check-input data-registration-check-field="email" data-registration-check-url="{{ route('membership.apply.check') }}">
                         <small class="field-live-status" data-registration-check-status hidden></small>
                         @error('email') <small>{{ $message }}</small> @enderror
                     </div>
 
                     <div class="join-auth-label">
                         <select name="passing_year_batch" aria-label="Passing year or batch" required>
-                            <option value="">Passing Year / Batch</option>
+                            <option value="">{{ __('Passing Year / Batch') }}</option>
                             @foreach ($passingYears as $option)
                                 <option value="{{ $option }}" @selected(old('passing_year_batch') === $option)>{{ $option }}</option>
                             @endforeach
@@ -90,16 +89,16 @@
 
                     <div class="join-auth-label" data-discovery-field-wrapper>
                         <div class="join-auth-field-reset-row">
-                            <button class="text-link-button text-link-inline registration-field-reset" type="button" data-referral-code-reset @if (old('discovery_source') !== 'Referral Code') hidden @endif>Choose another source</button>
+                            <button class="text-link-button text-link-inline registration-field-reset" type="button" data-referral-code-reset @if (old('discovery_source') !== 'Referral Code') hidden @endif>{{ __('Choose another source') }}</button>
                         </div>
                         <select name="discovery_source" aria-label="How did you find us" data-discovery-source-select @if (old('discovery_source') === 'Referral Code') hidden @endif>
-                            <option value="">How did you find us?</option>
+                            <option value="">{{ __('How did you find us?') }}</option>
                             @foreach ($discoverySources as $option)
-                                <option value="{{ $option }}" @selected(old('discovery_source') === $option)>{{ $option }}</option>
+                                <option value="{{ $option }}" @selected(old('discovery_source') === $option)>{{ __($option) }}</option>
                             @endforeach
-                            <option value="Referral Code" @selected(old('discovery_source') === 'Referral Code')>Referral Code</option>
+                            <option value="Referral Code" @selected(old('discovery_source') === 'Referral Code')>{{ __('Referral Code') }}</option>
                         </select>
-                        <input type="text" name="referral_code" value="{{ old('referral_code') }}" placeholder="Enter referral code" aria-label="Referral code" data-referral-code-input data-registration-check-input data-registration-check-field="referral_code" data-registration-check-url="{{ route('membership.apply.check') }}" @if (old('discovery_source') !== 'Referral Code') hidden @endif>
+                        <input type="text" name="referral_code" value="{{ old('referral_code') }}" placeholder="{{ __('Enter referral code') }}" aria-label="{{ __('Referral code') }}" data-referral-code-input data-registration-check-input data-registration-check-field="referral_code" data-registration-check-url="{{ route('membership.apply.check') }}" @if (old('discovery_source') !== 'Referral Code') hidden @endif>
                         <small class="field-live-status" data-registration-check-status hidden></small>
                         @error('discovery_source') <small>{{ $message }}</small> @enderror
                         @error('referral_code') <small>{{ $message }}</small> @enderror
@@ -110,17 +109,17 @@
                             <input type="hidden" name="captcha_left" value="{{ $captchaLeft }}">
                             <input type="hidden" name="captcha_right" value="{{ $captchaRight }}">
                             <span class="captcha-chip">{{ $captchaLeft }} + {{ $captchaRight }} = ?</span>
-                            <input type="text" name="captcha_answer" value="{{ old('captcha_answer') }}" placeholder="Enter answer" aria-label="Captcha answer" required>
+                            <input type="text" name="captcha_answer" value="{{ old('captcha_answer') }}" placeholder="{{ __('Enter answer') }}" aria-label="{{ __('Captcha answer') }}" required>
                         </div>
                         @error('captcha_answer') <small>{{ $message }}</small> @enderror
                     </div>
                 </div>
 
                 <div class="action-row join-auth-actions flex flex-col gap-3">
-                    <button class="button button-primary button-loading-trigger join-auth-submit" type="submit" data-loading-text="Sending OTP...">
-                        <span class="button-loading-label">Continue to OTP Verification</span>
+                    <button class="button button-primary button-loading-trigger join-auth-submit" type="submit" data-loading-text="{{ __('Sending OTP...') }}">
+                        <span class="button-loading-label">{{ __('Continue to OTP Verification') }}</span>
                     </button>
-                    <a class="button button-secondary join-auth-secondary" href="{{ route('login') }}">Already have an account? Log In</a>
+                    <a class="button button-secondary join-auth-secondary" href="{{ route('login') }}">{{ __('Already have an account? Log In') }}</a>
                 </div>
             </form>
         </div>

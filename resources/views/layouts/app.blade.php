@@ -15,7 +15,7 @@
     <body>
         @php
             $brandName = config('site.brand.name', 'Membership Association');
-            $brandTagline = config('site.brand.tagline', 'Membership, events, committees, and memories');
+            $brandTagline = __(config('site.brand.tagline', 'Membership, events, committees, and memories'));
             $logoPath = config('site.brand.logo_path');
             $memberLanding = auth()->check() && ! auth()->user()->isAdmin() && auth()->user()->profile && ! auth()->user()->hasCompletedContactVerification()
                 ? route('member.verification.show')
@@ -24,8 +24,9 @@
                 ? (auth()->user()->isAdmin() ? route('admin.dashboard') : $memberLanding)
                 : route('login');
             $mobileProfileLabel = auth()->check()
-                ? (auth()->user()->isAdmin() ? 'Open admin dashboard' : 'Open member area')
-                : 'Open login page';
+                ? (auth()->user()->isAdmin() ? __('Open admin dashboard') : __('Open member area'))
+                : __('Open login page');
+            $currentLocale = app()->getLocale();
         @endphp
         <div class="page-shell">
             <div class="site-backdrop" aria-hidden="true">
@@ -57,7 +58,7 @@
                                 <i></i>
                                 <i></i>
                             </span>
-                            <span>Menu</span>
+                            <span>{{ __('Menu') }}</span>
                         </label>
                         <a class="brand brand-mobile" href="{{ route('home') }}">
                             <strong>{{ $brandName }}</strong>
@@ -100,31 +101,35 @@
                         </nav>
                     </div>
                     <div class="header-actions">
+                        <div class="locale-switcher" aria-label="{{ __('Language switcher') }}">
+                            <a class="locale-link @if ($currentLocale === 'en') is-active @endif" href="{{ route('locale.switch', ['locale' => 'en']) }}">EN</a>
+                            <a class="locale-link @if ($currentLocale === 'bn') is-active @endif" href="{{ route('locale.switch', ['locale' => 'bn']) }}">বাংলা</a>
+                        </div>
                         @auth
                             <details class="profile-tray">
-                                <summary class="profile-tray-toggle" aria-label="Open profile menu">
+                                <summary class="profile-tray-toggle" aria-label="{{ __('Open profile menu') }}">
                                     <span class="profile-tray-avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
                                 </summary>
                                 <div class="profile-tray-menu">
                                     <div class="profile-tray-head">
                                         <strong>{{ auth()->user()->name }}</strong>
-                                        <span>{{ auth()->user()->isAdmin() ? 'Admin' : 'Member' }}</span>
+                                        <span>{{ auth()->user()->isAdmin() ? __('Admin') : __('Member') }}</span>
                                     </div>
                                     @unless (auth()->user()->isAdmin())
-                                        <a class="profile-tray-link" href="{{ route('member.profile') }}">Profile</a>
+                                        <a class="profile-tray-link" href="{{ route('member.profile') }}">{{ __('Profile') }}</a>
                                     @endunless
                                     <a class="profile-tray-link" href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : $memberLanding }}">
-                                        {{ auth()->user()->isAdmin() ? 'Admin Dashboard' : 'Dashboard' }}
+                                        {{ auth()->user()->isAdmin() ? __('Admin Dashboard') : __('Dashboard') }}
                                     </a>
                                     <form method="POST" action="{{ route('logout') }}">
                                         @csrf
-                                        <button class="profile-tray-link profile-tray-button" type="submit">Logout</button>
+                                        <button class="profile-tray-link profile-tray-button" type="submit">{{ __('Logout') }}</button>
                                     </form>
                                 </div>
                             </details>
                         @else
-                            <a class="mini-link" href="{{ route('login') }}">Login</a>
-                            <a class="mini-link mini-link-primary" href="{{ route('membership.apply') }}">Join Us</a>
+                            <a class="mini-link" href="{{ route('login') }}">{{ __('Login') }}</a>
+                            <a class="mini-link mini-link-primary" href="{{ route('membership.apply') }}">{{ __('Join Us') }}</a>
                         @endauth
                     </div>
                 </div>
@@ -144,41 +149,48 @@
             <footer class="site-footer">
                 <div class="wrap footer-bar">
                     <div class="footer-column">
-                        <h3 class="footer-title">Stay Connected</h3>
-                        <p class="footer-copy">Subscribe to our newsletter for updates.</p>
+                        <h3 class="footer-title">{{ __('Stay Connected') }}</h3>
+                        <p class="footer-copy">{{ __('Subscribe to our newsletter for updates.') }}</p>
                         <form class="footer-subscribe" action="{{ route('contact') }}" method="get">
-                            <input type="email" name="footer_email" placeholder="Your Email">
-                            <button type="submit">Subscribe</button>
+                            <input type="email" name="footer_email" placeholder="{{ __('Your Email') }}">
+                            <button type="submit">{{ __('Subscribe') }}</button>
                         </form>
                     </div>
                     <div class="footer-column">
-                        <h3 class="footer-title">Quick Links</h3>
+                        <h3 class="footer-title">{{ __('Quick Links') }}</h3>
                         <nav class="footer-list">
-                            <a href="{{ route('about.mission') }}">About Us</a>
-                            <a href="{{ route('events.upcoming') }}">Events</a>
-                            <a href="{{ route('memories.list') }}">News</a>
-                            <a href="{{ route('contact') }}">Contact</a>
+                            <a href="{{ route('about.mission') }}">{{ __('About Us') }}</a>
+                            <a href="{{ route('events.upcoming') }}">{{ __('Events') }}</a>
+                            <a href="{{ route('memories.list') }}">{{ __('News') }}</a>
+                            <a href="{{ route('contact') }}">{{ __('Contact') }}</a>
                         </nav>
                     </div>
                     <div class="footer-column">
-                        <h3 class="footer-title">Resources</h3>
+                        <h3 class="footer-title">{{ __('Resources') }}</h3>
                         <div class="footer-list">
-                            <span>Mentorship Program</span>
-                            <span>Career Support</span>
-                            <span>Volunteer Opportunities</span>
+                            <a href="{{ route('terms.conditions') }}">{{ __('Terms & Conditions') }}</a>
+                            <a href="{{ route('privacy.policy') }}">{{ __('Privacy Policy') }}</a>
+                            <a href="{{ route('cookie.policy') }}">{{ __('Cookie Policy') }}</a>
+                            <a href="{{ route('disclaimer') }}">{{ __('Disclaimer') }}</a>
                         </div>
                     </div>
                     <div class="footer-column">
-                        <h3 class="footer-title">Contact Us</h3>
+                        <h3 class="footer-title">{{ __('Contact Us') }}</h3>
                         <div class="footer-list footer-contact-list">
-                            <span>Email: info@mubcaa.org</span>
-                            <span>Phone: +880 1773-658804</span>
+                            <span>{{ __('Email') }}: info@mubcaa.org</span>
+                            <span>{{ __('Phone') }}: +880 1773-658804</span>
                         </div>
                     </div>
                 </div>
                 <div class="wrap footer-bottom-bar">
                     <p>&copy; {{ now()->year }} {{ $brandName }}</p>
-                    <p>All rights reserved.</p>
+                    <p>
+                        <a href="{{ route('terms.conditions') }}">{{ __('Terms') }}</a>
+                        /
+                        <a href="{{ route('privacy.policy') }}">{{ __('Privacy Policy') }}</a>
+                        /
+                        <a href="{{ route('cookie.policy') }}">{{ __('Cookie Policy') }}</a>
+                    </p>
                 </div>
             </footer>
         </div>

@@ -41,7 +41,13 @@ class VerificationController extends Controller
 
         return view('pages.apply', [
             'menu' => SiteNavigation::menu(),
-            'registrationStatuses' => ['Draft', 'Unverified', 'In Progress', 'Pending Review', 'Verified'],
+            'registrationStatuses' => [
+                __('Draft'),
+                __('Unverified'),
+                __('In Progress'),
+                __('Pending Review'),
+                __('Verified'),
+            ],
             'captchaLeft' => $captchaLeft,
             'captchaRight' => $captchaRight,
             'affiliateReferrer' => null,
@@ -85,14 +91,14 @@ class VerificationController extends Controller
             if ($request->expectsJson()) {
                 return response()->json([
                     'ok' => false,
-                    'errors' => ['code' => ['The email verification code is invalid or expired.']],
+                    'errors' => ['code' => [__('The email verification code is invalid or expired.')]],
                 ], 422);
             }
 
-            return back()->withErrors(['email_code' => 'The email verification code is invalid or expired.']);
+            return back()->withErrors(['email_code' => __('The email verification code is invalid or expired.')]);
         }
 
-        $message = 'Email verified successfully.';
+        $message = __('Email verified successfully.');
 
         if ($mode === 'pending') {
             $target = $target->fresh();
@@ -100,7 +106,7 @@ class VerificationController extends Controller
 
             if ($issuedChannel === 'mobile') {
                 $this->storePendingResendTimestamp($request, 'mobile');
-                $message = 'Email verified successfully. A mobile OTP has been sent.';
+                $message = __('Email verified successfully. A mobile OTP has been sent.');
             }
         }
 
@@ -127,14 +133,14 @@ class VerificationController extends Controller
             if ($request->expectsJson()) {
                 return response()->json([
                     'ok' => false,
-                    'errors' => ['code' => ['The mobile verification code is invalid or expired.']],
+                    'errors' => ['code' => [__('The mobile verification code is invalid or expired.')]],
                 ], 422);
             }
 
-            return back()->withErrors(['mobile_code' => 'The mobile verification code is invalid or expired.']);
+            return back()->withErrors(['mobile_code' => __('The mobile verification code is invalid or expired.')]);
         }
 
-        return $this->verificationRedirect($request, 'Mobile number verified successfully.');
+        return $this->verificationRedirect($request, __('Mobile number verified successfully.'));
     }
 
     public function resend(Request $request, string $channel): JsonResponse|RedirectResponse
@@ -145,7 +151,7 @@ class VerificationController extends Controller
         $remaining = $this->cooldownRemainingForChannel($request, $target, $mode, $channel);
 
         if ($remaining > 0) {
-            $message = "Please wait {$remaining} seconds before requesting another OTP.";
+            $message = __('Please wait :seconds seconds before requesting another OTP.', ['seconds' => $remaining]);
 
             if ($request->expectsJson()) {
                 return response()->json([
@@ -168,8 +174,8 @@ class VerificationController extends Controller
         }
 
         $message = $channel === 'email'
-            ? 'A new email verification code has been sent.'
-            : 'A new mobile verification code has been generated.';
+            ? __('A new email verification code has been sent.')
+            : __('A new mobile verification code has been generated.');
 
         if ($request->expectsJson()) {
             [$freshTarget, $freshMode] = $this->resolveVerificationTarget($request);
@@ -191,7 +197,7 @@ class VerificationController extends Controller
 
         if ($mode === 'pending' && $target->hasCompletedContactVerification()) {
             $user = $this->createUserFromPendingRegistration($target, $request);
-            $successMessage = 'Thank you for completing Step 1. Your preliminary registration has been successfully submitted. Please verify your email and mobile OTP to continue the remaining steps of your membership application. Once all required information has been submitted, the Alumni Association will review and verify your details carefully. Upon successful verification, you will be officially confirmed as a Verified Member.';
+            $successMessage = __('Thank you for completing Step 1. Your preliminary registration has been successfully submitted. Please verify your email and mobile OTP to continue the remaining steps of your membership application. Once all required information has been submitted, the Alumni Association will review and verify your details carefully. Upon successful verification, you will be officially confirmed as a Verified Member.');
 
             if ($request->expectsJson()) {
                 return response()->json([
@@ -209,7 +215,7 @@ class VerificationController extends Controller
         }
 
         if ($mode === 'user' && $target->fresh()->hasCompletedContactVerification()) {
-            $successMessage = $message.' Both contact methods are now verified.';
+            $successMessage = $message.' '.__('Both contact methods are now verified.');
 
             if ($request->expectsJson()) {
                 return response()->json([

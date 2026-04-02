@@ -37,6 +37,10 @@ class MembershipSiteTest extends TestCase
             '/events/upcoming-event',
             '/memories',
             '/contact',
+            '/privacy-policy',
+            '/terms-and-conditions',
+            '/cookie-policy',
+            '/disclaimer',
             '/login',
             '/admin/login',
         ];

@@ -89,7 +89,7 @@ class AuthController extends Controller
 
             return redirect()
                 ->route('login')
-                ->with('success', 'If a member account matches that email or mobile number, a 6-digit OTP has been sent.');
+                ->with('success', __('If a member account matches that email or mobile number, a 6-digit OTP has been sent.'));
         }
 
         [$channel, $contactValue] = $this->resolveLoginChannel($user, $channel);
@@ -98,7 +98,7 @@ class AuthController extends Controller
 
         return redirect()
             ->route('login')
-            ->with('success', 'If a member account matches that email or mobile number, a 6-digit OTP has been sent.');
+            ->with('success', __('If a member account matches that email or mobile number, a 6-digit OTP has been sent.'));
     }
 
     public function checkLoginIdentifier(Request $request): JsonResponse
@@ -111,7 +111,7 @@ class AuthController extends Controller
 
         return response()->json([
             'exists' => true,
-            'message' => 'If this is a registered member account, you can request an OTP.',
+            'message' => __('If this is a registered member account, you can request an OTP.'),
         ]);
     }
 
@@ -156,7 +156,7 @@ class AuthController extends Controller
 
         if (! Auth::attempt($credentials, false)) {
             return back()->withInput($request->only('email'))->withErrors([
-                'email' => 'The provided admin credentials do not match our records.',
+                'email' => __('The provided admin credentials do not match our records.'),
             ]);
         }
 
@@ -166,7 +166,7 @@ class AuthController extends Controller
             Auth::logout();
 
             return back()->withInput($request->only('email'))->withErrors([
-                'email' => 'This login form is for admin access only.',
+                'email' => __('This login form is for admin access only.'),
             ]);
         }
 
@@ -194,7 +194,7 @@ class AuthController extends Controller
             || ($payload['code'] ?? null) !== $validated['code']
         ) {
             return back()->withErrors([
-                'code' => 'The OTP is invalid or has expired.',
+                'code' => __('The OTP is invalid or has expired.'),
             ]);
         }
 
@@ -204,7 +204,7 @@ class AuthController extends Controller
             $this->forgetLoginOtp($request);
 
             return redirect()->route('login')->withErrors([
-                'identifier' => 'The selected account could not be found. Please request a new OTP.',
+                'identifier' => __('The selected account could not be found. Please request a new OTP.'),
             ]);
         }
 
@@ -230,7 +230,7 @@ class AuthController extends Controller
 
         if (! $payload) {
             return redirect()->route('login')->withErrors([
-                'identifier' => 'Request a new OTP first.',
+                'identifier' => __('Request a new OTP first.'),
             ]);
         }
 
@@ -240,7 +240,7 @@ class AuthController extends Controller
             $this->forgetLoginOtp($request);
 
             return redirect()->route('login')->withErrors([
-                'identifier' => 'The selected account could not be found. Please request a new OTP.',
+                'identifier' => __('The selected account could not be found. Please request a new OTP.'),
             ]);
         }
 
@@ -251,13 +251,13 @@ class AuthController extends Controller
             $remaining = max(1, $remaining);
 
             return redirect()->route('login')->withErrors([
-                'identifier' => "Please wait {$remaining} seconds before requesting another OTP.",
+                'identifier' => __('Please wait :seconds seconds before requesting another OTP.', ['seconds' => $remaining]),
             ]);
         }
 
         $this->issueLoginOtp($request, $user, $payload['channel'], $payload['contact']);
 
-        return redirect()->route('login')->with('success', 'A new OTP has been sent.');
+        return redirect()->route('login')->with('success', __('A new OTP has been sent.'));
     }
 
     public function showRegistration(Request $request): View
@@ -270,7 +270,13 @@ class AuthController extends Controller
 
         return view('pages.apply', [
             'menu' => SiteNavigation::menu(),
-            'registrationStatuses' => ['Draft', 'Unverified', 'In Progress', 'Pending Review', 'Verified'],
+            'registrationStatuses' => [
+                __('Draft'),
+                __('Unverified'),
+                __('In Progress'),
+                __('Pending Review'),
+                __('Verified'),
+            ],
             'captchaLeft' => $captchaLeft,
             'captchaRight' => $captchaRight,
             'affiliateReferrer' => $affiliateReferrer,
@@ -310,9 +316,9 @@ class AuthController extends Controller
                     $countryCode = (string) $request->input('mobile_country_code', '+880');
 
                     if (! $this->isValidPhoneNumberForCountry((string) $value, $countryCode)) {
-                        $fail($countryCode === '+880'
-                            ? 'For Bangladesh numbers, enter 10 or 11 digits.'
-                            : 'Enter a valid mobile number.');
+                    $fail($countryCode === '+880'
+                            ? __('For Bangladesh numbers, enter 10 or 11 digits.')
+                            : __('Enter a valid mobile number.'));
 
                         return;
                     }
@@ -320,7 +326,7 @@ class AuthController extends Controller
                     $candidates = PhoneNumber::candidates((string) $value, $countryCode);
 
                     if ($this->registeredMobileExists($candidates)) {
-                        $fail('This mobile number is already registered.');
+                        $fail(__('This mobile number is already registered.'));
                         return;
                     }
 
@@ -331,7 +337,7 @@ class AuthController extends Controller
                         ->exists();
 
                     if ($pendingExists) {
-                        $fail('This mobile number is already linked to another registration.');
+                        $fail(__('This mobile number is already linked to another registration.'));
                     }
                 },
             ],
@@ -377,13 +383,14 @@ class AuthController extends Controller
                 return response()->json([
                     'ok' => false,
                     'errors' => [
-                        'referral_code' => ['Enter a referral code.'],
+                        'referral_code' => [__('Enter a referral code.')],
+                        
                     ],
                 ], 422);
             }
 
             return back()
-                ->withErrors(['referral_code' => 'Enter a referral code.'])
+                ->withErrors(['referral_code' => __('Enter a referral code.')])
                 ->withInput();
         }
 
@@ -392,13 +399,14 @@ class AuthController extends Controller
                 return response()->json([
                     'ok' => false,
                     'errors' => [
-                        'referral_code' => ['The referral code is invalid.'],
+                        'referral_code' => [__('The referral code is invalid.')],
+                        
                     ],
                 ], 422);
             }
 
             return back()
-                ->withErrors(['referral_code' => 'The referral code is invalid.'])
+                ->withErrors(['referral_code' => __('The referral code is invalid.')])
                 ->withInput();
         }
 
@@ -406,13 +414,13 @@ class AuthController extends Controller
 
         if ((int) $validated['captcha_answer'] !== $captchaSum) {
             $validator = Validator::make([], []);
-            $validator->errors()->add('captcha_answer', 'The captcha answer is incorrect.');
+            $validator->errors()->add('captcha_answer', __('The captcha answer is incorrect.'));
 
             if ($request->expectsJson()) {
                 return response()->json([
                     'ok' => false,
                     'errors' => [
-                        'captcha_answer' => ['The captcha answer is incorrect.'],
+                        'captcha_answer' => [__('The captcha answer is incorrect.')],
                     ],
                 ], 422);
             }
@@ -481,7 +489,7 @@ class AuthController extends Controller
         $request->session()->forget(['registration_captcha_a', 'registration_captcha_b']);
         $request->session()->forget('affiliate_referrer_id');
 
-        $message = 'Thank you for completing Step 1. Your preliminary registration has been successfully submitted. Please verify your email and mobile OTP to continue the remaining steps of your membership application. Once all required information has been submitted, the Alumni Association will review and verify your details carefully. Upon successful verification, you will be officially confirmed as a Verified Member.';
+        $message = __('Thank you for completing Step 1. Your preliminary registration has been successfully submitted. Please verify your email and mobile OTP to continue the remaining steps of your membership application. Once all required information has been submitted, the Alumni Association will review and verify your details carefully. Upon successful verification, you will be officially confirmed as a Verified Member.');
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -605,10 +613,10 @@ class AuthController extends Controller
 
         return array_filter([
             'email' => $emailConflict
-                ? 'This email address is already linked to another registration.'
+                ? __('This email address is already linked to another registration.')
                 : null,
             'mobile_number' => $mobileConflict
-                ? 'This mobile number is already linked to another registration.'
+                ? __('This mobile number is already linked to another registration.')
                 : null,
         ]);
     }
@@ -647,7 +655,7 @@ class AuthController extends Controller
         if (! filter_var($value, FILTER_VALIDATE_EMAIL)) {
             return response()->json([
                 'valid' => false,
-                'message' => 'Enter a valid email address.',
+                'message' => __('Enter a valid email address.'),
                 'type' => 'error',
             ]);
         }
@@ -657,7 +665,7 @@ class AuthController extends Controller
         if ($exists) {
             return response()->json([
                 'valid' => false,
-                'message' => 'This email address is already registered.',
+                'message' => __('This email address is already registered.'),
                 'type' => 'error',
             ]);
         }
@@ -665,7 +673,7 @@ class AuthController extends Controller
         if (filled($contextMobileNumber) && $this->matchingPendingRegistration($value, $contextMobileNumber, true, $contextMobileCountryCode)) {
             return response()->json([
                 'valid' => true,
-                'message' => 'An existing registration was found for this email and mobile number.',
+                'message' => __('An existing registration was found for this email and mobile number.'),
                 'type' => 'success',
             ]);
         }
@@ -677,8 +685,8 @@ class AuthController extends Controller
         return response()->json([
             'valid' => ! $pendingExists,
             'message' => $pendingExists
-                ? 'This email address is already linked to another registration.'
-                : 'Email address is available.',
+                ? __('This email address is already linked to another registration.')
+                : __('Email address is available.'),
             'type' => $pendingExists ? 'error' : 'success',
         ]);
     }
@@ -689,8 +697,8 @@ class AuthController extends Controller
             return response()->json([
                 'valid' => false,
                 'message' => $countryCode === '+880'
-                    ? 'For Bangladesh numbers, enter 10 or 11 digits.'
-                    : 'Enter a valid mobile number.',
+                    ? __('For Bangladesh numbers, enter 10 or 11 digits.')
+                    : __('Enter a valid mobile number.'),
                 'type' => 'error',
             ]);
         }
@@ -701,7 +709,7 @@ class AuthController extends Controller
         if ($exists) {
             return response()->json([
                 'valid' => false,
-                'message' => 'This mobile number is already registered.',
+                'message' => __('This mobile number is already registered.'),
                 'type' => 'error',
             ]);
         }
@@ -709,7 +717,7 @@ class AuthController extends Controller
         if (filled($contextEmail) && $this->matchingPendingRegistration($contextEmail, $value, true, $countryCode)) {
             return response()->json([
                 'valid' => true,
-                'message' => 'An existing registration was found for this email and mobile number.',
+                'message' => __('An existing registration was found for this email and mobile number.'),
                 'type' => 'success',
             ]);
         }
@@ -721,8 +729,8 @@ class AuthController extends Controller
         return response()->json([
             'valid' => ! $pendingExists,
             'message' => $pendingExists
-                ? 'This mobile number is already linked to another registration.'
-                : 'Mobile number is available.',
+                ? __('This mobile number is already linked to another registration.')
+                : __('Mobile number is available.'),
             'type' => $pendingExists ? 'error' : 'success',
         ]);
     }
@@ -754,8 +762,8 @@ class AuthController extends Controller
         return response()->json([
             'valid' => (bool) $referrer,
             'message' => $referrer
-                ? 'Referral code found.'
-                : 'Referral code was not found.',
+                ? __('Referral code found.')
+                : __('Referral code was not found.'),
             'type' => $referrer ? 'success' : 'error',
         ]);
     }
