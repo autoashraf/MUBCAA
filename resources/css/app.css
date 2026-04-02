@@ -403,12 +403,12 @@
     }
 
     .alert-warning-like {
-        @apply border-amber-200 bg-amber-50 text-amber-800;
+        @apply border-red-200 bg-red-50 text-red-700;
     }
 
     .field-live-status,
     .form-card small {
-        @apply mt-1 block text-xs leading-5 text-slate-500;
+        @apply mt-1 block text-xs leading-5 text-red-600;
     }
 
     .field-live-status.is-error,
