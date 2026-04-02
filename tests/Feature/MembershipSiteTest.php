@@ -197,6 +197,32 @@ class MembershipSiteTest extends TestCase
         ]);
     }
 
+    public function test_registration_check_reports_existing_mobile_when_only_profile_has_canonical_number(): void
+    {
+        $member = User::factory()->create([
+            'role' => 'member',
+            'email' => 'profile-mobile@example.com',
+            'phone' => null,
+        ]);
+
+        $member->profile()->create([
+            'mobile_number' => '+8801773658804',
+            'primary_mobile' => '+8801773658804',
+            'email_address' => 'profile-mobile@example.com',
+            'passing_year_batch' => '2012',
+        ]);
+
+        $this->postJson(route('membership.apply.check'), [
+            'field' => 'mobile_number',
+            'value' => '01773658804',
+            'mobile_country_code' => '+880',
+        ])->assertOk()->assertJson([
+            'valid' => false,
+            'type' => 'error',
+            'message' => 'This mobile number is already registered.',
+        ]);
+    }
+
     public function test_registration_check_reuses_exact_pending_registration_context(): void
     {
         PendingRegistration::query()->create([

@@ -59,7 +59,7 @@
                                             data-country-code-option
                                             data-value="{{ $countryDialCode['dial_code'] }}"
                                             data-display="{{ $countryDialCode['dial_code'] }}"
-                                            onclick="(function(btn){var dropdown=btn.closest('[data-country-code-dropdown]');if(!dropdown)return;var valueInput=dropdown.querySelector('[data-country-code-value]');var label=dropdown.querySelector('[data-country-code-label]');var trigger=dropdown.querySelector('[data-country-code-trigger]');if(valueInput){valueInput.value=btn.dataset.value||'';}if(label){label.textContent=btn.dataset.display||btn.dataset.value||'';}dropdown.classList.remove('is-open');if(trigger){trigger.setAttribute('aria-expanded','false');trigger.focus();}})(this)"
+                                            onclick="(function(btn){var dropdown=btn.closest('[data-country-code-dropdown]');if(!dropdown)return;var valueInput=dropdown.querySelector('[data-country-code-value]');var label=dropdown.querySelector('[data-country-code-label]');var trigger=dropdown.querySelector('[data-country-code-trigger]');if(valueInput){valueInput.value=btn.dataset.value||'';valueInput.dispatchEvent(new Event('change',{bubbles:true}));}if(label){label.textContent=btn.dataset.display||btn.dataset.value||'';}dropdown.classList.remove('is-open');if(trigger){trigger.setAttribute('aria-expanded','false');trigger.focus();}})(this)"
                                         >
                                             {{ $countryDialCode['name'] }} ({{ $countryDialCode['dial_code'] }})
                                         </button>

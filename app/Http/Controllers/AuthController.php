@@ -319,7 +319,7 @@ class AuthController extends Controller
 
                     $candidates = PhoneNumber::candidates((string) $value, $countryCode);
 
-                    if (User::query()->whereIn('phone', $candidates)->exists()) {
+                    if ($this->registeredMobileExists($candidates)) {
                         $fail('This mobile number is already registered.');
                         return;
                     }
@@ -696,7 +696,7 @@ class AuthController extends Controller
         }
 
         $candidates = PhoneNumber::candidates($value, $countryCode);
-        $exists = User::query()->whereIn('phone', $candidates)->exists();
+        $exists = $this->registeredMobileExists($candidates);
 
         if ($exists) {
             return response()->json([
@@ -725,6 +725,23 @@ class AuthController extends Controller
                 : 'Mobile number is available.',
             'type' => $pendingExists ? 'error' : 'success',
         ]);
+    }
+
+    private function registeredMobileExists(array $candidates): bool
+    {
+        $candidates = array_values(array_unique(array_filter($candidates)));
+
+        if ($candidates === []) {
+            return false;
+        }
+
+        return User::query()
+            ->whereIn('phone', $candidates)
+            ->orWhereHas('profile', function ($query) use ($candidates): void {
+                $query->whereIn('mobile_number', $candidates)
+                    ->orWhereIn('primary_mobile', $candidates);
+            })
+            ->exists();
     }
 
     private function checkRegistrationReferralCode(string $value): JsonResponse

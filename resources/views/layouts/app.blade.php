@@ -794,7 +794,8 @@
                             input.insertAdjacentElement('afterend', error);
 
                             if (input.matches('[data-registration-check-input]')) {
-                                var status = input.parentElement ? input.parentElement.querySelector('[data-registration-check-status]') : null;
+                                var fieldWrapper = input.closest('.join-auth-label') || input.parentElement;
+                                var status = fieldWrapper ? fieldWrapper.querySelector('[data-registration-check-status]') : null;
 
                                 if (status) {
                                     status.hidden = false;
@@ -1117,9 +1118,11 @@
                                 return;
                             }
 
-                            var status = input.parentElement ? input.parentElement.querySelector('[data-registration-check-status]') : null;
+                            var fieldWrapper = input.closest('.join-auth-label') || input.parentElement;
+                            var status = fieldWrapper ? fieldWrapper.querySelector('[data-registration-check-status]') : null;
                             var checkUrl = input.dataset.registrationCheckUrl;
                             var field = input.dataset.registrationCheckField;
+                            var mobileCountryCodeInput = input.form ? input.form.querySelector('[name="mobile_country_code"]') : null;
                             var timeoutId = null;
                             var requestId = 0;
 
@@ -1208,6 +1211,12 @@
                             });
 
                             input.addEventListener('blur', runCheck);
+                            if (field === 'mobile_number' && mobileCountryCodeInput) {
+                                mobileCountryCodeInput.addEventListener('change', function () {
+                                    window.clearTimeout(timeoutId);
+                                    timeoutId = window.setTimeout(runCheck, 50);
+                                });
+                            }
                             input.dataset.registrationCheckMounted = 'true';
                         });
                     }

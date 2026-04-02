@@ -609,7 +609,8 @@ document.addEventListener('DOMContentLoaded', () => {
             input.insertAdjacentElement('afterend', error);
 
             if (input.matches('[data-registration-check-input]')) {
-                const status = input.parentElement?.querySelector('[data-registration-check-status]');
+                const fieldWrapper = input.closest('.join-auth-label') || input.parentElement;
+                const status = fieldWrapper?.querySelector('[data-registration-check-status]');
 
                 if (status) {
                     status.hidden = false;
@@ -791,9 +792,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const status = input.parentElement?.querySelector('[data-registration-check-status]');
+            const fieldWrapper = input.closest('.join-auth-label') || input.parentElement;
+            const status = fieldWrapper?.querySelector('[data-registration-check-status]');
             const checkUrl = input.dataset.registrationCheckUrl;
             const field = input.dataset.registrationCheckField;
+            const mobileCountryCodeInput = input.form?.querySelector('[name="mobile_country_code"]');
             let timeoutId = null;
             let requestId = 0;
 
@@ -881,6 +884,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             input.addEventListener('blur', runCheck);
+            if (field === 'mobile_number' && mobileCountryCodeInput) {
+                mobileCountryCodeInput.addEventListener('change', () => {
+                    window.clearTimeout(timeoutId);
+                    timeoutId = window.setTimeout(runCheck, 50);
+                });
+            }
             input.dataset.registrationCheckMounted = 'true';
         });
     };
