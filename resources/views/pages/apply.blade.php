@@ -41,7 +41,33 @@
                     </div>
 
                     <div class="join-auth-label">
-                        <input type="text" name="mobile_number" value="{{ old('mobile_number') }}" placeholder="Enter your mobile number" aria-label="Mobile number" required data-registration-check-input data-registration-check-field="mobile_number" data-registration-check-url="{{ route('membership.apply.check') }}">
+                        @php
+                            $selectedMobileCountryCode = old('mobile_country_code', '+880');
+                        @endphp
+                        <div class="phone-input-group">
+                            <div class="country-code-dropdown" data-country-code-dropdown>
+                                <input type="hidden" name="mobile_country_code" value="{{ $selectedMobileCountryCode }}" data-country-code-value>
+                                <button class="phone-code-trigger" type="button" data-country-code-trigger aria-expanded="false" onclick="(function(btn){var dropdown=btn.closest('[data-country-code-dropdown]');if(!dropdown)return;var isOpen=dropdown.classList.toggle('is-open');btn.setAttribute('aria-expanded',isOpen?'true':'false');})(this)">
+                                    <span data-country-code-label>{{ $selectedMobileCountryCode }}</span>
+                                    <span class="phone-code-trigger-icon" aria-hidden="true"></span>
+                                </button>
+                                <div class="country-code-panel" data-country-code-panel>
+                                    @foreach ($countryDialCodes as $countryDialCode)
+                                        <button
+                                            class="country-code-option"
+                                            type="button"
+                                            data-country-code-option
+                                            data-value="{{ $countryDialCode['dial_code'] }}"
+                                            data-display="{{ $countryDialCode['dial_code'] }}"
+                                            onclick="(function(btn){var dropdown=btn.closest('[data-country-code-dropdown]');if(!dropdown)return;var valueInput=dropdown.querySelector('[data-country-code-value]');var label=dropdown.querySelector('[data-country-code-label]');var trigger=dropdown.querySelector('[data-country-code-trigger]');if(valueInput){valueInput.value=btn.dataset.value||'';}if(label){label.textContent=btn.dataset.display||btn.dataset.value||'';}dropdown.classList.remove('is-open');if(trigger){trigger.setAttribute('aria-expanded','false');trigger.focus();}})(this)"
+                                        >
+                                            {{ $countryDialCode['name'] }} ({{ $countryDialCode['dial_code'] }})
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                            <input type="text" name="mobile_number" value="{{ old('mobile_number') }}" placeholder="Enter your mobile number" aria-label="Mobile number" required data-registration-check-input data-registration-check-field="mobile_number" data-registration-check-url="{{ route('membership.apply.check') }}">
+                        </div>
                         <small class="field-live-status" data-registration-check-status hidden></small>
                         @error('mobile_number') <small>{{ $message }}</small> @enderror
                     </div>

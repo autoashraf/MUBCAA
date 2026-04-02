@@ -7,7 +7,10 @@ use App\Models\PendingRegistration;
 use App\Models\User;
 use App\Services\ContactVerificationService;
 use App\Services\MimSmsService;
+use App\Support\CountryDialCodes;
+use App\Support\PhoneNumber;
 use App\Support\SiteNavigation;
+use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,6 +47,7 @@ class AuthController extends Controller
             'loginOtpResendCooldown' => $this->loginOtpResendCooldown(request()),
             'loginOtpExpiryCountdown' => $this->loginOtpExpiryCountdown(request()),
             'localLoginOtpCode' => App::environment('local') ? session('login_otp_code') : null,
+            'countryDialCodes' => CountryDialCodes::all(),
         ]);
     }
 
@@ -56,11 +60,29 @@ class AuthController extends Controller
 
     public function login(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'identifier' => ['required', 'string', 'max:255'],
+        $base = $request->validate([
+            'login_channel' => ['required', Rule::in(['email', 'mobile'])],
+            'email_identifier' => ['nullable', 'string', 'max:255'],
+            'mobile_identifier' => ['nullable', 'string', 'max:255'],
+            'mobile_country_code' => ['nullable', 'string', 'max:20'],
         ]);
 
-        $user = $this->resolveLoginUser($validated['identifier']);
+        $channel = (string) $base['login_channel'];
+        $countryCode = trim((string) ($base['mobile_country_code'] ?? '+880'));
+
+        if ($channel === 'email') {
+            $validated = $request->validate([
+                'email_identifier' => ['required', 'email', 'max:255'],
+            ]);
+
+            $user = $this->resolveLoginEmailUser($validated['email_identifier']);
+        } else {
+            $validated = $request->validate([
+                'mobile_identifier' => ['required', 'string', 'max:255'],
+            ]);
+
+            $user = $this->resolveLoginMobileUser($validated['mobile_identifier'], $countryCode);
+        }
 
         if (! $user || $user->isAdmin()) {
             $this->forgetLoginOtp($request);
@@ -70,7 +92,7 @@ class AuthController extends Controller
                 ->with('success', 'If a member account matches that email or mobile number, a 6-digit OTP has been sent.');
         }
 
-        [$channel, $contactValue] = $this->resolveLoginChannel($user, $validated['identifier']);
+        [$channel, $contactValue] = $this->resolveLoginChannel($user, $channel);
 
         $this->issueLoginOtp($request, $user, $channel, $contactValue);
 
@@ -81,8 +103,10 @@ class AuthController extends Controller
 
     public function checkLoginIdentifier(Request $request): JsonResponse
     {
-        $validated = $request->validate([
+        $request->validate([
+            'login_channel' => ['required', Rule::in(['email', 'mobile'])],
             'identifier' => ['required', 'string', 'max:255'],
+            'identifier_country_code' => ['nullable', 'string', 'max:20'],
         ]);
 
         return response()->json([
@@ -96,13 +120,17 @@ class AuthController extends Controller
         $validated = $request->validate([
             'field' => ['required', Rule::in(['email', 'mobile_number', 'referral_code'])],
             'value' => ['nullable', 'string', 'max:255'],
+            'mobile_country_code' => ['nullable', 'string', 'max:20'],
             'context_email' => ['nullable', 'string', 'max:255'],
             'context_mobile_number' => ['nullable', 'string', 'max:255'],
+            'context_mobile_country_code' => ['nullable', 'string', 'max:20'],
         ]);
 
         $value = trim((string) $validated['value']);
+        $mobileCountryCode = trim((string) ($validated['mobile_country_code'] ?? '+880'));
         $contextEmail = trim((string) ($validated['context_email'] ?? ''));
         $contextMobileNumber = trim((string) ($validated['context_mobile_number'] ?? ''));
+        $contextMobileCountryCode = trim((string) ($validated['context_mobile_country_code'] ?? '+880'));
 
         if ($value === '') {
             return response()->json([
@@ -113,8 +141,8 @@ class AuthController extends Controller
         }
 
         return match ($validated['field']) {
-            'email' => $this->checkRegistrationEmail($value, $contextMobileNumber),
-            'mobile_number' => $this->checkRegistrationMobile($value, $contextEmail),
+            'email' => $this->checkRegistrationEmail($value, $contextMobileNumber, $contextMobileCountryCode),
+            'mobile_number' => $this->checkRegistrationMobile($value, $contextEmail, $mobileCountryCode),
             'referral_code' => $this->checkRegistrationReferralCode($value),
         };
     }
@@ -248,15 +276,18 @@ class AuthController extends Controller
             'affiliateReferrer' => $affiliateReferrer,
             'passingYears' => $this->passingYearOptions(),
             'discoverySources' => $this->howDidYouFindUsOptions(),
+            'countryDialCodes' => CountryDialCodes::all(),
         ]);
     }
 
     public function register(Request $request): JsonResponse|RedirectResponse
     {
+        $mobileCountryCode = (string) $request->input('mobile_country_code', '+880');
         $pendingRegistration = $this->reusablePendingRegistration(
             $request,
             (string) $request->input('email'),
             (string) $request->input('mobile_number'),
+            $mobileCountryCode,
         );
 
         $validated = $request->validate([
@@ -270,14 +301,39 @@ class AuthController extends Controller
                     ->ignore($pendingRegistration?->id)
                     ->where(fn ($query) => $query->whereNull('completed_at')),
             ],
+            'mobile_country_code' => ['nullable', 'string', 'max:20'],
             'mobile_number' => [
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('users', 'phone'),
-                Rule::unique('pending_registrations', 'mobile_number')
-                    ->ignore($pendingRegistration?->id)
-                    ->where(fn ($query) => $query->whereNull('completed_at')),
+                function (string $attribute, mixed $value, Closure $fail) use ($request, $pendingRegistration): void {
+                    $countryCode = (string) $request->input('mobile_country_code', '+880');
+
+                    if (! $this->isValidPhoneNumberForCountry((string) $value, $countryCode)) {
+                        $fail($countryCode === '+880'
+                            ? 'For Bangladesh numbers, enter 10 or 11 digits.'
+                            : 'Enter a valid mobile number.');
+
+                        return;
+                    }
+
+                    $candidates = PhoneNumber::candidates((string) $value, $countryCode);
+
+                    if (User::query()->whereIn('phone', $candidates)->exists()) {
+                        $fail('This mobile number is already registered.');
+                        return;
+                    }
+
+                    $pendingExists = PendingRegistration::query()
+                        ->whereIn('mobile_number', $candidates)
+                        ->whereNull('completed_at')
+                        ->when($pendingRegistration?->id, fn ($query) => $query->whereKeyNot($pendingRegistration->id))
+                        ->exists();
+
+                    if ($pendingExists) {
+                        $fail('This mobile number is already linked to another registration.');
+                    }
+                },
             ],
             'passing_year_batch' => ['required', Rule::in($this->passingYearOptions())],
             'discovery_source' => ['nullable', Rule::in(array_merge($this->howDidYouFindUsOptions(), ['Referral Code']))],
@@ -287,10 +343,13 @@ class AuthController extends Controller
             'captcha_answer' => ['required', 'integer'],
         ]);
 
+        $canonicalMobileNumber = PhoneNumber::normalize($validated['mobile_number'], $validated['mobile_country_code'] ?? '+880');
+
         $completedRegistrationConflicts = $this->completedPendingRegistrationConflicts(
             $validated['email'],
-            $validated['mobile_number'],
+            $canonicalMobileNumber ?? $validated['mobile_number'],
             $pendingRegistration?->id,
+            $validated['mobile_country_code'] ?? '+880',
         );
 
         if ($completedRegistrationConflicts !== []) {
@@ -366,7 +425,7 @@ class AuthController extends Controller
         $payload = [
             'full_name' => $validated['full_name'],
             'email' => $validated['email'],
-            'mobile_number' => $validated['mobile_number'],
+            'mobile_number' => $canonicalMobileNumber,
             'passing_year_batch' => $validated['passing_year_batch'],
             'how_did_you_find_us' => ($validated['discovery_source'] ?? null) === 'Referral Code'
                 ? null
@@ -392,7 +451,12 @@ class AuthController extends Controller
                 return PendingRegistration::query()->create($payload);
             });
         } catch (QueryException $exception) {
-            $fallbackRegistration = $this->matchingPendingRegistration($validated['email'], $validated['mobile_number']);
+            $fallbackRegistration = $this->matchingPendingRegistration(
+                $validated['email'],
+                $canonicalMobileNumber ?? $validated['mobile_number'],
+                false,
+                $validated['mobile_country_code'] ?? '+880',
+            );
 
             if (! $this->isDuplicatePendingRegistrationError($exception) || ! $fallbackRegistration) {
                 throw $exception;
@@ -488,25 +552,25 @@ class AuthController extends Controller
             ->first();
     }
 
-    private function reusablePendingRegistration(Request $request, string $email, string $mobileNumber): ?PendingRegistration
+    private function reusablePendingRegistration(Request $request, string $email, string $mobileNumber, string $countryCode = '+880'): ?PendingRegistration
     {
         return $this->currentPendingRegistration($request)
-            ?? $this->matchingPendingRegistration($email, $mobileNumber, false)
-            ?? $this->matchingPendingRegistration($email, $mobileNumber, true);
+            ?? $this->matchingPendingRegistration($email, $mobileNumber, false, $countryCode)
+            ?? $this->matchingPendingRegistration($email, $mobileNumber, true, $countryCode);
     }
 
-    private function matchingPendingRegistration(string $email, string $mobileNumber, bool $includeCompleted = false): ?PendingRegistration
+    private function matchingPendingRegistration(string $email, string $mobileNumber, bool $includeCompleted = false, string $countryCode = '+880'): ?PendingRegistration
     {
         $normalizedEmail = trim(strtolower($email));
-        $normalizedMobile = trim($mobileNumber);
+        $mobileCandidates = PhoneNumber::candidates($mobileNumber, $countryCode);
 
-        if ($normalizedEmail === '' || $normalizedMobile === '') {
+        if ($normalizedEmail === '' || $mobileCandidates === []) {
             return null;
         }
 
         $query = PendingRegistration::query()
             ->whereRaw('LOWER(email) = ?', [$normalizedEmail])
-            ->where('mobile_number', $normalizedMobile);
+            ->whereIn('mobile_number', $mobileCandidates);
 
         if (! $includeCompleted) {
             $query->whereNull('completed_at');
@@ -515,12 +579,13 @@ class AuthController extends Controller
         return $query->first();
     }
 
-    private function completedPendingRegistrationConflicts(string $email, string $mobileNumber, ?int $ignoreId = null): array
+    private function completedPendingRegistrationConflicts(string $email, string $mobileNumber, ?int $ignoreId = null, string $countryCode = '+880'): array
     {
         $normalizedEmail = trim(strtolower($email));
-        $normalizedMobile = trim($mobileNumber);
+        $mobileCandidates = PhoneNumber::candidates($mobileNumber, $countryCode);
+        $normalizedMobile = PhoneNumber::normalize($mobileNumber, $countryCode);
 
-        if ($normalizedEmail === '' || $normalizedMobile === '') {
+        if ($normalizedEmail === '' || $mobileCandidates === [] || $normalizedMobile === null) {
             return [];
         }
 
@@ -530,11 +595,11 @@ class AuthController extends Controller
 
         $emailConflict = (clone $baseQuery)
             ->whereRaw('LOWER(email) = ?', [$normalizedEmail])
-            ->where('mobile_number', '!=', $normalizedMobile)
+            ->whereNotIn('mobile_number', $mobileCandidates)
             ->exists();
 
         $mobileConflict = (clone $baseQuery)
-            ->where('mobile_number', $normalizedMobile)
+            ->whereIn('mobile_number', $mobileCandidates)
             ->whereRaw('LOWER(email) != ?', [$normalizedEmail])
             ->exists();
 
@@ -577,7 +642,7 @@ class AuthController extends Controller
             ->first();
     }
 
-    private function checkRegistrationEmail(string $value, string $contextMobileNumber = ''): JsonResponse
+    private function checkRegistrationEmail(string $value, string $contextMobileNumber = '', string $contextMobileCountryCode = '+880'): JsonResponse
     {
         if (! filter_var($value, FILTER_VALIDATE_EMAIL)) {
             return response()->json([
@@ -597,7 +662,7 @@ class AuthController extends Controller
             ]);
         }
 
-        if (filled($contextMobileNumber) && $this->matchingPendingRegistration($value, $contextMobileNumber, true)) {
+        if (filled($contextMobileNumber) && $this->matchingPendingRegistration($value, $contextMobileNumber, true, $contextMobileCountryCode)) {
             return response()->json([
                 'valid' => true,
                 'message' => 'An existing registration was found for this email and mobile number.',
@@ -618,22 +683,20 @@ class AuthController extends Controller
         ]);
     }
 
-    private function checkRegistrationMobile(string $value, string $contextEmail = ''): JsonResponse
+    private function checkRegistrationMobile(string $value, string $contextEmail = '', string $countryCode = '+880'): JsonResponse
     {
-        $normalized = preg_replace('/\D+/', '', $value) ?: $value;
-
-        if (strlen($normalized) < 11) {
+        if (! $this->isValidPhoneNumberForCountry($value, $countryCode)) {
             return response()->json([
                 'valid' => false,
-                'message' => 'Enter a valid mobile number.',
+                'message' => $countryCode === '+880'
+                    ? 'For Bangladesh numbers, enter 10 or 11 digits.'
+                    : 'Enter a valid mobile number.',
                 'type' => 'error',
             ]);
         }
 
-        $exists = User::query()
-            ->where('phone', $value)
-            ->orWhere('phone', $normalized)
-            ->exists();
+        $candidates = PhoneNumber::candidates($value, $countryCode);
+        $exists = User::query()->whereIn('phone', $candidates)->exists();
 
         if ($exists) {
             return response()->json([
@@ -643,7 +706,7 @@ class AuthController extends Controller
             ]);
         }
 
-        if (filled($contextEmail) && $this->matchingPendingRegistration($contextEmail, $value, true)) {
+        if (filled($contextEmail) && $this->matchingPendingRegistration($contextEmail, $value, true, $countryCode)) {
             return response()->json([
                 'valid' => true,
                 'message' => 'An existing registration was found for this email and mobile number.',
@@ -652,8 +715,7 @@ class AuthController extends Controller
         }
 
         $pendingExists = PendingRegistration::query()
-            ->where('mobile_number', $value)
-            ->orWhere('mobile_number', $normalized)
+            ->whereIn('mobile_number', $candidates)
             ->exists();
 
         return response()->json([
@@ -702,27 +764,25 @@ class AuthController extends Controller
         return redirect()->route('home');
     }
 
-    private function resolveLoginUser(string $identifier): ?User
+    private function resolveLoginEmailUser(string $identifier): ?User
     {
         $identifier = trim($identifier);
 
-        if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
-            return User::query()->where('email', $identifier)->first();
-        }
+        return User::query()->where('email', $identifier)->first();
+    }
 
-        $normalized = preg_replace('/\D+/', '', $identifier) ?: $identifier;
+    private function resolveLoginMobileUser(string $identifier, string $countryCode = '+880'): ?User
+    {
+        $identifier = trim($identifier);
 
         return User::query()
-            ->where('phone', $identifier)
-            ->orWhere('phone', $normalized)
+            ->whereIn('phone', PhoneNumber::candidates($identifier, $countryCode))
             ->first();
     }
 
-    private function resolveLoginChannel(User $user, string $identifier): array
+    private function resolveLoginChannel(User $user, string $channel): array
     {
-        $identifier = trim($identifier);
-
-        if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
+        if ($channel === 'email') {
             return ['email', $user->email];
         }
 
@@ -743,7 +803,26 @@ class AuthController extends Controller
         if ($channel === 'email' && filled($contactValue)) {
             try {
                 Mail::to($contactValue)->send(new VerificationOtpMail($user, $code, 'login'));
+                Log::info('Login email OTP sent.', [
+                    'user_id' => $user->id,
+                    'email' => $contactValue,
+                    'mailer' => config('mail.default'),
+                    'smtp_host' => config('mail.mailers.smtp.host'),
+                    'smtp_port' => config('mail.mailers.smtp.port'),
+                    'smtp_username' => config('mail.mailers.smtp.username'),
+                ]);
             } catch (TransportExceptionInterface $exception) {
+                Log::error('Login email OTP failed.', [
+                    'user_id' => $user->id,
+                    'email' => $contactValue,
+                    'mailer' => config('mail.default'),
+                    'smtp_host' => config('mail.mailers.smtp.host'),
+                    'smtp_port' => config('mail.mailers.smtp.port'),
+                    'smtp_username' => config('mail.mailers.smtp.username'),
+                    'error' => $exception->getMessage(),
+                    'exception' => $exception::class,
+                ]);
+
                 if (! App::environment(['local', 'testing'])) {
                     throw $exception;
                 }
@@ -760,6 +839,24 @@ class AuthController extends Controller
         if ($channel === 'mobile' && filled($contactValue)) {
             $this->sms->sendOtp($contactValue, $code, 'member-login');
         }
+    }
+
+    private function isValidPhoneNumberForCountry(string $value, string $countryCode = '+880'): bool
+    {
+        $normalized = PhoneNumber::normalize($value, $countryCode);
+
+        if ($normalized === null) {
+            return false;
+        }
+
+        $split = PhoneNumber::split($value, $countryCode);
+        $nationalNumber = $split['national_number'] ?? '';
+
+        if ($countryCode === '+880') {
+            return in_array(strlen($nationalNumber), [10, 11], true);
+        }
+
+        return strlen($nationalNumber) >= 4 && strlen($nationalNumber) <= 15;
     }
 
     private function loginOtpPayload(Request $request): ?array

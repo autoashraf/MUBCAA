@@ -28,13 +28,57 @@
                 <div class="login-auth-form">
                     @csrf
                     <input type="hidden" name="login_type" value="member">
+                    @php
+                        $selectedLoginChannel = old('login_channel', 'mobile');
+                        $selectedLoginCountryCode = old('mobile_country_code', '+880');
+                    @endphp
+                    <input type="hidden" name="login_channel" value="{{ $selectedLoginChannel }}" data-login-channel-input>
 
-                    <label class="login-auth-label">
-                        <span>Email address or mobile number</span>
-                        <input class="login-auth-input" type="text" name="identifier" value="{{ old('identifier') }}" placeholder="Enter your registered email or mobile" required data-login-identifier-input data-login-check-url="{{ route('login.check') }}">
-                        <small class="login-identifier-status" data-login-identifier-status hidden></small>
-                        @error('identifier') <small>{{ $message }}</small> @enderror
-                    </label>
+                    <div class="login-auth-tabs" data-login-method-tabs>
+                        <button class="login-auth-tab @if ($selectedLoginChannel === 'mobile') is-active @endif" type="button" data-login-method-tab="mobile" aria-pressed="{{ $selectedLoginChannel === 'mobile' ? 'true' : 'false' }}">SMS OTP</button>
+                        <button class="login-auth-tab @if ($selectedLoginChannel === 'email') is-active @endif" type="button" data-login-method-tab="email" aria-pressed="{{ $selectedLoginChannel === 'email' ? 'true' : 'false' }}">Email OTP</button>
+                    </div>
+
+                    <div class="login-auth-panel" data-login-panel="mobile" @if ($selectedLoginChannel !== 'mobile') hidden @endif>
+                        <label class="login-auth-label">
+                            <span>Mobile number</span>
+                            <div class="phone-input-group">
+                                <div class="country-code-dropdown" data-country-code-dropdown>
+                                    <input type="hidden" name="mobile_country_code" value="{{ $selectedLoginCountryCode }}" data-country-code-value data-login-country-code-input>
+                                    <button class="phone-code-trigger" type="button" data-country-code-trigger aria-expanded="false" onclick="(function(btn){var dropdown=btn.closest('[data-country-code-dropdown]');if(!dropdown)return;var isOpen=dropdown.classList.toggle('is-open');btn.setAttribute('aria-expanded',isOpen?'true':'false');})(this)">
+                                        <span data-country-code-label>{{ $selectedLoginCountryCode }}</span>
+                                        <span class="phone-code-trigger-icon" aria-hidden="true"></span>
+                                    </button>
+                                    <div class="country-code-panel" data-country-code-panel>
+                                        @foreach ($countryDialCodes as $countryDialCode)
+                                            <button
+                                                class="country-code-option"
+                                                type="button"
+                                                data-country-code-option
+                                                data-value="{{ $countryDialCode['dial_code'] }}"
+                                                data-display="{{ $countryDialCode['dial_code'] }}"
+                                                onclick="(function(btn){var dropdown=btn.closest('[data-country-code-dropdown]');if(!dropdown)return;var valueInput=dropdown.querySelector('[data-country-code-value]');var label=dropdown.querySelector('[data-country-code-label]');var trigger=dropdown.querySelector('[data-country-code-trigger]');if(valueInput){valueInput.value=btn.dataset.value||'';valueInput.dispatchEvent(new Event('change',{bubbles:true}));}if(label){label.textContent=btn.dataset.display||btn.dataset.value||'';}dropdown.classList.remove('is-open');if(trigger){trigger.setAttribute('aria-expanded','false');trigger.focus();}})(this)"
+                                            >
+                                                {{ $countryDialCode['name'] }} ({{ $countryDialCode['dial_code'] }})
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                </div>
+                                <input class="login-auth-input" type="text" name="mobile_identifier" value="{{ old('mobile_identifier') }}" placeholder="Enter your registered mobile number" data-login-identifier-input data-login-channel="mobile" data-login-check-url="{{ route('login.check') }}" @if ($selectedLoginChannel === 'mobile') required @endif>
+                            </div>
+                            <small class="login-identifier-status" data-login-identifier-status hidden></small>
+                            @error('mobile_identifier') <small>{{ $message }}</small> @enderror
+                        </label>
+                    </div>
+
+                    <div class="login-auth-panel" data-login-panel="email" @if ($selectedLoginChannel !== 'email') hidden @endif>
+                        <label class="login-auth-label">
+                            <span>Email address</span>
+                            <input class="login-auth-input" type="email" name="email_identifier" value="{{ old('email_identifier') }}" placeholder="Enter your registered email address" data-login-identifier-input data-login-channel="email" data-login-check-url="{{ route('login.check') }}" @if ($selectedLoginChannel === 'email') required @endif>
+                            <small class="login-identifier-status" data-login-identifier-status hidden></small>
+                            @error('email_identifier') <small>{{ $message }}</small> @enderror
+                        </label>
+                    </div>
 
                     <div class="login-auth-actions">
                         <button class="button button-primary login-auth-submit" type="submit">Send OTP</button>

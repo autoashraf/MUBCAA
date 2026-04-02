@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use Closure;
+use App\Support\CountryDialCodes;
+use App\Support\PhoneNumber;
 use App\Support\SiteNavigation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -88,6 +91,7 @@ class MemberDashboardController extends Controller
             'occupations' => $this->occupationOptions(),
             'designations' => $this->designationOptions(),
             'industries' => $this->industryOptions(),
+            'countryDialCodes' => CountryDialCodes::all(),
             'stepCompletion' => $this->stepCompletionStates($user, $profile),
             'profileLocked' => $this->isProfileSubmissionLocked($user),
         ]);
@@ -248,16 +252,18 @@ class MemberDashboardController extends Controller
         ]);
 
         $user = $request->user();
+        $canonicalPhone = PhoneNumber::normalize($validated['phone'], '+880');
+
         $user->update([
             'name' => $validated['name'],
-            'phone' => $validated['phone'],
+            'phone' => $canonicalPhone ?? $validated['phone'],
         ]);
 
         $user->profile()->updateOrCreate(
             ['user_id' => $user->id],
             [
-                'primary_mobile' => $validated['phone'],
-                'mobile_number' => $validated['phone'],
+                'primary_mobile' => $canonicalPhone ?? $validated['phone'],
+                'mobile_number' => $canonicalPhone ?? $validated['phone'],
                 'present_address' => $validated['present_address'],
                 'city_district' => $validated['city_district'],
                 'country' => $validated['country'],
@@ -436,9 +442,12 @@ class MemberDashboardController extends Controller
                 'marital_status' => [$isDraft ? 'nullable' : 'required', Rule::in(['Single', 'Married', 'Other'])],
             ],
             4 => [
-                'primary_mobile' => [$isDraft ? 'nullable' : 'required', 'string', 'max:50'],
-                'secondary_mobile' => [$isDraft ? 'nullable' : 'required', 'string', 'max:50'],
-                'whatsapp_number' => [$isDraft ? 'nullable' : 'required', 'string', 'max:50'],
+                'primary_mobile_country_code' => ['nullable', 'string', 'max:10'],
+                'secondary_mobile_country_code' => ['nullable', 'string', 'max:10'],
+                'whatsapp_country_code' => ['nullable', 'string', 'max:10'],
+                'primary_mobile' => $this->contactNumberRules($request, 'primary_mobile_country_code', $isDraft),
+                'secondary_mobile' => $this->contactNumberRules($request, 'secondary_mobile_country_code', $isDraft),
+                'whatsapp_number' => $this->contactNumberRules($request, 'whatsapp_country_code', $isDraft),
                 'email_address' => [$isDraft ? 'nullable' : 'required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($request->user()->id)],
                 'present_address' => [$isDraft ? 'nullable' : 'required', 'string', 'max:1000'],
                 'permanent_address' => [$isDraft ? 'nullable' : 'required', 'string', 'max:1000'],
@@ -501,10 +510,10 @@ class MemberDashboardController extends Controller
             2 => $validated,
             3 => $validated,
             4 => [
-                'primary_mobile' => $validated['primary_mobile'] ?? ($profile?->primary_mobile ?: $request->user()->phone),
-                'mobile_number' => $validated['primary_mobile'] ?? ($profile?->primary_mobile ?: $request->user()->phone),
-                'secondary_mobile' => $validated['secondary_mobile'] ?? null,
-                'whatsapp_number' => $validated['whatsapp_number'] ?? null,
+                'primary_mobile' => $this->normalizeContactNumber($validated['primary_mobile'] ?? ($profile?->primary_mobile ?: $request->user()->phone)),
+                'mobile_number' => $this->normalizeContactNumber($validated['primary_mobile'] ?? ($profile?->primary_mobile ?: $request->user()->phone)),
+                'secondary_mobile' => $this->normalizeContactNumber($validated['secondary_mobile'] ?? null),
+                'whatsapp_number' => $this->normalizeContactNumber($validated['whatsapp_number'] ?? null),
                 'email_address' => $validated['email_address'] ?? ($profile?->email_address ?: $request->user()->email),
                 'present_address' => $validated['present_address'] ?? null,
                 'permanent_address' => $validated['permanent_address'] ?? null,
@@ -536,6 +545,39 @@ class MemberDashboardController extends Controller
         };
 
         return $data;
+    }
+
+    private function contactNumberRules(Request $request, string $countryCodeField, bool $isDraft): array
+    {
+        return [
+            $isDraft ? 'nullable' : 'required',
+            'string',
+            'max:50',
+            function (string $attribute, mixed $value, Closure $fail) use ($request, $countryCodeField): void {
+                if (! filled($value)) {
+                    return;
+                }
+
+                $countryCode = (string) $request->input($countryCodeField, '+880');
+                $normalized = $this->normalizeContactNumber($value, $countryCode);
+
+                if ($normalized === null) {
+                    $fail('Enter a valid mobile number.');
+                    return;
+                }
+
+                $nationalNumber = PhoneNumber::split((string) $value, $countryCode)['national_number'] ?? '';
+
+                if ($countryCode === '+880' && ! in_array(strlen($nationalNumber), [10, 11], true)) {
+                    $fail('For Bangladesh numbers, enter 10 or 11 digits.');
+                }
+            },
+        ];
+    }
+
+    private function normalizeContactNumber(mixed $value, string $countryCode = '+880'): ?string
+    {
+        return PhoneNumber::normalize((string) $value, $countryCode);
     }
 
     private function stepSixProfileData(Request $request, array $validated, $profile = null): array

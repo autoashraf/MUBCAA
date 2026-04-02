@@ -219,6 +219,171 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const mountCountryCodeDropdowns = (root = document) => {
+        root.querySelectorAll('[data-country-code-dropdown]').forEach((dropdown) => {
+            if (dropdown.dataset.countryCodeMounted === 'true') {
+                return;
+            }
+
+            const trigger = dropdown.querySelector('[data-country-code-trigger]');
+            const valueInput = dropdown.querySelector('[data-country-code-value]');
+            const label = dropdown.querySelector('[data-country-code-label]');
+            const panel = dropdown.querySelector('[data-country-code-panel]');
+            const options = dropdown.querySelectorAll('[data-country-code-option]');
+            let searchInput = null;
+            let emptyState = null;
+
+            const ensureSearchUi = () => {
+                if (!panel || searchInput) {
+                    return;
+                }
+
+                const searchWrap = document.createElement('div');
+                searchWrap.className = 'country-code-search-wrap';
+
+                searchInput = document.createElement('input');
+                searchInput.type = 'search';
+                searchInput.className = 'country-code-search-input';
+                searchInput.placeholder = 'Search country or code';
+                searchInput.setAttribute('autocomplete', 'off');
+                searchInput.setAttribute('data-country-code-search', '');
+
+                emptyState = document.createElement('div');
+                emptyState.className = 'country-code-empty-state';
+                emptyState.textContent = 'No matching country found';
+                emptyState.hidden = true;
+
+                searchWrap.appendChild(searchInput);
+                panel.prepend(emptyState);
+                panel.prepend(searchWrap);
+
+                searchInput.addEventListener('input', () => {
+                    filterOptions(searchInput.value);
+                });
+
+                searchInput.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape') {
+                        event.preventDefault();
+                        setOpenState(false);
+                        trigger?.focus();
+                    }
+                });
+            };
+
+            const setOpenState = (isOpen) => {
+                dropdown.classList.toggle('is-open', isOpen);
+
+                if (trigger) {
+                    trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                }
+
+                if (isOpen) {
+                    ensureSearchUi();
+                    filterOptions('');
+                    window.requestAnimationFrame(() => {
+                        searchInput?.focus();
+                        scrollToSelectedOption();
+                    });
+                }
+            };
+
+            const syncSelectedState = () => {
+                const selectedValue = valueInput?.value || '';
+
+                options.forEach((option) => {
+                    option.classList.toggle('is-selected', option.dataset.value === selectedValue);
+                    option.setAttribute('aria-selected', option.dataset.value === selectedValue ? 'true' : 'false');
+                });
+
+                if (label && selectedValue) {
+                    label.textContent = selectedValue;
+                }
+            };
+
+            const filterOptions = (term) => {
+                const normalizedTerm = term.trim().toLowerCase();
+                let visibleCount = 0;
+
+                options.forEach((option) => {
+                    const haystack = `${option.textContent || ''} ${option.dataset.value || ''}`.toLowerCase();
+                    const isVisible = normalizedTerm === '' || haystack.includes(normalizedTerm);
+                    option.hidden = !isVisible;
+
+                    if (isVisible) {
+                        visibleCount += 1;
+                    }
+                });
+
+                if (emptyState) {
+                    emptyState.hidden = visibleCount > 0;
+                }
+            };
+
+            const scrollToSelectedOption = () => {
+                const selectedValue = valueInput?.value || '';
+                const selectedOption = Array.from(options).find((option) => option.dataset.value === selectedValue && !option.hidden)
+                    || Array.from(options).find((option) => !option.hidden);
+
+                selectedOption?.scrollIntoView({
+                    block: 'nearest',
+                });
+            };
+
+            document.addEventListener('click', (event) => {
+                const clickedDropdown = event.target.closest('[data-country-code-dropdown]');
+
+                if (!clickedDropdown) {
+                    setOpenState(false);
+                    return;
+                }
+
+                if (clickedDropdown !== dropdown) {
+                    setOpenState(false);
+                    return;
+                }
+
+                document.querySelectorAll('[data-country-code-dropdown].is-open').forEach((openDropdown) => {
+                    if (openDropdown === dropdown) {
+                        return;
+                    }
+
+                    openDropdown.classList.remove('is-open');
+                    openDropdown.querySelector('[data-country-code-trigger]')?.setAttribute('aria-expanded', 'false');
+                });
+
+                window.setTimeout(syncSelectedState, 0);
+            });
+
+            dropdown.addEventListener('keydown', (event) => {
+                if (event.key !== 'Escape') {
+                    if (document.activeElement === trigger && event.key.length === 1) {
+                        event.preventDefault();
+                        setOpenState(true);
+                        ensureSearchUi();
+
+                        if (searchInput) {
+                            searchInput.value = event.key;
+                            filterOptions(searchInput.value);
+                            window.requestAnimationFrame(() => {
+                                searchInput.focus();
+                                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+                                scrollToSelectedOption();
+                            });
+                        }
+                    }
+
+                    return;
+                }
+
+                setOpenState(false);
+                trigger?.focus();
+            });
+
+            syncSelectedState();
+            dropdown.dataset.countryCodeMounted = 'true';
+        });
+    };
+
     const mountCopyButtons = (root = document) => {
         root.querySelectorAll('[data-copy-button]').forEach((button) => {
             if (button.dataset.copyMounted === 'true') {
@@ -469,14 +634,72 @@ document.addEventListener('DOMContentLoaded', () => {
         form.insertAdjacentElement('afterbegin', alert);
     };
 
+    const mountLoginMethodTabs = (root = document) => {
+        root.querySelectorAll('[data-login-method-tabs]').forEach((tabRoot) => {
+            if (tabRoot.dataset.loginMethodMounted === 'true') {
+                return;
+            }
+
+            const form = tabRoot.closest('form');
+            const channelInput = form?.querySelector('[data-login-channel-input]');
+            const tabs = Array.from(tabRoot.querySelectorAll('[data-login-method-tab]'));
+            const panels = Array.from(form?.querySelectorAll('[data-login-panel]') || []);
+
+            const showChannel = (channel) => {
+                if (!form || !channelInput) {
+                    return;
+                }
+
+                channelInput.value = channel;
+
+                tabs.forEach((tab) => {
+                    const isActive = tab.dataset.loginMethodTab === channel;
+                    tab.classList.toggle('is-active', isActive);
+                    tab.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                });
+
+                panels.forEach((panel) => {
+                    const isActive = panel.dataset.loginPanel === channel;
+                    panel.hidden = !isActive;
+
+                    panel.querySelectorAll('input').forEach((input) => {
+                        if (input.type !== 'hidden') {
+                            input.required = isActive && input.hasAttribute('data-login-identifier-input');
+                        }
+                    });
+                });
+
+                form.querySelectorAll('[data-login-identifier-status]').forEach((status) => {
+                    status.hidden = true;
+                    status.textContent = '';
+                    status.classList.remove('is-success', 'is-error', 'is-loading');
+                });
+            };
+
+            tabs.forEach((tab) => {
+                tab.addEventListener('click', () => {
+                    showChannel(tab.dataset.loginMethodTab || 'email');
+                });
+            });
+
+            showChannel(channelInput?.value || 'email');
+            tabRoot.dataset.loginMethodMounted = 'true';
+        });
+    };
+
     const mountLoginIdentifierCheck = (root = document) => {
         root.querySelectorAll('[data-login-identifier-input]').forEach((input) => {
             if (input.dataset.loginIdentifierMounted === 'true') {
                 return;
             }
 
-            const status = input.parentElement?.querySelector('[data-login-identifier-status]');
+            const field = input.closest('.login-auth-label');
+            const form = input.closest('form');
+            const status = field?.querySelector('[data-login-identifier-status]');
             const checkUrl = input.dataset.loginCheckUrl;
+            const countryCodeInput = field?.querySelector('[data-login-country-code-input]') || form?.querySelector('[data-login-country-code-input]');
+            const channelInput = form?.querySelector('[data-login-channel-input]');
+            const inputChannel = input.dataset.loginChannel || 'email';
             let timeoutId = null;
             let requestId = 0;
 
@@ -499,6 +722,11 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             const runCheck = async () => {
+                if ((channelInput?.value || 'email') !== inputChannel) {
+                    renderStatus('', 'success');
+                    return;
+                }
+
                 const identifier = input.value.trim();
 
                 if (!identifier || identifier.length < 5 || !checkUrl) {
@@ -511,7 +739,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 try {
                     const formData = new FormData();
+                    formData.append('login_channel', inputChannel);
                     formData.append('identifier', identifier);
+                    formData.append('identifier_country_code', countryCodeInput?.value || '+880');
                     formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="_token"]')?.value || '');
 
                     const response = await fetch(checkUrl, {
@@ -530,7 +760,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         return;
                     }
 
-                    renderStatus(payload.message || 'Unable to verify this account.', payload.exists ? 'success' : 'error');
+                    renderStatus(payload.exists ? '' : (payload.message || 'Unable to verify this account.'), payload.exists ? 'success' : 'error');
                 } catch (error) {
                     if (currentRequest !== requestId) {
                         return;
@@ -546,6 +776,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             input.addEventListener('blur', runCheck);
+            countryCodeInput?.addEventListener('change', () => {
+                window.clearTimeout(timeoutId);
+                timeoutId = window.setTimeout(runCheck, 50);
+            });
+            channelInput?.addEventListener('change', runCheck);
             input.dataset.loginIdentifierMounted = 'true';
         });
     };
@@ -582,13 +817,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const runCheck = async () => {
                 const value = input.value.trim();
+                const mobileCountryCode = input.form?.querySelector('[name="mobile_country_code"]')?.value?.trim() || '+880';
+                const contextMobileNumber = input.form?.querySelector('[name="mobile_number"]')?.value?.trim() || '';
+                const mobileMinLength = mobileCountryCode === '+880' ? 10 : 4;
 
                 if ((input.matches('[data-referral-code-input]') && input.hidden) || !value || !checkUrl || !field) {
                     renderStatus('', 'success');
                     return;
                 }
 
-                if ((field === 'email' && value.length < 5) || (field === 'mobile_number' && value.length < 11) || (field === 'referral_code' && value.length < 4)) {
+                if ((field === 'email' && value.length < 5) || (field === 'mobile_number' && value.length < mobileMinLength) || (field === 'referral_code' && value.length < 4)) {
                     renderStatus('', 'success');
                     return;
                 }
@@ -600,8 +838,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const formData = new FormData();
                     formData.append('field', field);
                     formData.append('value', value);
+                    formData.append('mobile_country_code', mobileCountryCode);
                     formData.append('context_email', input.form?.querySelector('[name="email"]')?.value?.trim() || '');
-                    formData.append('context_mobile_number', input.form?.querySelector('[name="mobile_number"]')?.value?.trim() || '');
+                    formData.append('context_mobile_number', contextMobileNumber);
+                    formData.append('context_mobile_country_code', mobileCountryCode);
                     formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="_token"]')?.value || '');
 
                     const response = await fetch(checkUrl, {
@@ -617,6 +857,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const payload = await response.json().catch(() => ({}));
 
                     if (currentRequest !== requestId) {
+                        return;
+                    }
+
+                    if ((field === 'email' || field === 'mobile_number') && payload.valid) {
+                        renderStatus('', 'success');
                         return;
                     }
 
@@ -888,7 +1133,9 @@ document.addEventListener('DOMContentLoaded', () => {
     mountExpiryCountdowns();
     mountImagePreviews();
     mountWhatsappSync();
+    mountCountryCodeDropdowns();
     mountCopyButtons();
+    mountLoginMethodTabs();
     mountLoginIdentifierCheck();
     mountRegistrationFieldChecks();
     mountDiscoverySourceToggle();

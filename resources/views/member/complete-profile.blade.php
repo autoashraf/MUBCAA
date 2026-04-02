@@ -159,17 +159,101 @@
                                 <div class="wizard-form-stack">
                                     <div class="wizard-field">
                                         <span>Primary Mobile Number</span>
-                                        <input type="text" name="primary_mobile" value="{{ old('primary_mobile', $profile?->primary_mobile ?? $user->phone) }}" placeholder="Enter your primary mobile number" aria-label="Primary mobile number" readonly>
+                                        @php
+                                            $primaryMobileParts = \App\Support\PhoneNumber::split($profile?->primary_mobile ?? $user->phone, '+880');
+                                            $selectedPrimaryCountryCode = old('primary_mobile_country_code', $primaryMobileParts['country_code']);
+                                            $primaryMobileValue = old('primary_mobile', $primaryMobileParts['national_number']);
+                                        @endphp
+                                        <div class="phone-input-group">
+                                            <div class="country-code-dropdown" data-country-code-dropdown>
+                                                <input type="hidden" name="primary_mobile_country_code" value="{{ $selectedPrimaryCountryCode }}" data-country-code-value>
+                                                <button class="phone-code-trigger" type="button" data-country-code-trigger aria-expanded="false" onclick="(function(btn){var dropdown=btn.closest('[data-country-code-dropdown]');if(!dropdown)return;var isOpen=dropdown.classList.toggle('is-open');btn.setAttribute('aria-expanded',isOpen?'true':'false');})(this)">
+                                                    <span data-country-code-label>{{ $selectedPrimaryCountryCode }}</span>
+                                                    <span class="phone-code-trigger-icon" aria-hidden="true"></span>
+                                                </button>
+                                                <div class="country-code-panel" data-country-code-panel>
+                                                    @foreach ($countryDialCodes as $countryDialCode)
+                                                        <button
+                                                            class="country-code-option"
+                                                            type="button"
+                                                            data-country-code-option
+                                                            data-value="{{ $countryDialCode['dial_code'] }}"
+                                                            data-display="{{ $countryDialCode['dial_code'] }}"
+                                                            onclick="(function(btn){var dropdown=btn.closest('[data-country-code-dropdown]');if(!dropdown)return;var valueInput=dropdown.querySelector('[data-country-code-value]');var label=dropdown.querySelector('[data-country-code-label]');var trigger=dropdown.querySelector('[data-country-code-trigger]');if(valueInput){valueInput.value=btn.dataset.value||'';}if(label){label.textContent=btn.dataset.display||btn.dataset.value||'';}dropdown.classList.remove('is-open');if(trigger){trigger.setAttribute('aria-expanded','false');trigger.focus();}})(this)"
+                                                        >
+                                                            {{ $countryDialCode['name'] }} ({{ $countryDialCode['dial_code'] }})
+                                                        </button>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                            <input type="text" name="primary_mobile" value="{{ $primaryMobileValue }}" placeholder="Enter your primary mobile number" aria-label="Primary mobile number" readonly>
+                                        </div>
                                         @error('primary_mobile') <small>{{ $message }}</small> @enderror
                                     </div>
                                     <div class="wizard-field">
                                         <span>Secondary Mobile Number</span>
-                                        <input type="text" name="secondary_mobile" value="{{ old('secondary_mobile', $profile?->secondary_mobile) }}" placeholder="Enter your secondary mobile number" aria-label="Secondary mobile number">
+                                        @php
+                                            $secondaryMobileParts = \App\Support\PhoneNumber::split($profile?->secondary_mobile, '+880');
+                                            $selectedSecondaryCountryCode = old('secondary_mobile_country_code', $secondaryMobileParts['country_code']);
+                                            $secondaryMobileValue = old('secondary_mobile', $secondaryMobileParts['national_number']);
+                                        @endphp
+                                        <div class="phone-input-group">
+                                            <div class="country-code-dropdown" data-country-code-dropdown>
+                                                <input type="hidden" name="secondary_mobile_country_code" value="{{ $selectedSecondaryCountryCode }}" data-country-code-value>
+                                                <button class="phone-code-trigger" type="button" data-country-code-trigger aria-expanded="false" onclick="(function(btn){var dropdown=btn.closest('[data-country-code-dropdown]');if(!dropdown)return;var isOpen=dropdown.classList.toggle('is-open');btn.setAttribute('aria-expanded',isOpen?'true':'false');})(this)">
+                                                    <span data-country-code-label>{{ $selectedSecondaryCountryCode }}</span>
+                                                    <span class="phone-code-trigger-icon" aria-hidden="true"></span>
+                                                </button>
+                                                <div class="country-code-panel" data-country-code-panel>
+                                                    @foreach ($countryDialCodes as $countryDialCode)
+                                                        <button
+                                                            class="country-code-option"
+                                                            type="button"
+                                                            data-country-code-option
+                                                            data-value="{{ $countryDialCode['dial_code'] }}"
+                                                            data-display="{{ $countryDialCode['dial_code'] }}"
+                                                            onclick="(function(btn){var dropdown=btn.closest('[data-country-code-dropdown]');if(!dropdown)return;var valueInput=dropdown.querySelector('[data-country-code-value]');var label=dropdown.querySelector('[data-country-code-label]');var trigger=dropdown.querySelector('[data-country-code-trigger]');if(valueInput){valueInput.value=btn.dataset.value||'';}if(label){label.textContent=btn.dataset.display||btn.dataset.value||'';}dropdown.classList.remove('is-open');if(trigger){trigger.setAttribute('aria-expanded','false');trigger.focus();}})(this)"
+                                                        >
+                                                            {{ $countryDialCode['name'] }} ({{ $countryDialCode['dial_code'] }})
+                                                        </button>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                            <input type="text" name="secondary_mobile" value="{{ $secondaryMobileValue }}" placeholder="Enter your secondary mobile number" aria-label="Secondary mobile number">
+                                        </div>
                                         @error('secondary_mobile') <small>{{ $message }}</small> @enderror
                                     </div>
                                     <div class="wizard-field">
                                         <span>WhatsApp Number</span>
-                                        <input type="text" name="whatsapp_number" value="{{ old('whatsapp_number', $profile?->whatsapp_number) }}" placeholder="Enter your WhatsApp number" aria-label="WhatsApp number">
+                                        @php
+                                            $whatsappMobileParts = \App\Support\PhoneNumber::split($profile?->whatsapp_number, '+880');
+                                            $selectedWhatsappCountryCode = old('whatsapp_country_code', $whatsappMobileParts['country_code']);
+                                            $whatsappMobileValue = old('whatsapp_number', $whatsappMobileParts['national_number']);
+                                        @endphp
+                                        <div class="phone-input-group">
+                                            <div class="country-code-dropdown" data-country-code-dropdown>
+                                                <input type="hidden" name="whatsapp_country_code" value="{{ $selectedWhatsappCountryCode }}" data-country-code-value>
+                                                <button class="phone-code-trigger" type="button" data-country-code-trigger aria-expanded="false" onclick="(function(btn){var dropdown=btn.closest('[data-country-code-dropdown]');if(!dropdown)return;var isOpen=dropdown.classList.toggle('is-open');btn.setAttribute('aria-expanded',isOpen?'true':'false');})(this)">
+                                                    <span data-country-code-label>{{ $selectedWhatsappCountryCode }}</span>
+                                                    <span class="phone-code-trigger-icon" aria-hidden="true"></span>
+                                                </button>
+                                                <div class="country-code-panel" data-country-code-panel>
+                                                    @foreach ($countryDialCodes as $countryDialCode)
+                                                        <button
+                                                            class="country-code-option"
+                                                            type="button"
+                                                            data-country-code-option
+                                                            data-value="{{ $countryDialCode['dial_code'] }}"
+                                                            data-display="{{ $countryDialCode['dial_code'] }}"
+                                                            onclick="(function(btn){var dropdown=btn.closest('[data-country-code-dropdown]');if(!dropdown)return;var valueInput=dropdown.querySelector('[data-country-code-value]');var label=dropdown.querySelector('[data-country-code-label]');var trigger=dropdown.querySelector('[data-country-code-trigger]');if(valueInput){valueInput.value=btn.dataset.value||'';}if(label){label.textContent=btn.dataset.display||btn.dataset.value||'';}dropdown.classList.remove('is-open');if(trigger){trigger.setAttribute('aria-expanded','false');trigger.focus();}})(this)"
+                                                        >
+                                                            {{ $countryDialCode['name'] }} ({{ $countryDialCode['dial_code'] }})
+                                                        </button>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                            <input type="text" name="whatsapp_number" value="{{ $whatsappMobileValue }}" placeholder="Enter your WhatsApp number" aria-label="WhatsApp number">
+                                        </div>
                                         <div class="inline-checkbox-option" data-whatsapp-sync-wrapper>
                                             <div class="inline-checkbox-control">
                                                 <input
@@ -179,7 +263,7 @@
                                                     data-whatsapp-same-toggle
                                                     data-primary-source="primary_mobile"
                                                     data-whatsapp-target="whatsapp_number"
-                                                    @checked(old('whatsapp_number', $profile?->whatsapp_number) && old('whatsapp_number', $profile?->whatsapp_number) === old('primary_mobile', $profile?->primary_mobile ?? $user->phone))
+                                                    @checked($whatsappMobileValue && $whatsappMobileValue === $primaryMobileValue)
                                                 >
                                                 <span class="inline-checkbox-box" aria-hidden="true"></span>
                                                 <span class="inline-checkbox-copy">

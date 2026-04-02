@@ -584,6 +584,188 @@
                         });
                     }
 
+                    function mountCountryCodeDropdowns(root) {
+                        (root || document).querySelectorAll('[data-country-code-dropdown]').forEach(function (dropdown) {
+                            if (dropdown.dataset.countryCodeMounted === 'true') {
+                                return;
+                            }
+
+                            var trigger = dropdown.querySelector('[data-country-code-trigger]');
+                            var valueInput = dropdown.querySelector('[data-country-code-value]');
+                            var label = dropdown.querySelector('[data-country-code-label]');
+                            var panel = dropdown.querySelector('[data-country-code-panel]');
+                            var options = dropdown.querySelectorAll('[data-country-code-option]');
+                            var searchInput = null;
+                            var emptyState = null;
+
+                            function ensureSearchUi() {
+                                if (!panel || searchInput) {
+                                    return;
+                                }
+
+                                var searchWrap = document.createElement('div');
+                                searchWrap.className = 'country-code-search-wrap';
+
+                                searchInput = document.createElement('input');
+                                searchInput.type = 'search';
+                                searchInput.className = 'country-code-search-input';
+                                searchInput.placeholder = 'Search country or code';
+                                searchInput.setAttribute('autocomplete', 'off');
+                                searchInput.setAttribute('data-country-code-search', '');
+
+                                emptyState = document.createElement('div');
+                                emptyState.className = 'country-code-empty-state';
+                                emptyState.textContent = 'No matching country found';
+                                emptyState.hidden = true;
+
+                                searchWrap.appendChild(searchInput);
+                                panel.prepend(emptyState);
+                                panel.prepend(searchWrap);
+
+                                searchInput.addEventListener('input', function () {
+                                    filterOptions(searchInput.value);
+                                });
+
+                                searchInput.addEventListener('keydown', function (event) {
+                                    if (event.key === 'Escape') {
+                                        event.preventDefault();
+                                        setOpenState(false);
+                                        if (trigger) {
+                                            trigger.focus();
+                                        }
+                                    }
+                                });
+                            }
+
+                            function setOpenState(isOpen) {
+                                dropdown.classList.toggle('is-open', isOpen);
+
+                                if (trigger) {
+                                    trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                                }
+
+                                if (isOpen) {
+                                    ensureSearchUi();
+                                    filterOptions('');
+                                    window.requestAnimationFrame(function () {
+                                        if (searchInput) {
+                                            searchInput.focus();
+                                        }
+
+                                        scrollToSelectedOption();
+                                    });
+                                }
+                            }
+
+                            function syncSelectedState() {
+                                var selectedValue = valueInput ? valueInput.value : '';
+
+                                options.forEach(function (option) {
+                                    option.classList.toggle('is-selected', option.dataset.value === selectedValue);
+                                    option.setAttribute('aria-selected', option.dataset.value === selectedValue ? 'true' : 'false');
+                                });
+
+                                if (label && selectedValue) {
+                                    label.textContent = selectedValue;
+                                }
+                            }
+
+                            function filterOptions(term) {
+                                var normalizedTerm = (term || '').trim().toLowerCase();
+                                var visibleCount = 0;
+
+                                options.forEach(function (option) {
+                                    var haystack = ((option.textContent || '') + ' ' + (option.dataset.value || '')).toLowerCase();
+                                    var isVisible = normalizedTerm === '' || haystack.indexOf(normalizedTerm) !== -1;
+                                    option.hidden = !isVisible;
+
+                                    if (isVisible) {
+                                        visibleCount += 1;
+                                    }
+                                });
+
+                                if (emptyState) {
+                                    emptyState.hidden = visibleCount > 0;
+                                }
+                            }
+
+                            function scrollToSelectedOption() {
+                                var selectedValue = valueInput ? valueInput.value : '';
+                                var selectedOption = Array.prototype.slice.call(options).find(function (option) {
+                                    return option.dataset.value === selectedValue && !option.hidden;
+                                }) || Array.prototype.slice.call(options).find(function (option) {
+                                    return !option.hidden;
+                                });
+
+                                if (selectedOption) {
+                                    selectedOption.scrollIntoView({
+                                        block: 'nearest'
+                                    });
+                                }
+                            }
+
+                            document.addEventListener('click', function (event) {
+                                var clickedDropdown = event.target.closest('[data-country-code-dropdown]');
+
+                                if (!clickedDropdown) {
+                                    setOpenState(false);
+                                    return;
+                                }
+
+                                if (clickedDropdown !== dropdown) {
+                                    setOpenState(false);
+                                    return;
+                                }
+
+                                document.querySelectorAll('[data-country-code-dropdown].is-open').forEach(function (openDropdown) {
+                                    if (openDropdown === dropdown) {
+                                        return;
+                                    }
+
+                                    openDropdown.classList.remove('is-open');
+                                    var openTrigger = openDropdown.querySelector('[data-country-code-trigger]');
+
+                                    if (openTrigger) {
+                                        openTrigger.setAttribute('aria-expanded', 'false');
+                                    }
+                                });
+
+                                window.setTimeout(syncSelectedState, 0);
+                            });
+
+                            dropdown.addEventListener('keydown', function (event) {
+                                if (event.key !== 'Escape') {
+                                    if (document.activeElement === trigger && event.key.length === 1) {
+                                        event.preventDefault();
+                                        setOpenState(true);
+                                        ensureSearchUi();
+
+                                        if (searchInput) {
+                                            searchInput.value = event.key;
+                                            filterOptions(searchInput.value);
+                                            window.requestAnimationFrame(function () {
+                                                searchInput.focus();
+                                                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+                                                scrollToSelectedOption();
+                                            });
+                                        }
+                                    }
+
+                                    return;
+                                }
+
+                                setOpenState(false);
+
+                                if (trigger) {
+                                    trigger.focus();
+                                }
+                            });
+
+                            syncSelectedState();
+                            dropdown.dataset.countryCodeMounted = 'true';
+                        });
+                    }
+
                     function clearFormErrors(form) {
                         form.querySelectorAll('.ajax-error').forEach(function (node) {
                             node.remove();
@@ -639,14 +821,72 @@
                         form.insertAdjacentElement('afterbegin', alert);
                     }
 
+                    function mountLoginMethodTabs(root) {
+                        (root || document).querySelectorAll('[data-login-method-tabs]').forEach(function (tabRoot) {
+                            if (tabRoot.dataset.loginMethodMounted === 'true') {
+                                return;
+                            }
+
+                            var form = tabRoot.closest('form');
+                            var channelInput = form ? form.querySelector('[data-login-channel-input]') : null;
+                            var tabs = Array.prototype.slice.call(tabRoot.querySelectorAll('[data-login-method-tab]'));
+                            var panels = Array.prototype.slice.call((form || document).querySelectorAll('[data-login-panel]'));
+
+                            function showChannel(channel) {
+                                if (!form || !channelInput) {
+                                    return;
+                                }
+
+                                channelInput.value = channel;
+
+                                tabs.forEach(function (tab) {
+                                    var isActive = tab.dataset.loginMethodTab === channel;
+                                    tab.classList.toggle('is-active', isActive);
+                                    tab.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                                });
+
+                                panels.forEach(function (panel) {
+                                    var isActive = panel.dataset.loginPanel === channel;
+                                    panel.hidden = !isActive;
+
+                                    panel.querySelectorAll('input').forEach(function (input) {
+                                        if (input.type !== 'hidden') {
+                                            input.required = isActive && input.hasAttribute('data-login-identifier-input');
+                                        }
+                                    });
+                                });
+
+                                form.querySelectorAll('[data-login-identifier-status]').forEach(function (status) {
+                                    status.hidden = true;
+                                    status.textContent = '';
+                                    status.classList.remove('is-success', 'is-error', 'is-loading');
+                                });
+                            }
+
+                            tabs.forEach(function (tab) {
+                                tab.addEventListener('click', function () {
+                                    showChannel(tab.dataset.loginMethodTab || 'email');
+                                });
+                            });
+
+                            showChannel((channelInput || {}).value || 'email');
+                            tabRoot.dataset.loginMethodMounted = 'true';
+                        });
+                    }
+
                     function mountLoginIdentifierCheck(root) {
                         (root || document).querySelectorAll('[data-login-identifier-input]').forEach(function (input) {
                             if (input.dataset.loginIdentifierMounted === 'true') {
                                 return;
                             }
 
-                            var status = input.parentElement ? input.parentElement.querySelector('[data-login-identifier-status]') : null;
+                            var field = input.closest('.login-auth-label');
+                            var form = input.closest('form');
+                            var status = field ? field.querySelector('[data-login-identifier-status]') : null;
                             var checkUrl = input.dataset.loginCheckUrl;
+                            var countryCodeInput = (field ? field.querySelector('[data-login-country-code-input]') : null) || (form ? form.querySelector('[data-login-country-code-input]') : null);
+                            var channelInput = form ? form.querySelector('[data-login-channel-input]') : null;
+                            var inputChannel = input.dataset.loginChannel || 'email';
                             var timeoutId = null;
                             var requestId = 0;
 
@@ -669,6 +909,11 @@
                             }
 
                             function runCheck() {
+                                if (((channelInput || {}).value || 'email') !== inputChannel) {
+                                    renderStatus('', 'success');
+                                    return;
+                                }
+
                                 var identifier = input.value.trim();
 
                                 if (!identifier || identifier.length < 5 || !checkUrl) {
@@ -680,7 +925,9 @@
                                 renderStatus('Checking account...', 'loading');
 
                                 var formData = new FormData();
+                                formData.append('login_channel', inputChannel);
                                 formData.append('identifier', identifier);
+                                formData.append('identifier_country_code', (countryCodeInput || {}).value || '+880');
                                 formData.append('_token', (document.querySelector('meta[name="csrf-token"]') || {}).content || (document.querySelector('input[name="_token"]') || {}).value || '');
 
                                 fetch(checkUrl, {
@@ -700,7 +947,7 @@
                                             return;
                                         }
 
-                                        renderStatus(payload.message || 'Unable to verify this account.', payload.exists ? 'success' : 'error');
+                                        renderStatus(payload.exists ? '' : (payload.message || 'Unable to verify this account.'), payload.exists ? 'success' : 'error');
                                     })
                                     .catch(function () {
                                         if (currentRequest !== requestId) {
@@ -717,6 +964,15 @@
                             });
 
                             input.addEventListener('blur', runCheck);
+                            if (countryCodeInput) {
+                                countryCodeInput.addEventListener('change', function () {
+                                    window.clearTimeout(timeoutId);
+                                    timeoutId = window.setTimeout(runCheck, 50);
+                                });
+                            }
+                            if (channelInput) {
+                                channelInput.addEventListener('change', runCheck);
+                            }
                             input.dataset.loginIdentifierMounted = 'true';
                         });
                     }
@@ -887,13 +1143,16 @@
 
                             function runCheck() {
                                 var value = input.value.trim();
+                                var mobileCountryCode = (input.form && input.form.querySelector('[name="mobile_country_code"]') ? input.form.querySelector('[name="mobile_country_code"]').value.trim() : '+880');
+                                var contextMobileNumber = (input.form && input.form.querySelector('[name="mobile_number"]') ? input.form.querySelector('[name="mobile_number"]').value.trim() : '');
+                                var mobileMinLength = mobileCountryCode === '+880' ? 10 : 4;
 
                                 if ((input.matches('[data-referral-code-input]') && input.hidden) || !value || !checkUrl || !field) {
                                     renderStatus('', 'success');
                                     return;
                                 }
 
-                                if ((field === 'email' && value.length < 5) || (field === 'mobile_number' && value.length < 11) || (field === 'referral_code' && value.length < 4)) {
+                                if ((field === 'email' && value.length < 5) || (field === 'mobile_number' && value.length < mobileMinLength) || (field === 'referral_code' && value.length < 4)) {
                                     renderStatus('', 'success');
                                     return;
                                 }
@@ -904,8 +1163,10 @@
                                 var formData = new FormData();
                                 formData.append('field', field);
                                 formData.append('value', value);
+                                formData.append('mobile_country_code', mobileCountryCode);
                                 formData.append('context_email', (input.form && input.form.querySelector('[name="email"]') ? input.form.querySelector('[name="email"]').value.trim() : ''));
-                                formData.append('context_mobile_number', (input.form && input.form.querySelector('[name="mobile_number"]') ? input.form.querySelector('[name="mobile_number"]').value.trim() : ''));
+                                formData.append('context_mobile_number', contextMobileNumber);
+                                formData.append('context_mobile_country_code', mobileCountryCode);
                                 formData.append('_token', (document.querySelector('meta[name="csrf-token"]') || {}).content || (document.querySelector('input[name="_token"]') || {}).value || '');
 
                                 fetch(checkUrl, {
@@ -922,6 +1183,11 @@
                                     })
                                     .then(function (payload) {
                                         if (currentRequest !== requestId) {
+                                            return;
+                                        }
+
+                                        if ((field === 'email' || field === 'mobile_number') && payload.valid) {
+                                            renderStatus('', 'success');
                                             return;
                                         }
 
@@ -1231,6 +1497,7 @@
                         });
                     });
 
+                    mountLoginMethodTabs();
                     mountLoginIdentifierCheck();
                     mountMultiSelectDropdowns();
                     mountRegistrationFieldChecks();
@@ -1241,6 +1508,7 @@
                     mountExpiryCountdowns(document);
                     mountImagePreviews(document);
                     mountWhatsappSync(document);
+                    mountCountryCodeDropdowns(document);
                     mountCopyButtons(document);
 
                     if (panelRoot && triggers.length) {

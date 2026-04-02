@@ -6,6 +6,7 @@ use App\Mail\VerificationOtpMail;
 use App\Models\ContactVerificationToken;
 use App\Models\PendingRegistration;
 use App\Models\User;
+use App\Support\PhoneNumber;
 use Illuminate\Mail\Transport\TransportExceptionInterface;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
@@ -138,7 +139,26 @@ class ContactVerificationService
         if ($channel === 'email' && filled($contactValue)) {
             try {
                 Mail::to($contactValue)->send(new VerificationOtpMail((object) ['name' => $registration->full_name], $code));
+                Log::info('Pending registration email OTP sent.', [
+                    'pending_registration_id' => $registration->id,
+                    'email' => $contactValue,
+                    'mailer' => config('mail.default'),
+                    'smtp_host' => config('mail.mailers.smtp.host'),
+                    'smtp_port' => config('mail.mailers.smtp.port'),
+                    'smtp_username' => config('mail.mailers.smtp.username'),
+                ]);
             } catch (TransportExceptionInterface $exception) {
+                Log::error('Pending registration email OTP failed.', [
+                    'pending_registration_id' => $registration->id,
+                    'email' => $contactValue,
+                    'mailer' => config('mail.default'),
+                    'smtp_host' => config('mail.mailers.smtp.host'),
+                    'smtp_port' => config('mail.mailers.smtp.port'),
+                    'smtp_username' => config('mail.mailers.smtp.username'),
+                    'error' => $exception->getMessage(),
+                    'exception' => $exception::class,
+                ]);
+
                 if (! App::environment(['local', 'testing'])) {
                     throw $exception;
                 }
@@ -168,10 +188,14 @@ class ContactVerificationService
                 ->delete();
         }
 
+        $storedContactValue = $channel === 'mobile'
+            ? (PhoneNumber::normalize($contactValue, '+880') ?? $contactValue)
+            : $contactValue;
+
         $token = ContactVerificationToken::query()->create([
             'user_id' => $user->id,
             'channel' => $channel,
-            'contact_value' => $contactValue,
+            'contact_value' => $storedContactValue,
             'code' => (string) random_int(100000, 999999),
             'expires_at' => now()->addMinutes(15),
             'sent_at' => now(),
@@ -180,7 +204,26 @@ class ContactVerificationService
         if ($channel === 'email' && filled($contactValue)) {
             try {
                 Mail::to($contactValue)->send(new VerificationOtpMail($user, $token->code));
+                Log::info('Member verification email OTP sent.', [
+                    'user_id' => $user->id,
+                    'email' => $contactValue,
+                    'mailer' => config('mail.default'),
+                    'smtp_host' => config('mail.mailers.smtp.host'),
+                    'smtp_port' => config('mail.mailers.smtp.port'),
+                    'smtp_username' => config('mail.mailers.smtp.username'),
+                ]);
             } catch (TransportExceptionInterface $exception) {
+                Log::error('Member verification email OTP failed.', [
+                    'user_id' => $user->id,
+                    'email' => $contactValue,
+                    'mailer' => config('mail.default'),
+                    'smtp_host' => config('mail.mailers.smtp.host'),
+                    'smtp_port' => config('mail.mailers.smtp.port'),
+                    'smtp_username' => config('mail.mailers.smtp.username'),
+                    'error' => $exception->getMessage(),
+                    'exception' => $exception::class,
+                ]);
+
                 if (! App::environment(['local', 'testing'])) {
                     throw $exception;
                 }

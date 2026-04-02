@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\PhoneNumber;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -104,24 +105,6 @@ class MimSmsService
 
     private function normalizeMobileNumber(string $mobileNumber): string
     {
-        $digits = preg_replace('/\D+/', '', $mobileNumber) ?: '';
-
-        if ($digits === '') {
-            return '';
-        }
-
-        if (str_starts_with($digits, '880')) {
-            return $digits;
-        }
-
-        if (str_starts_with($digits, '0')) {
-            return '88'.$digits;
-        }
-
-        if (strlen($digits) === 10 && str_starts_with($digits, '1')) {
-            return '880'.$digits;
-        }
-
-        return $digits;
+        return PhoneNumber::smsDialString($mobileNumber, '+880');
     }
 }

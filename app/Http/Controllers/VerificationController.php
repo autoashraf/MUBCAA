@@ -7,6 +7,7 @@ use App\Models\MembershipApplication;
 use App\Models\PendingRegistration;
 use App\Models\User;
 use App\Services\ContactVerificationService;
+use App\Support\PhoneNumber;
 use App\Support\SiteNavigation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -276,10 +277,12 @@ class VerificationController extends Controller
     private function createUserFromPendingRegistration(PendingRegistration $registration, Request $request)
     {
         $user = DB::transaction(function () use ($registration) {
+            $canonicalMobile = PhoneNumber::normalize($registration->mobile_number, '+880') ?? $registration->mobile_number;
+
             $user = User::query()->create([
                 'name' => $registration->full_name,
                 'email' => $registration->email,
-                'phone' => $registration->mobile_number,
+                'phone' => $canonicalMobile,
                 'password' => Str::password(20),
                 'role' => 'member',
                 'membership_status' => 'unverified',
@@ -293,7 +296,7 @@ class VerificationController extends Controller
 
             MemberProfile::query()->create([
                 'user_id' => $user->id,
-                'mobile_number' => $registration->mobile_number,
+                'mobile_number' => $canonicalMobile,
                 'mobile_verified' => ! is_null($registration->mobile_verified_at),
                 'passing_year_batch' => $registration->passing_year_batch,
                 'how_did_you_find_us' => $registration->how_did_you_find_us,

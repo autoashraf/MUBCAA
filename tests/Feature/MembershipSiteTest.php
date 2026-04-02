@@ -72,7 +72,7 @@ class MembershipSiteTest extends TestCase
 
         $this->assertDatabaseHas('pending_registrations', [
             'email' => 'applicant@example.com',
-            'mobile_number' => '01700000001',
+            'mobile_number' => '+8801700000001',
             'how_did_you_find_us' => 'Facebook',
         ]);
 
@@ -271,7 +271,8 @@ class MembershipSiteTest extends TestCase
         ]);
 
         $response = $this->post('/login', [
-            'identifier' => $user->email,
+            'login_channel' => 'email',
+            'email_identifier' => $user->email,
         ]);
 
         $response->assertRedirect(route('login'));
@@ -299,6 +300,7 @@ class MembershipSiteTest extends TestCase
         ]);
 
         $this->postJson(route('login.check'), [
+            'login_channel' => 'email',
             'identifier' => $member->email,
         ])->assertOk()
             ->assertJson([
@@ -307,10 +309,32 @@ class MembershipSiteTest extends TestCase
             ]);
     }
 
+    public function test_member_can_request_login_otp_with_international_mobile_and_selected_country_code(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'member',
+            'membership_status' => 'pending_review',
+            'approval_step' => 1,
+            'phone' => '+15551234567',
+        ]);
+
+        $response = $this->post('/login', [
+            'login_channel' => 'mobile',
+            'mobile_identifier' => '5551234567',
+            'mobile_country_code' => '+1',
+        ]);
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('login_otp_user_id', $user->id);
+        $response->assertSessionHas('login_otp_channel', 'mobile');
+        $response->assertSessionHas('login_otp_contact', '+15551234567');
+    }
+
     public function test_member_login_does_not_disclose_when_account_is_missing(): void
     {
         $response = $this->post(route('login.attempt'), [
-            'identifier' => 'missing@example.com',
+            'login_channel' => 'email',
+            'email_identifier' => 'missing@example.com',
         ]);
 
         $response->assertRedirect(route('login'));
@@ -435,7 +459,7 @@ class MembershipSiteTest extends TestCase
             'id' => $registration->id,
             'full_name' => 'Existing Applicant Updated',
             'email' => 'existing@example.com',
-            'mobile_number' => '01712345678',
+            'mobile_number' => '+8801712345678',
             'passing_year_batch' => '2012',
             'how_did_you_find_us' => 'Google Search',
         ]);
@@ -480,7 +504,7 @@ class MembershipSiteTest extends TestCase
             'id' => $registration->id,
             'full_name' => 'Existing Applicant Updated',
             'email' => 'existing-completed@example.com',
-            'mobile_number' => '01712345679',
+            'mobile_number' => '+8801712345679',
             'passing_year_batch' => '2016',
             'how_did_you_find_us' => 'Website',
             'completed_at' => null,
@@ -655,9 +679,60 @@ class MembershipSiteTest extends TestCase
 
         $this->assertDatabaseHas('member_profiles', [
             'user_id' => $member->id,
-            'primary_mobile' => '01799999999',
-            'mobile_number' => '01799999999',
+            'primary_mobile' => '+8801799999999',
+            'mobile_number' => '+8801799999999',
             'email_address' => 'updated-contact@example.com',
+        ]);
+    }
+
+    public function test_member_contact_step_accepts_10_digit_bangladesh_numbers(): void
+    {
+        $member = User::factory()->create([
+            'role' => 'member',
+            'membership_status' => 'in_progress',
+            'approval_step' => 1,
+            'phone' => '01700000041',
+            'email' => 'bd-contact@example.com',
+        ]);
+
+        $member->profile()->create([
+            'mobile_number' => '01700000041',
+            'passing_year_batch' => '2012',
+            'country' => 'Bangladesh',
+            'completion_step' => 3,
+        ]);
+
+        $member->application()->create([
+            'status' => 'in_progress',
+            'current_step' => 3,
+            'total_steps' => 10,
+        ]);
+
+        $this->actingAs($member)
+            ->post(route('member.profile.complete.save'), [
+                'wizard_step' => 4,
+                'primary_mobile_country_code' => '+880',
+                'secondary_mobile_country_code' => '+880',
+                'whatsapp_country_code' => '+880',
+                'primary_mobile' => '01799999999',
+                'secondary_mobile' => '1811111111',
+                'whatsapp_number' => '1712345678',
+                'email_address' => 'updated-bd-contact@example.com',
+                'present_address' => 'Present address',
+                'permanent_address' => 'Permanent address',
+                'country' => 'Bangladesh',
+                'city_district' => 'Dhaka',
+                'postal_code' => '1207',
+                'next_step' => 5,
+            ])
+            ->assertRedirect(route('member.profile.complete', ['step' => 5]));
+
+        $this->assertDatabaseHas('member_profiles', [
+            'user_id' => $member->id,
+            'primary_mobile' => '+8801799999999',
+            'secondary_mobile' => '+8801811111111',
+            'whatsapp_number' => '+8801712345678',
+            'email_address' => 'updated-bd-contact@example.com',
         ]);
     }
 
@@ -797,15 +872,136 @@ class MembershipSiteTest extends TestCase
         ]);
     }
 
+    public function test_admin_step_one_phone_edit_syncs_member_phone_fields(): void
+    {
+        $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
+        $member = User::factory()->create([
+            'role' => 'member',
+            'membership_status' => 'pending_review',
+            'approval_step' => 1,
+            'email' => 'admin-phone-sync@example.com',
+            'phone' => '+8801711111111',
+        ]);
+
+        $member->profile()->create([
+            'mobile_number' => '+8801711111111',
+            'primary_mobile' => '+8801711111111',
+            'secondary_mobile' => '+8801811111111',
+            'whatsapp_number' => '+8801711111111',
+            'email_address' => 'admin-phone-sync@example.com',
+            'passing_year_batch' => '2012',
+            'completion_step' => 4,
+        ]);
+
+        $application = $member->application()->create([
+            'status' => 'pending',
+            'current_step' => 4,
+            'total_steps' => 10,
+            'submitted_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.applications.update', $application), [
+                'wizard_step' => 1,
+                'full_name' => $member->name,
+                'mobile_number' => '01799999999',
+                'email' => 'admin-phone-updated@example.com',
+                'passing_year_batch' => '2012',
+                'how_did_you_find_us' => 'Facebook',
+            ])
+            ->assertRedirect(route('admin.applications.show', ['application' => $application, 'step' => 1]));
+
+        $this->assertDatabaseHas('users', [
+            'id' => $member->id,
+            'email' => 'admin-phone-updated@example.com',
+            'phone' => '+8801799999999',
+        ]);
+
+        $this->assertDatabaseHas('member_profiles', [
+            'user_id' => $member->id,
+            'email_address' => 'admin-phone-updated@example.com',
+            'mobile_number' => '+8801799999999',
+            'primary_mobile' => '+8801799999999',
+            'whatsapp_number' => '+8801799999999',
+            'secondary_mobile' => '+8801811111111',
+        ]);
+    }
+
+    public function test_admin_step_four_primary_mobile_edit_syncs_member_phone_fields(): void
+    {
+        $admin = User::query()->where('email', 'admin@mubcaa.test')->firstOrFail();
+        $member = User::factory()->create([
+            'role' => 'member',
+            'membership_status' => 'pending_review',
+            'approval_step' => 1,
+            'email' => 'admin-step-four-sync@example.com',
+            'phone' => '+8801712222222',
+        ]);
+
+        $member->profile()->create([
+            'mobile_number' => '+8801712222222',
+            'primary_mobile' => '+8801712222222',
+            'secondary_mobile' => '+8801712222222',
+            'whatsapp_number' => '+8801712222222',
+            'email_address' => 'admin-step-four-sync@example.com',
+            'present_address' => 'Old present address',
+            'permanent_address' => 'Old permanent address',
+            'country' => 'Bangladesh',
+            'city_district' => 'Dhaka',
+            'postal_code' => '1207',
+            'passing_year_batch' => '2012',
+            'completion_step' => 4,
+        ]);
+
+        $application = $member->application()->create([
+            'status' => 'pending',
+            'current_step' => 4,
+            'total_steps' => 10,
+            'submitted_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.applications.update', $application), [
+                'wizard_step' => 4,
+                'primary_mobile' => '01788888888',
+                'secondary_mobile' => '01788888888',
+                'whatsapp_number' => '01788888888',
+                'email_address' => 'admin-step-four-updated@example.com',
+                'present_address' => 'New present address',
+                'permanent_address' => 'New permanent address',
+                'country' => 'Bangladesh',
+                'city_district' => 'Dhaka',
+                'postal_code' => '1207',
+            ])
+            ->assertRedirect(route('admin.applications.show', ['application' => $application, 'step' => 4]));
+
+        $this->assertDatabaseHas('users', [
+            'id' => $member->id,
+            'email' => 'admin-step-four-updated@example.com',
+            'phone' => '+8801788888888',
+        ]);
+
+        $this->assertDatabaseHas('member_profiles', [
+            'user_id' => $member->id,
+            'email_address' => 'admin-step-four-updated@example.com',
+            'mobile_number' => '+8801788888888',
+            'primary_mobile' => '+8801788888888',
+            'secondary_mobile' => '+8801788888888',
+            'whatsapp_number' => '+8801788888888',
+        ]);
+    }
+
     public function test_login_identifier_check_is_rate_limited(): void
     {
         for ($attempt = 0; $attempt < 20; $attempt++) {
             $this->postJson(route('login.check'), [
+                'login_channel' => 'email',
                 'identifier' => 'member@example.com',
             ])->assertOk();
         }
 
         $this->postJson(route('login.check'), [
+            'login_channel' => 'email',
             'identifier' => 'member@example.com',
         ])->assertStatus(429);
     }

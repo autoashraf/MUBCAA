@@ -8,6 +8,7 @@ use App\Models\GalleryVideo;
 use App\Models\MemorySubmission;
 use App\Models\MembershipApplication;
 use App\Models\User;
+use App\Support\PhoneNumber;
 use App\Support\SiteNavigation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -233,6 +234,7 @@ class AdminController extends Controller
         $application->load('user.profile');
         $user = $application->user;
         $profile = $user->profile;
+        $originalPrimaryPhone = $profile?->primary_mobile ?: $profile?->mobile_number ?: $user->phone;
         $step = max(1, min((int) $request->input('wizard_step', 1), 10));
         $validated = $request->validate($this->rulesForStep($request, $application, $step));
 
@@ -246,11 +248,28 @@ class AdminController extends Controller
         );
 
         if ($step === 1) {
+            $canonicalMobile = $this->normalizePhoneNumber($validated['mobile_number']);
+
             $user->update([
                 'name' => $validated['full_name'],
                 'email' => $validated['email'],
-                'phone' => $validated['mobile_number'],
+                'phone' => $canonicalMobile ?? $validated['mobile_number'],
             ]);
+
+            $this->syncCanonicalMemberPhone($user, $profile, $canonicalMobile ?? $validated['mobile_number'], $originalPrimaryPhone);
+            $this->syncCanonicalMemberEmail($profile, $validated['email']);
+        }
+
+        if ($step === 4) {
+            $canonicalPrimaryMobile = $this->normalizePhoneNumber($validated['primary_mobile']) ?? $validated['primary_mobile'];
+
+            $user->update([
+                'email' => $validated['email_address'],
+                'phone' => $canonicalPrimaryMobile,
+            ]);
+
+            $this->syncCanonicalMemberPhone($user, $profile, $canonicalPrimaryMobile, $originalPrimaryPhone);
+            $this->syncCanonicalMemberEmail($profile, $validated['email_address']);
         }
 
         if ($step === 10) {
@@ -651,8 +670,8 @@ class AdminController extends Controller
     {
         return match ($step) {
             1 => [
-                'mobile_number' => $validated['mobile_number'],
-                'primary_mobile' => $profile?->primary_mobile ?: $validated['mobile_number'],
+                'mobile_number' => $this->normalizePhoneNumber($validated['mobile_number']) ?? $validated['mobile_number'],
+                'primary_mobile' => $profile?->primary_mobile ?: ($this->normalizePhoneNumber($validated['mobile_number']) ?? $validated['mobile_number']),
                 'email_address' => $profile?->email_address ?: $validated['email'],
                 'passing_year_batch' => $validated['passing_year_batch'],
                 'how_did_you_find_us' => $validated['how_did_you_find_us'] ?? null,
@@ -660,10 +679,10 @@ class AdminController extends Controller
             2 => $validated,
             3 => $validated,
             4 => [
-                'primary_mobile' => $validated['primary_mobile'],
-                'mobile_number' => $validated['primary_mobile'],
-                'secondary_mobile' => $validated['secondary_mobile'],
-                'whatsapp_number' => $validated['whatsapp_number'],
+                'primary_mobile' => $this->normalizePhoneNumber($validated['primary_mobile']) ?? $validated['primary_mobile'],
+                'mobile_number' => $this->normalizePhoneNumber($validated['primary_mobile']) ?? $validated['primary_mobile'],
+                'secondary_mobile' => $this->normalizePhoneNumber($validated['secondary_mobile']) ?? $validated['secondary_mobile'],
+                'whatsapp_number' => $this->normalizePhoneNumber($validated['whatsapp_number']) ?? $validated['whatsapp_number'],
                 'email_address' => $validated['email_address'],
                 'present_address' => $validated['present_address'],
                 'permanent_address' => $validated['permanent_address'],
@@ -718,6 +737,51 @@ class AdminController extends Controller
                 'admin_verification_agreement' => true,
             ],
         };
+    }
+
+    private function normalizePhoneNumber(?string $value): ?string
+    {
+        return PhoneNumber::normalize($value, '+880');
+    }
+
+    private function syncCanonicalMemberPhone(User $user, $profile, ?string $newPhone, ?string $oldPhone = null): void
+    {
+        if (blank($newPhone) || ! $profile) {
+            return;
+        }
+
+        $oldCandidates = array_values(array_unique(array_filter([
+            $oldPhone,
+            $profile->mobile_number,
+            $profile->primary_mobile,
+            $user->getOriginal('phone'),
+        ])));
+
+        $profileUpdates = [
+            'mobile_number' => $newPhone,
+            'primary_mobile' => $newPhone,
+        ];
+
+        if (filled($profile->secondary_mobile) && in_array($profile->secondary_mobile, $oldCandidates, true)) {
+            $profileUpdates['secondary_mobile'] = $newPhone;
+        }
+
+        if (filled($profile->whatsapp_number) && in_array($profile->whatsapp_number, $oldCandidates, true)) {
+            $profileUpdates['whatsapp_number'] = $newPhone;
+        }
+
+        $profile->update($profileUpdates);
+    }
+
+    private function syncCanonicalMemberEmail($profile, ?string $newEmail): void
+    {
+        if (blank($newEmail) || ! $profile) {
+            return;
+        }
+
+        $profile->update([
+            'email_address' => $newEmail,
+        ]);
     }
 
     private function requiredFileRule(Request $request, MembershipApplication $application, string $field, ?string $removeField = null): string
