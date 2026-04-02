@@ -7,6 +7,7 @@ deployment:
     - /bin/rm -rf $DEPLOYPATH/bootstrap
     - /bin/rm -rf $DEPLOYPATH/config
     - /bin/rm -rf $DEPLOYPATH/database
+    - /bin/rm -rf $DEPLOYPATH/lang
     - /bin/rm -rf $DEPLOYPATH/public
     - /bin/rm -rf $DEPLOYPATH/resources
     - /bin/rm -rf $DEPLOYPATH/routes
@@ -23,6 +24,7 @@ deployment:
     - /bin/cp -R bootstrap $DEPLOYPATH
     - /bin/cp -R config $DEPLOYPATH
     - /bin/cp -R database $DEPLOYPATH
+    - /bin/cp -R lang $DEPLOYPATH
     - /bin/cp -R public $DEPLOYPATH
     - /bin/cp -R resources $DEPLOYPATH
     - /bin/cp -R routes $DEPLOYPATH
