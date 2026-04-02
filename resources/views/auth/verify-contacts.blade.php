@@ -42,7 +42,7 @@
                                 <div>
                                     <p class="panel-card-label">{{ __('Email Verification') }}</p>
                                     <h3>{{ __('Verify your email address') }}</h3>
-                                    <p class="dashboard-copy">{{ __('We have sent a 6-digit verification code to :email.', ['email' => $user->email]) }}</p>
+                                    <p class="dashboard-copy">{{ __('An email OTP has been sent to :email.', ['email' => $user->email]) }}</p>
                                 </div>
                             </div>
 
@@ -72,7 +72,7 @@
                                 <div>
                                     <p class="panel-card-label">{{ __('Mobile Verification') }}</p>
                                     <h3>{{ __('Verify your mobile number') }}</h3>
-                                    <p class="dashboard-copy">{{ __('A 6-digit OTP has been generated for :mobile.', ['mobile' => $user->profile?->mobile_number ?: $user->phone]) }}</p>
+                                    <p class="dashboard-copy">{{ __('An SMS OTP has been sent to :mobile.', ['mobile' => $user->profile?->mobile_number ?: $user->phone]) }}</p>
                                 </div>
                             </div>
 

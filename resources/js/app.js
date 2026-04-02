@@ -219,6 +219,75 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const mountFieldSync = (root = document) => {
+        root.querySelectorAll('[data-field-sync-toggle]').forEach((toggle) => {
+            if (toggle.dataset.fieldSyncMounted === 'true') {
+                return;
+            }
+
+            const wrapper = toggle.closest('[data-field-sync-wrapper]');
+            const form = toggle.closest('form');
+            const source = form?.querySelector(`[name="${toggle.dataset.sourceField}"]`);
+            const target = form?.querySelector(`[name="${toggle.dataset.targetField}"]`);
+
+            if (!source || !target) {
+                return;
+            }
+
+            const syncState = () => {
+                const note = wrapper?.querySelector('[data-field-sync-note]');
+
+                if (toggle.checked) {
+                    target.value = source.value;
+                    target.readOnly = true;
+                    wrapper?.classList.add('is-active');
+                    if (note) {
+                        note.hidden = false;
+                    }
+                } else {
+                    target.readOnly = false;
+                    wrapper?.classList.remove('is-active');
+                    if (note) {
+                        note.hidden = true;
+                    }
+                }
+            };
+
+            wrapper?.addEventListener('click', (event) => {
+                if (event.target === toggle) {
+                    return;
+                }
+
+                toggle.checked = !toggle.checked;
+                toggle.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+
+            wrapper?.addEventListener('keydown', (event) => {
+                if (event.key !== ' ' && event.key !== 'Enter') {
+                    return;
+                }
+
+                event.preventDefault();
+                toggle.checked = !toggle.checked;
+                toggle.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+
+            toggle.addEventListener('change', syncState);
+            source.addEventListener('input', () => {
+                if (toggle.checked) {
+                    target.value = source.value;
+                }
+            });
+
+            if (wrapper && !wrapper.hasAttribute('tabindex')) {
+                wrapper.tabIndex = 0;
+            }
+
+            syncState();
+            toggle.dataset.fieldSyncMounted = 'true';
+        });
+    };
+
     const mountCountryCodeDropdowns = (root = document) => {
         root.querySelectorAll('[data-country-code-dropdown]').forEach((dropdown) => {
             if (dropdown.dataset.countryCodeMounted === 'true') {
@@ -1142,6 +1211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mountExpiryCountdowns();
     mountImagePreviews();
     mountWhatsappSync();
+    mountFieldSync();
     mountCountryCodeDropdowns();
     mountCopyButtons();
     mountLoginMethodTabs();

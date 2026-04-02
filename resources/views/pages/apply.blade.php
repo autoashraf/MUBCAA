@@ -77,16 +77,6 @@
                         @error('email') <small>{{ $message }}</small> @enderror
                     </div>
 
-                    <div class="join-auth-label">
-                        <select name="passing_year_batch" aria-label="Passing year or batch" required>
-                            <option value="">{{ __('Passing Year / Batch') }}</option>
-                            @foreach ($passingYears as $option)
-                                <option value="{{ $option }}" @selected(old('passing_year_batch') === $option)>{{ $option }}</option>
-                            @endforeach
-                        </select>
-                        @error('passing_year_batch') <small>{{ $message }}</small> @enderror
-                    </div>
-
                     <div class="join-auth-label" data-discovery-field-wrapper>
                         <div class="join-auth-field-reset-row">
                             <button class="text-link-button text-link-inline registration-field-reset" type="button" data-referral-code-reset @if (old('discovery_source') !== 'Referral Code') hidden @endif>{{ __('Choose another source') }}</button>

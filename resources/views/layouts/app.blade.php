@@ -596,6 +596,81 @@
                         });
                     }
 
+                    function mountFieldSync(root) {
+                        (root || document).querySelectorAll('[data-field-sync-toggle]').forEach(function (toggle) {
+                            if (toggle.dataset.fieldSyncMounted === 'true') {
+                                return;
+                            }
+
+                            var wrapper = toggle.closest('[data-field-sync-wrapper]');
+                            var form = toggle.closest('form');
+                            var source = form ? form.querySelector('[name="' + toggle.dataset.sourceField + '"]') : null;
+                            var target = form ? form.querySelector('[name="' + toggle.dataset.targetField + '"]') : null;
+
+                            if (!source || !target) {
+                                return;
+                            }
+
+                            function syncState() {
+                                var note = wrapper ? wrapper.querySelector('[data-field-sync-note]') : null;
+
+                                if (toggle.checked) {
+                                    target.value = source.value;
+                                    target.readOnly = true;
+                                    if (wrapper) {
+                                        wrapper.classList.add('is-active');
+                                    }
+                                    if (note) {
+                                        note.hidden = false;
+                                    }
+                                } else {
+                                    target.readOnly = false;
+                                    if (wrapper) {
+                                        wrapper.classList.remove('is-active');
+                                    }
+                                    if (note) {
+                                        note.hidden = true;
+                                    }
+                                }
+                            }
+
+                            if (wrapper) {
+                                wrapper.addEventListener('click', function (event) {
+                                    if (event.target === toggle) {
+                                        return;
+                                    }
+
+                                    toggle.checked = !toggle.checked;
+                                    toggle.dispatchEvent(new Event('change', { bubbles: true }));
+                                });
+
+                                wrapper.addEventListener('keydown', function (event) {
+                                    if (event.key !== ' ' && event.key !== 'Enter') {
+                                        return;
+                                    }
+
+                                    event.preventDefault();
+                                    toggle.checked = !toggle.checked;
+                                    toggle.dispatchEvent(new Event('change', { bubbles: true }));
+                                });
+
+                                if (!wrapper.hasAttribute('tabindex')) {
+                                    wrapper.tabIndex = 0;
+                                }
+                            }
+
+                            toggle.addEventListener('change', syncState);
+                            source.addEventListener('input', function () {
+                                if (toggle.checked) {
+                                    target.value = source.value;
+                                }
+                            });
+
+                            syncState();
+                            toggle.dataset.fieldSyncMounted = 'true';
+                        });
+                    }
+
                     function mountCountryCodeDropdowns(root) {
                         (root || document).querySelectorAll('[data-country-code-dropdown]').forEach(function (dropdown) {
                             if (dropdown.dataset.countryCodeMounted === 'true') {
@@ -1529,6 +1604,7 @@
                     mountExpiryCountdowns(document);
                     mountImagePreviews(document);
                     mountWhatsappSync(document);
+                    mountFieldSync(document);
                     mountCountryCodeDropdowns(document);
                     mountCopyButtons(document);
 

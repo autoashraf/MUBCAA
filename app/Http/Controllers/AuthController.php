@@ -280,7 +280,6 @@ class AuthController extends Controller
             'captchaLeft' => $captchaLeft,
             'captchaRight' => $captchaRight,
             'affiliateReferrer' => $affiliateReferrer,
-            'passingYears' => $this->passingYearOptions(),
             'discoverySources' => $this->howDidYouFindUsOptions(),
             'countryDialCodes' => CountryDialCodes::all(),
         ]);
@@ -341,7 +340,6 @@ class AuthController extends Controller
                     }
                 },
             ],
-            'passing_year_batch' => ['required', Rule::in($this->passingYearOptions())],
             'discovery_source' => ['nullable', Rule::in(array_merge($this->howDidYouFindUsOptions(), ['Referral Code']))],
             'referral_code' => ['nullable', 'string', 'max:50'],
             'captcha_left' => ['required', 'integer', 'between:1,9'],
@@ -434,7 +432,7 @@ class AuthController extends Controller
             'full_name' => $validated['full_name'],
             'email' => $validated['email'],
             'mobile_number' => $canonicalMobileNumber,
-            'passing_year_batch' => $validated['passing_year_batch'],
+            'passing_year_batch' => $pendingRegistration?->passing_year_batch ?? '',
             'how_did_you_find_us' => ($validated['discovery_source'] ?? null) === 'Referral Code'
                 ? null
                 : ($validated['discovery_source'] ?? null),

@@ -76,11 +76,6 @@
                         @error('email') <small>{{ $message }}</small> @enderror
                     </label>
                     <label>
-                        <span>Passing Year / Batch</span>
-                        <input type="text" name="passing_year_batch" value="{{ old('passing_year_batch', $profile?->passing_year_batch) }}">
-                        @error('passing_year_batch') <small>{{ $message }}</small> @enderror
-                    </label>
-                    <label>
                         <span>How did you find us?</span>
                         <select name="how_did_you_find_us">
                             <option value="">Select one</option>

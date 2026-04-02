@@ -37,10 +37,6 @@
                         </div>
                     </div>
                 </div>
-                <footer class="verification-modal-footer">
-                    <span>{{ __('Secure verification complete') }}</span>
-                    <span>{{ config('site.brand.name', 'MUBCAA') }}</span>
-                </footer>
             </div>
         @else
             <div class="verification-modal">
@@ -48,7 +44,6 @@
                     <div>
                         <p class="eyebrow">{{ __('Contact Verification') }}</p>
                         <h1>{{ __('Verify your email and mobile number') }}</h1>
-                        <p class="verification-step-current">{{ __('Step :current of 2', ['current' => $currentStepNumber]) }}</p>
                     </div>
                     <a class="mini-link" href="{{ route('membership.apply') }}" data-close-verification-modal>{{ __('Close') }}</a>
                 </header>
@@ -67,14 +62,12 @@
                                 <span class="verification-step-index">1</span>
                                 <div class="verification-step-copy">
                                     <strong>{{ __('Email') }}</strong>
-                                    <small>{{ $emailVerified ? __('Verified') : __('Current step') }}</small>
                                 </div>
                             </div>
                             <div class="verification-step {{ $mobileVerified ? 'is-complete' : ($emailVerified ? 'is-active' : '') }}">
                                 <span class="verification-step-index">2</span>
                                 <div class="verification-step-copy">
                                     <strong>{{ __('Mobile') }}</strong>
-                                    <small>{{ $mobileVerified ? __('Verified') : ($emailVerified ? __('Current step') : __('Upcoming')) }}</small>
                                 </div>
                             </div>
                         </div>
@@ -83,10 +76,9 @@
                             <div class="form-card verification-panel verification-panel-step">
                                 <div class="dashboard-form-head verification-panel-head">
                                     <div>
-                                        <p class="panel-card-label">{{ __('Step 1') }}</p>
                                         <h3>{{ __('Email Verification') }}</h3>
+                                        <p class="dashboard-copy">{{ __('An email OTP has been sent to :email.', ['email' => $verificationEmail]) }}</p>
                                     </div>
-                                    <span class="verification-panel-icon">E</span>
                                 </div>
 
                                 <form id="verify-email-form" method="POST" action="{{ route('member.verification.email') }}" data-ajax-form="verification">
@@ -109,18 +101,13 @@
                                     @csrf
                                 </form>
                             </div>
-
-                            <div class="verification-step-pending">
-                                <strong>{{ __('Next:') }}</strong> {{ __('Verify your mobile number after email verification is complete.') }}
-                            </div>
                         @else
                             <div class="form-card verification-panel verification-panel-step">
                                 <div class="dashboard-form-head verification-panel-head">
                                     <div>
-                                        <p class="panel-card-label">{{ __('Step 2') }}</p>
                                         <h3>{{ __('Mobile Verification') }}</h3>
+                                        <p class="dashboard-copy">{{ __('An SMS OTP has been sent to :mobile.', ['mobile' => $verificationMobile]) }}</p>
                                     </div>
-                                    <span class="verification-panel-icon">M</span>
                                 </div>
 
                                 <form id="verify-mobile-form" method="POST" action="{{ route('member.verification.mobile') }}" data-ajax-form="verification">
@@ -146,10 +133,6 @@
                         @endif
                     </div>
                 </div>
-                <footer class="verification-modal-footer">
-                    <span>{{ __('Secure OTP verification') }}</span>
-                    <span>{{ config('site.brand.name', 'MUBCAA') }}</span>
-                </footer>
             </div>
         @endif
     </div>

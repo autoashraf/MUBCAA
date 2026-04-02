@@ -2678,7 +2678,7 @@
 
     .verification-modal,
     .login-otp-modal {
-        @apply mx-auto grid w-full max-w-[28rem] gap-4 rounded-[1.75rem] border border-cyan-100 bg-cyan-50/95 p-4 shadow-2xl shadow-cyan-950/10 backdrop-blur;
+        @apply mx-auto grid w-full max-w-[28rem] gap-3 rounded-[1.5rem] border border-cyan-100 bg-cyan-50/95 p-4 shadow-2xl shadow-cyan-950/10 backdrop-blur;
     }
 
     .verification-modal-complete,
@@ -2688,19 +2688,11 @@
 
     .verification-modal-header,
     .verification-modal-header-complete {
-        @apply flex flex-col gap-3 border-b border-cyan-100 pb-4 lg:flex-row lg:items-start lg:justify-between;
-    }
-
-    .verification-modal-footer {
-        @apply flex items-center justify-between gap-3 border-t border-cyan-100 pt-3 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-900/70;
+        @apply flex flex-col gap-2 border-b border-cyan-100 pb-3 lg:flex-row lg:items-start lg:justify-between;
     }
 
     .verification-modal-header h1 {
-        @apply text-[2rem] font-bold tracking-tight text-cyan-950;
-    }
-
-    .verification-step-current {
-        @apply mt-3 inline-flex items-center rounded-full border border-cyan-100 bg-white/80 px-3 py-1.5 text-sm font-semibold text-cyan-900;
+        @apply text-[1.85rem] font-bold tracking-tight text-cyan-950;
     }
 
     .verification-layout {
@@ -2708,13 +2700,13 @@
     }
 
     .verification-panels {
-        @apply mx-auto grid w-full max-w-none gap-3;
+        @apply mx-auto grid w-full max-w-none gap-2.5;
     }
 
     .verification-summary-card,
     .verification-panel,
     .login-card-otp {
-        @apply rounded-[1.35rem] border border-cyan-100 bg-white/95 p-4 shadow-xl shadow-cyan-950/5;
+        @apply rounded-[1.2rem] border border-cyan-100 bg-white/95 p-4 shadow-xl shadow-cyan-950/5;
     }
 
     .verification-summary-card h3,
@@ -2740,11 +2732,11 @@
     }
 
     .verification-panel {
-        @apply grid gap-4;
+        @apply grid gap-3;
     }
 
     .verification-panel form {
-        @apply grid gap-4;
+        @apply grid gap-3;
     }
 
     .verification-panel label,
@@ -2764,19 +2756,15 @@
 
     .verification-panel-head,
     .login-card-head {
-        @apply mb-0 flex items-start justify-between gap-4 border-b border-slate-200 pb-4;
-    }
-
-    .verification-panel-icon {
-        @apply inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-100 bg-cyan-50 text-lg font-bold text-cyan-900;
+        @apply mb-0 flex items-start justify-between gap-4 border-b border-slate-200 pb-3;
     }
 
     .verification-stepper {
-        @apply grid gap-2 rounded-[1.35rem] border border-cyan-100 bg-cyan-50/70 p-3;
+        @apply grid grid-cols-2 gap-2 rounded-[1.1rem] border border-cyan-100 bg-cyan-50/70 p-2.5;
     }
 
     .verification-step {
-        @apply flex items-center gap-3 rounded-[1.1rem] border border-transparent bg-white/80 px-4 py-3 text-slate-500;
+        @apply flex items-center gap-3 rounded-[0.95rem] border border-transparent bg-white/80 px-3 py-2.5 text-slate-500;
     }
 
     .verification-step.is-active {
@@ -2807,12 +2795,8 @@
         @apply text-sm font-semibold text-current;
     }
 
-    .verification-step-copy small {
-        @apply text-xs font-medium text-slate-500;
-    }
-
     .otp-field {
-        @apply grid gap-3;
+        @apply grid gap-2.5;
     }
 
     .otp-field > input[type='hidden'] {
@@ -2824,7 +2808,7 @@
     }
 
     .otp-digit {
-        @apply min-h-[50px] rounded-xl border border-cyan-200 bg-white px-0 text-center text-lg font-bold tracking-[0.08em] text-cyan-950 shadow-sm outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100;
+        @apply min-h-[46px] rounded-xl border border-cyan-200 bg-white px-0 text-center text-lg font-bold tracking-[0.08em] text-cyan-950 shadow-sm outline-none transition focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100;
     }
 
     .verification-expiry-note {
@@ -2841,10 +2825,6 @@
 
     .verification-inline-actions .button {
         @apply w-full min-w-0;
-    }
-
-    .verification-step-pending {
-        @apply rounded-[1.4rem] border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-900;
     }
 
     .verification-panel-complete {
@@ -3126,7 +3106,7 @@
 
         .verification-modal,
         .login-otp-modal {
-            @apply rounded-[1.75rem] p-4;
+            @apply rounded-[1.5rem] p-4;
         }
 
         .verification-modal-header h1 {
@@ -3136,7 +3116,7 @@
         .verification-summary-card,
         .verification-panel,
         .login-card-otp {
-            @apply rounded-[1.5rem] p-5;
+            @apply rounded-[1.2rem] p-4;
         }
 
         .otp-digit-group {

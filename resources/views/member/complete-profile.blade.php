@@ -287,6 +287,24 @@
                                     <div class="wizard-field label-wide">
                                         <span>{{ __('Permanent Address') }}</span>
                                         <textarea name="permanent_address" rows="4" placeholder="{{ __('Enter your permanent address') }}" aria-label="{{ __('Permanent address') }}">{{ old('permanent_address', $profile?->permanent_address) }}</textarea>
+                                        <div class="inline-checkbox-option" data-field-sync-wrapper>
+                                            <div class="inline-checkbox-control">
+                                                <input
+                                                    type="checkbox"
+                                                    value="1"
+                                                    aria-label="{{ __('Use present address as permanent address') }}"
+                                                    data-field-sync-toggle
+                                                    data-source-field="present_address"
+                                                    data-target-field="permanent_address"
+                                                    @checked(old('present_address', $profile?->present_address) && old('present_address', $profile?->present_address) === old('permanent_address', $profile?->permanent_address))
+                                                >
+                                                <span class="inline-checkbox-box" aria-hidden="true"></span>
+                                                <span class="inline-checkbox-copy">
+                                                    <strong>{{ __('Same as present address') }}</strong>
+                                                    <small data-field-sync-note>{{ __('Synced from present address') }}</small>
+                                                </span>
+                                            </div>
+                                        </div>
                                         @error('permanent_address') <small>{{ $message }}</small> @enderror
                                     </div>
                                     <div class="wizard-field">
