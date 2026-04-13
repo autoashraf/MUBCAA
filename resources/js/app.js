@@ -151,6 +151,45 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const mountLocaleSwitcher = (root = document) => {
+        root.querySelectorAll('[data-locale-switch]').forEach((link) => {
+            if (link.dataset.localeMounted === 'true') {
+                return;
+            }
+
+            link.addEventListener('click', async (event) => {
+                const href = link.getAttribute('href');
+
+                if (!href || link.classList.contains('is-active')) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                try {
+                    const response = await fetch(href, {
+                        method: 'POST',
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                        },
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Locale switch failed');
+                    }
+
+                    window.location.reload();
+                } catch (error) {
+                    window.location.href = href;
+                }
+            });
+
+            link.dataset.localeMounted = 'true';
+        });
+    };
+
     const mountWhatsappSync = (root = document) => {
         root.querySelectorAll('[data-whatsapp-same-toggle]').forEach((toggle) => {
             if (toggle.dataset.whatsappMounted === 'true') {
@@ -1210,6 +1249,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mountResendCountdowns();
     mountExpiryCountdowns();
     mountImagePreviews();
+    mountLocaleSwitcher();
     mountWhatsappSync();
     mountFieldSync();
     mountCountryCodeDropdowns();

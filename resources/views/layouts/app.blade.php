@@ -102,8 +102,8 @@
                     </div>
                     <div class="header-actions">
                         <div class="locale-switcher" aria-label="{{ __('Language switcher') }}">
-                            <a class="locale-link @if ($currentLocale === 'en') is-active @endif" href="{{ route('locale.switch', ['locale' => 'en']) }}">EN</a>
-                            <a class="locale-link @if ($currentLocale === 'bn') is-active @endif" href="{{ route('locale.switch', ['locale' => 'bn']) }}">বাংলা</a>
+                            <a class="locale-link @if ($currentLocale === 'en') is-active @endif" href="{{ route('locale.switch', ['locale' => 'en']) }}" data-locale-switch data-locale="en">EN</a>
+                            <a class="locale-link @if ($currentLocale === 'bn') is-active @endif" href="{{ route('locale.switch', ['locale' => 'bn']) }}" data-locale-switch data-locale="bn">বাংলা</a>
                         </div>
                         @auth
                             <details class="profile-tray">
@@ -593,6 +593,43 @@
 
                             syncState();
                             toggle.dataset.whatsappMounted = 'true';
+                        });
+                    }
+
+                    function mountLocaleSwitcher(root) {
+                        (root || document).querySelectorAll('[data-locale-switch]').forEach(function (link) {
+                            if (link.dataset.localeMounted === 'true') {
+                                return;
+                            }
+
+                            link.addEventListener('click', function (event) {
+                                var href = link.getAttribute('href');
+
+                                if (!href || link.classList.contains('is-active')) {
+                                    return;
+                                }
+
+                                event.preventDefault();
+
+                                fetch(href, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'X-Requested-With': 'XMLHttpRequest',
+                                        'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') || {}).content || '',
+                                    },
+                                }).then(function (response) {
+                                    if (!response.ok) {
+                                        throw new Error('Locale switch failed');
+                                    }
+
+                                    window.location.reload();
+                                }).catch(function () {
+                                    window.location.href = href;
+                                });
+                            });
+
+                            link.dataset.localeMounted = 'true';
                         });
                     }
 
@@ -1603,6 +1640,7 @@
                     mountResendCountdowns(document);
                     mountExpiryCountdowns(document);
                     mountImagePreviews(document);
+                    mountLocaleSwitcher(document);
                     mountWhatsappSync(document);
                     mountFieldSync(document);
                     mountCountryCodeDropdowns(document);

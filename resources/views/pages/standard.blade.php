@@ -11,23 +11,7 @@
         </div>
     </section>
 
-    @if (empty($page['hide_narrative']))
-        <section class="section">
-            <div class="wrap narrative-layout">
-                <aside class="page-aside">
-                    <p class="aside-label">{{ __('Section Focus') }}</p>
-                    <p class="aside-text">{{ $page['eyebrow'] }}</p>
-                    <div class="aside-divider"></div>
-                    <p class="aside-note">{{ $page['aside_note'] ?? __('This section highlights the main information and supporting details for this page.') }}</p>
-                </aside>
-                <div class="prose-block">
-                @foreach ($page['body'] as $paragraph)
-                    <p>{{ $paragraph }}</p>
-                @endforeach
-                </div>
-            </div>
-        </section>
-    @endif
+
 
     @if (!empty($page['sections']))
         <section class="section">

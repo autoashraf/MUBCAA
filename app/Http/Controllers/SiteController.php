@@ -45,12 +45,6 @@ class SiteController extends Controller
                 ['title' => 'Scholarship support round announced.', 'text' => 'New support opportunities are available for alumni families and student initiatives.'],
                 ['title' => 'New chapter coordination meeting scheduled.', 'text' => 'Regional organisers will meet to review membership drives and event planning.'],
             ],
-            'alumni' => [
-                ['name' => 'Dr. Amina Rahman', 'meta' => 'Batch 1998 / Academic Leader'],
-                ['name' => 'Mahmud Hasan', 'meta' => 'Batch 2002 / Entrepreneur'],
-                ['name' => 'Farhana Kabir', 'meta' => 'Batch 2005 / Community Organiser'],
-                ['name' => 'Tanvir Ahmed', 'meta' => 'Batch 2010 / Technology Professional'],
-            ],
         ]);
 
         return view('pages.home', [
@@ -65,7 +59,6 @@ class SiteController extends Controller
             'serviceLinks' => $content['serviceLinks'],
             'events' => $content['events'],
             'newsItems' => $content['newsItems'],
-            'alumni' => $content['alumni'],
         ]);
     }
 
@@ -191,20 +184,6 @@ class SiteController extends Controller
                         'paragraphs' => [
                             'MUBCAA was founded with the belief that the bond between alumni and their institution should continue beyond student life. Over time, the need for a common platform became clear — a place where former students could reconnect, support one another, and work together in an organized and meaningful way.',
                             'It was established not only to preserve memories, but also to build unity, encourage cooperation, and create opportunities that benefit alumni, current students, and the wider community.',
-                        ],
-                    ],
-                    [
-                        'title' => 'Our Mission',
-                        'paragraphs' => [
-                            'Our mission is to unite the alumni of Monipur Uchcha Bidyalaya & College through a lifelong bond of connection, support, and shared purpose. MUBCAA aims to create a platform where alumni can stay engaged, strengthen relationships, and contribute to meaningful causes.',
-                            'Through friendship, cooperation, mentorship, and service, we seek to turn alumni connection into real value for members, students, and society.',
-                        ],
-                    ],
-                    [
-                        'title' => 'Our Vision',
-                        'paragraphs' => [
-                            'Our vision is to build a proud, respected, and inspiring alumni community that reflects the spirit and values of Monipur Uchcha Bidyalaya & College. We aspire to create a lasting platform where alumni remain connected, support one another, and work together for positive change.',
-                            'MUBCAA envisions a future where shared identity becomes a source of strength, leadership, service, and collective progress.',
                         ],
                     ],
                     [

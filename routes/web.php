@@ -12,10 +12,17 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [SiteController::class, 'home'])->name('home');
 Route::redirect('/home', '/')->name('home.redirect');
 Route::get('/r/{user}', [AuthController::class, 'affiliateRedirect'])->name('affiliate.redirect');
-Route::get('/language/{locale}', function (Request $request, string $locale) {
+Route::match(['get', 'post'], '/language/{locale}', function (Request $request, string $locale) {
     abort_unless(in_array($locale, config('app.supported_locales', ['en', 'bn']), true), 404);
 
     $request->session()->put('locale', $locale);
+
+    if ($request->expectsJson()) {
+        return response()->json([
+            'ok' => true,
+            'locale' => $locale,
+        ]);
+    }
 
     return redirect()->back();
 })->name('locale.switch');

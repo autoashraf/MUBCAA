@@ -1158,45 +1158,73 @@
     }
 
     .home-alumni-layout .wrap {
-        @apply grid gap-6 sm:gap-8;
+        @apply grid gap-5 sm:gap-6;
+    }
+
+    .home-alumni-layout .button,
+    .home-panel-block,
+    .alumni-hero,
+    .alumni-about-band,
+    .alumni-feature-card,
+    .impact-stat,
+    .event-story,
+    .news-story,
+    .gallery-thumb {
+        @apply rounded-lg;
     }
 
     .alumni-hero,
     .alumni-about-band,
-    .alumni-directory-search,
     .home-panel-block,
     .alumni-feature-card {
-        @apply rounded-[2rem] border border-slate-200 bg-white/95 shadow-2xl shadow-slate-200/50 backdrop-blur;
+        @apply border border-slate-200 bg-white shadow-lg shadow-slate-200/60;
     }
 
     .alumni-hero {
-        @apply grid gap-6 overflow-hidden p-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:p-8;
+        @apply grid gap-8 overflow-hidden p-5 sm:p-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-center lg:p-10;
     }
 
     .alumni-hero-copy,
     .alumni-about-copy {
-        @apply grid gap-4;
+        @apply grid content-center gap-4;
+    }
+
+    .home-eyebrow {
+        @apply text-xs font-bold uppercase text-orange-700;
     }
 
     .alumni-hero-copy h1,
     .alumni-about-copy h2 {
-        @apply max-w-2xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl;
+        @apply max-w-3xl text-4xl font-bold leading-tight text-slate-950 sm:text-5xl;
     }
 
     .lead,
     .alumni-about-copy p,
     .gallery-intro,
+    .event-story p,
     .news-story p {
         @apply text-base leading-7 text-slate-600;
     }
 
     .hero-actions {
-        @apply flex flex-col gap-3 sm:flex-row sm:flex-wrap;
+        @apply grid gap-3 sm:flex sm:flex-wrap;
+    }
+
+    .home-text-link {
+        @apply inline-flex items-center text-sm font-bold text-cyan-800 transition hover:text-orange-700;
     }
 
     .alumni-hero-media,
     .alumni-about-media {
-        @apply overflow-hidden rounded-[1.75rem] border border-cyan-100 bg-cyan-50 shadow-inner;
+        @apply relative min-h-[16rem] overflow-hidden rounded-lg border border-slate-200 bg-slate-100;
+    }
+
+    .alumni-hero-media {
+        @apply min-h-[18rem] lg:min-h-[25rem];
+    }
+
+    .alumni-about-media {
+        @apply lg:min-h-[24rem];
     }
 
     .alumni-hero-media img,
@@ -1204,16 +1232,49 @@
         @apply h-full w-full object-cover;
     }
 
+    .hero-media-caption {
+        @apply absolute bottom-4 left-4 grid gap-1 rounded-lg bg-white/90 px-4 py-3 shadow-lg shadow-slate-950/10 backdrop-blur;
+    }
+
+    .hero-media-caption span {
+        @apply text-xs font-bold uppercase text-cyan-800;
+    }
+
+    .hero-media-caption strong {
+        @apply text-sm font-bold text-slate-950;
+    }
+
+    .home-impact-band,
+    .alumni-impact-band {
+        @apply grid gap-3 rounded-lg border border-cyan-200 bg-cyan-50 p-3 shadow-sm shadow-cyan-950/5 sm:grid-cols-2 xl:grid-cols-4;
+    }
+
+    .impact-stat {
+        @apply border border-cyan-100 bg-white px-5 py-4 text-center shadow-sm;
+    }
+
+    .impact-stat strong {
+        @apply block text-3xl font-bold text-cyan-900;
+    }
+
+    .impact-stat span {
+        @apply mt-1 block text-sm font-semibold text-slate-600;
+    }
+
     .alumni-feature-grid {
-        @apply grid gap-5 lg:grid-cols-3;
+        @apply grid gap-4 lg:grid-cols-3;
     }
 
     .alumni-feature-card {
-        @apply grid gap-4 p-6;
+        @apply grid gap-3 p-5 transition hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-xl hover:shadow-cyan-950/10;
+    }
+
+    .alumni-feature-card span {
+        @apply text-xs font-bold text-orange-700;
     }
 
     .alumni-feature-card h2 {
-        @apply text-lg font-semibold text-slate-900;
+        @apply text-xl font-bold text-slate-950;
     }
 
     .alumni-feature-card p {
@@ -1221,65 +1282,56 @@
     }
 
     .alumni-about-band {
-        @apply grid gap-6 overflow-hidden p-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:p-8;
+        @apply grid gap-6 overflow-hidden p-5 sm:p-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:items-center lg:p-8;
     }
 
-    .home-impact-band,
-    .alumni-impact-band {
-        @apply grid gap-4 rounded-[2rem] border border-cyan-100 bg-cyan-50/80 p-5 shadow-xl shadow-cyan-950/5 sm:grid-cols-2 xl:grid-cols-4;
-    }
-
-    .impact-stat {
-        @apply rounded-[1.5rem] border border-white/70 bg-white/80 px-5 py-4 text-center shadow-sm;
-    }
-
-    .impact-stat strong {
-        @apply block text-3xl font-bold tracking-tight text-cyan-900;
-    }
-
-    .impact-stat span {
-        @apply mt-2 block text-sm font-medium text-slate-600;
-    }
-
-    .alumni-news-gallery {
-        @apply grid gap-6 xl:grid-cols-[1.15fr_0.85fr];
+    .alumni-events-news,
+    .alumni-gallery-row {
+        @apply grid gap-5;
     }
 
     .home-panel-block {
-        @apply p-6;
+        @apply p-5 sm:p-6;
     }
 
     .alumni-news-block,
-    .alumni-gallery-block {
+    .alumni-gallery-block,
+    .alumni-events-block {
         @apply h-full;
     }
 
     .home-panel-head {
-        @apply mb-4 flex items-center justify-between gap-4;
+        @apply mb-5 flex items-start justify-between gap-4;
     }
 
     .home-panel-head h2 {
-        @apply text-2xl font-semibold tracking-tight text-slate-900;
+        @apply mt-1 text-2xl font-bold text-slate-950;
     }
 
+    .event-story-list,
     .news-story-list {
-        @apply grid gap-4;
+        @apply grid gap-3;
+    }
+
+    .event-story {
+        @apply grid gap-2 border border-slate-200 bg-slate-50 p-4;
+    }
+
+    .event-story span {
+        @apply text-xs font-bold uppercase text-cyan-800;
+    }
+
+    .event-story h3,
+    .news-story strong {
+        @apply text-base font-bold text-slate-950;
     }
 
     .news-story {
-        @apply flex flex-col gap-3 rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-4 sm:flex-row sm:items-start sm:justify-between;
-    }
-
-    .news-story strong {
-        @apply block text-base font-semibold text-slate-900;
+        @apply flex flex-col gap-3 border border-slate-200 bg-white px-4 py-4 sm:flex-row sm:items-start sm:justify-between;
     }
 
     .news-story a {
-        @apply text-sm font-semibold text-cyan-800 transition hover:text-cyan-900;
-    }
-
-    .alumni-panel-footer {
-        @apply mt-5;
+        @apply shrink-0 text-sm font-bold text-cyan-800 transition hover:text-orange-700;
     }
 
     .gallery-thumb-grid,
@@ -1288,24 +1340,11 @@
     }
 
     .gallery-thumb {
-        @apply overflow-hidden rounded-[1.25rem] border border-slate-200 bg-slate-100;
+        @apply aspect-[4/3] overflow-hidden border border-slate-200 bg-slate-100;
     }
 
     .gallery-thumb img {
-        @apply h-full w-full object-cover;
-    }
-
-    .directory-search-form {
-        @apply grid gap-3 md:grid-cols-2 xl:grid-cols-5;
-    }
-
-    .directory-search-form input,
-    .directory-search-form select {
-        @apply min-h-[52px] rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100;
-    }
-
-    .directory-search-form button {
-        @apply w-full;
+        @apply h-full w-full object-cover transition duration-300 hover:scale-105;
     }
 
     .page-hero {
@@ -3012,7 +3051,18 @@
         .home-panel-block,
         .alumni-feature-card,
         .dashboard-hero {
-            @apply rounded-[1.6rem] p-5;
+            @apply p-5;
+        }
+
+        .alumni-hero,
+        .alumni-about-band,
+        .home-panel-block,
+        .alumni-feature-card {
+            @apply rounded-lg;
+        }
+
+        .alumni-about-copy {
+            @apply order-first;
         }
 
         .alumni-hero-copy h1,
